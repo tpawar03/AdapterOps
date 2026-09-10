@@ -7,7 +7,8 @@ at **$25** (§14). Update this and STATUS.md §1 together.
 
 | Phase | Provider | What | Duration | Charge | Total |
 |---|---|---|---|---|---|
-| — | — | no spend yet | — | $0.00 | $0.00 |
+| 0 | HuggingFace | Mirror 3 of 4 datasets (26.6 MB) | — | $0.00 | $0.00 |
+| 0 | OpenAI | `models.list()` auth check — free endpoint | — | $0.00 | $0.00 |
 
 ## Budget envelope (PRD §12)
 
@@ -25,4 +26,5 @@ at **$25** (§14). Update this and STATUS.md §1 together.
   ceiling gets breached.
 - **Kill the GPU when you stop.** Spot billing is per second and an idle box is the
   most likely way to lose the budget.
-- Set a hard billing cap on the OpenAI account (day-1 check 8 in BUILD-PLAN.md).
+- ~~Set a hard billing cap on the OpenAI account (day-1 check 8).~~ **Done — $15 cap set.**
+  This is the backstop, not the budget: §12 allocates ~$10 to API across all three uses.

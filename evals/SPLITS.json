@@ -1,0 +1,75 @@
+{
+  "purpose": "Frozen evaluation splits (F35). Golden sets must never move.",
+  "regenerate": "uv run adapterops splits --force  (this invalidates prior comparisons)",
+  "pending": [
+    "urgency \u2014 awaiting Kaggle mirror",
+    "pii \u2014 blocked, see STATUS.md"
+  ],
+  "tasks": [
+    {
+      "task": "intent",
+      "seed": 20260909,
+      "label_column": "label",
+      "stratified": true,
+      "group_column": null,
+      "golden_from": "data/intent/test.parquet",
+      "trainval_from": "data/intent/train.parquet",
+      "note": "770 = exactly 10 per class across 77 classes (PRD \u00a711). The upstream test split holds 39-40 per class, so 10/class is comfortably drawable. Gated metric is micro-accuracy; macro-F1 is indicative only at this density.",
+      "splits": {
+        "golden": {
+          "file": "evals/golden/intent.parquet",
+          "rows": 770,
+          "bytes": 30137,
+          "sha256": "ca4851759de2429632ba03a96619b558103b841f78506b6ccd7acac35590a2e9"
+        },
+        "val": {
+          "file": "data/intent/split_val.parquet",
+          "rows": 1498,
+          "bytes": 58573,
+          "sha256": "74fb33358da6e98bf991675b83317dbb623a9d87a36c80655ce4ec8e468ae92a"
+        },
+        "train": {
+          "file": "data/intent/split_train.parquet",
+          "rows": 8495,
+          "bytes": 311736,
+          "sha256": "188f8a3cf23d0622e136f28e37fd7bd9be5feaaeab507fef5d31eed07c2a5c90"
+        }
+      },
+      "golden_per_class": {
+        "min": 10,
+        "max": 10,
+        "classes": 77
+      }
+    },
+    {
+      "task": "drafting",
+      "seed": 20260909,
+      "label_column": "intent",
+      "stratified": false,
+      "group_column": "instruction",
+      "golden_from": "data/drafting/train.parquet",
+      "trainval_from": "data/drafting/train.parquet",
+      "note": "Single upstream split, so golden is held out from it first and train/val come from the remainder. Generative task \u2014 scored by the judge, not a label metric, so the golden set is not stratified. Split is group-aware on `instruction`: 989 instructions repeat (up to 8x), and a row-wise split leaves copies of golden texts in train.",
+      "splits": {
+        "golden": {
+          "file": "evals/golden/drafting.parquet",
+          "rows": 300,
+          "bytes": 81691,
+          "sha256": "55863e85c4c743f3d9b9be337ae06f0ef24a54e078fba035928f0478a8ad1c0e"
+        },
+        "val": {
+          "file": "data/drafting/split_val.parquet",
+          "rows": 3982,
+          "bytes": 1152607,
+          "sha256": "ddf6537e5206966a1f2380c41f922b116fd1a6beb827ac4818d8d4024193080d"
+        },
+        "train": {
+          "file": "data/drafting/split_train.parquet",
+          "rows": 22566,
+          "bytes": 6537015,
+          "sha256": "e7eaa2b1361444a3bcbfa925e2ff78c71fbdc917874c4d0e49c45cd0c7fa35b8"
+        }
+      }
+    }
+  ]
+}

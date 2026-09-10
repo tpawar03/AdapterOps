@@ -21,13 +21,13 @@ and in the phase column of §4.
 | | |
 |---|---|
 | **Phase** | Phase 0 — repo + Python environment scaffolded; verification not begun |
-| **Spec** | PRD v2.3, published + in repo |
+| **Spec** | PRD v2.4, published + in repo |
 | **Hours logged** | 0 / 180 |
 | **Spend** | $0.00 / $50.00 |
-| **Repo** | `~/Desktop/AdapterOps`, git `main`, **no commits yet**. uv project `adapterops`, Python 3.12.13, 244 packages locked, base env installs clean on macOS. |
-| **Blocking** | Day-1 verification (BUILD-PLAN.md) — 8 unverified facts, any can re-scope the project |
-| **Done so far** | Repo scaffold, `pyproject.toml` with base/gpu split, `uv.lock`, package skeleton, `COST-LOG.md`, ruff clean |
-| **Next action** | Verify licenses + Banking77 test-split size, mirror datasets, create `COST-LOG.md` |
+| **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, 244 packages locked, base env installs clean on macOS. |
+| **Blocking** | 1 of 8 day-1 checks remains: Kaggle API token, for the urgency dataset mirror (check 4). Blocks Phase 1, not Phase 0. |
+| **Done so far** | Repo scaffold, `pyproject.toml` with base/gpu split, `uv.lock`, package skeleton, `COST-LOG.md`, ruff clean, initial commit pushed, **7 of 8 day-1 checks verified**, 3 of 4 datasets mirrored, OpenAI key working with a $15 cap |
+| **Next action** | Kaggle API token → mirror the urgency dataset; then OpenAI billing cap (day-1 check 8) |
 
 ### Milestone tracker
 
@@ -40,7 +40,7 @@ and in the phase column of §4.
 | M5 | Judge calibration reported | not started |
 | M6 | Manifest drives serving | not started |
 | M7 | **detect → block → rollback proven** | not started |
-| M8 | Live demo + public repo | not started |
+| M8 | Live demo + public repo | repo public ✓ · demo not started |
 | M9 | Spend ≤ $50 | on track ($0) |
 | M10 | Hard-cases split mined + adjudicated | not started |
 | M11 | **Gate sensitivity measured** | not started |
@@ -241,6 +241,167 @@ not housekeeping adjacent to it.
 
 ---
 
+### D16 · Intent data switched from `PolyAI/banking77` to `mteb/banking77`
+**Rejected:** keeping the canonical PolyAI repo and pinning `datasets<3` to retain
+loading-script support.
+**Why:** `PolyAI/banking77` ships a `banking77.py` loading script and no parquet. The
+`datasets` 5.0.1 in this project's lockfile refuses it outright — *"Dataset scripts are
+no longer supported"* — and the Hub has no `refs/convert/parquet` branch for it to fall
+back on. Pinning an old `datasets` to keep a script alive would have traded a permanent
+dependency ceiling for a dataset that has a clean drop-in mirror.
+
+`mteb/banking77` is parquet-native, **MIT** licensed, and carries the same 77 classes
+with `text` / `label` / `label_text` columns.
+
+**Cost of the switch:** row counts differ slightly from canonical — 9,993 train and
+3,076 test against 10,003 / 3,080, so 14 rows fewer overall. Immaterial to a 770-example
+golden set, but the PRD's stated "13,083 available" is now off by 14 and its §9 source
+row is wrong until corrected.
+
+**Interview angle:** a dependency-driven dataset migration caught on day 1 rather than
+in week 4. Also the concrete payoff of the day-1 verification block existing at all —
+this was check 3, and it failed for a reason nobody would have predicted from the PRD.
+
+---
+
+### D17 · Mirror the PII source capped and seeded, not whole
+**Rejected:** mirroring all 143,515 English rows, as the other two sources are mirrored
+whole.
+**Why:** the full English mirror is **147 MB of parquet** — 96% of a 153 MB `data/`
+directory — for a task PRD §9 subsamples to ~3K rows. Capping at 20,000 train / 5,000
+validation under a fixed seed (`SEED = 20260909`, recorded in `data/MANIFEST.json`) still
+leaves ~7x headroom over the training subsample and the Phase 2 ticket pool, and brings
+the mirror to **26.6 MB**. Intent (372 KB) and drafting (5.6 MB) are mirrored whole
+because there is nothing to gain by trimming them.
+
+`mbert_tokens` / `mbert_token_classes` are dropped as well — unused by this project and
+by far the largest columns.
+
+**Trade-off:** the mirror is no longer a faithful copy of upstream, so the manifest has
+to carry the filter, the cap, the seed and the Hub revision or the sample is not
+reproducible. It does, and re-running the mirror produces byte-identical files.
+
+**Interview angle:** treating an eval/data snapshot as a versioned artifact with a
+recorded provenance chain — source revision, filter, seed, per-file sha256 — rather than
+"I downloaded a dataset."
+
+---
+
+### D18 · Repo moved from the Desktop to `~/code/AdapterOps`
+**Rejected:** leaving it on the Desktop.
+
+**Correction — the original rationale for this move was wrong.** It was made on the
+belief that iCloud sync applied the `UF_HIDDEN` flag that silently disabled the editable
+install, and that the move removed a recurring cause. That was tested afterwards and
+disproved: a uv venv created on the Desktop has unflagged `.pth` files and works. The
+flag on the two affected venvs came from some past event that was never identified.
+`chflags -R nohidden .venv` was a sufficient fix and the move was not required.
+
+**What still argues for `~/code`, on weaker grounds:** the Desktop is iCloud-synced —
+`~/Desktop` and the iCloud Desktop folder list identical contents — so a 1.1 GB venv, a
+27 MB data mirror and a git object store would all be continuously syncing. `.gitignore`
+does not exclude anything from iCloud. That is a storage-and-churn preference, not a
+correctness fix, and the repo would work in either place.
+
+**Verified after the move:** git history and all staged files intact, remote unchanged,
+PRD build byte-identical, all five mirrored-data sha256s match the manifest, ruff clean.
+
+**Interview angle:** not the move — the debugging chain, and the correction.
+`ModuleNotFoundError` → `.pth` present and correct → silently skipped → `site.addpackage`
+ignores hidden files → macOS flag. Four layers between symptom and cause. Then a
+plausible-sounding explanation for the flag that turned out to be wrong when finally
+tested, after it had already been acted on. The lesson worth telling is the second part:
+a fix that works is not evidence that the diagnosis was right.
+
+---
+
+### D19 · Moved back to `~/Desktop/AdapterOps`
+**Rejected:** staying at `~/code/AdapterOps`.
+**Why:** D18's move was made on a diagnosis that turned out to be wrong — the `UF_HIDDEN`
+flag was never caused by the location, and `chflags -R nohidden .venv` was the actual fix.
+Once that collapsed, the only argument left for `~/code` was avoiding iCloud sync of the
+venv and git store, which is a storage-churn preference. Weighed against having the work
+covered by iCloud backup, the preference lost.
+
+**What is genuinely accepted by living on the Desktop:** iCloud syncs everything in the
+folder regardless of `.gitignore` — the ~1.1 GB venv, the 27 MB data mirror and the whole
+`.git` object store. That is bandwidth and iCloud storage, plus a small corruption risk
+for a git object store inside a continuously syncing directory. Worth revisiting only if
+sync actually misbehaves.
+
+**Verified after the move back:** HEAD `cd31720`, all 11 staged files, remote unchanged,
+PRD build md5 identical (`760badfc1…`), all five mirrored-data sha256s match, ruff clean,
+and the `.pth` files came back **unflagged** — which is itself the final confirmation that
+the location was never the cause.
+
+**Interview angle:** the pair D18/D19 is worth more than either alone — an action taken on
+an untested diagnosis, the diagnosis later falsified, and the action reversed rather than
+retrofitted with a better-sounding justification.
+
+---
+
+### D20 · `UV_PROJECT_ENVIRONMENT=venv` set globally; both projects migrated off `.venv`
+**Rejected:** `chflags -R nohidden` after every sync (treats the symptom, fails silently
+when forgotten); a `.nosync` suffix (tested — does not exclude from this sync); moving
+projects off the Desktop (tried in D18, reverted in D19); turning off iCloud Desktop &
+Documents sync (removes the backup the user wants).
+
+**What was done:** `export UV_PROJECT_ENVIRONMENT="venv"` in `~/.zshenv` — chosen over
+`.zshrc` so non-interactive shells and IDE-spawned processes inherit it. Every uv project
+on this machine now creates `venv/` instead of `.venv/`. AdapterOps and IncidentIQ both
+had their venvs removed and rebuilt under the new name, and both `.gitignore` files
+updated.
+
+**Why this is the right shape of fix:** it removes the *precondition* rather than the
+cause. Whatever agent sets `UF_HIDDEN` — a 24-minute probe failed to reproduce it at all,
+so the iCloud attribution stays unproven — it only ever touches dot-prefixed names. A venv without a leading dot
+is outside the behaviour entirely, so the fix holds even if the attribution is wrong.
+
+**Known residue, accepted:** `.git` is still flagged in every Desktop project. Git does
+not care, and no tool in this stack reads `.pth` files from `.git`. The venv is also
+still synced to iCloud (~1 GB) — `.nosync` was tested and does not prevent it, and macOS
+offers no per-folder exclusion for Desktop & Documents sync.
+
+**Verified:** AdapterOps — `venv/` unflagged, 0 of 3 `.pth` hidden, CLI and deep imports
+work. IncidentIQ — was 33,748 flagged entries with its own package unimportable; now
+0 flagged and `import incidentiq` succeeds.
+
+**Interview angle:** the whole arc, D18 → D19 → D20. An untested diagnosis acted on, the
+action reversed when it was falsified, then a real investigation that found the actual
+discriminator (dot-prefix, not location), and a fix chosen specifically so that it works
+whether or not the remaining inference is right.
+
+---
+
+### D21 · F3 reframed from a binary PII flag to span detection
+**Rejected:** cross-corpus negatives from Bitext (the option originally chosen); same-corpus
+negatives built by surrogate substitution; shipping the binary task with the confound
+merely disclosed.
+
+**Why:** both constructions were built and measured before any training code was written,
+and both failed. Bitext negatives — a classifier that cannot see any PII separates the
+classes at **0.9999** against 0.5 chance, so the adapter would be scoring corpus identity.
+Same-corpus surrogates — trained on one surrogate vocabulary, tested on a disjoint one,
+**0.9918 → 0.5102**, so the adapter would be scoring my twelve phrases. Span detection
+invents no negatives at all: `source_text`, `masked_text` and `privacy_mask` offsets come
+straight from the data.
+
+**Cost:** F3's gated metric becomes span-level F1 rather than macro-F1, which touches M2
+and §11. The golden set stays 300 documents — at a median of six spans each that is ~1,800
+scored spans, a denser signal than 300 binary labels, so changelog 15's sizing argument is
+unaffected.
+
+**Why not just disclose the confound and ship it:** the adapter would have reported ~0.99
+on a scorecard. A number that looks excellent and means nothing is worse than no number,
+and it would have sat next to three honest ones.
+
+**Interview angle:** the strongest evidence-driven story in the project so far. Both probes
+are reproducible — `uv run adapterops pii-task`, results in `data/pii/CONFOUND.json` — so
+this is a claim with an artifact behind it rather than a recollection. Pairs with D7 (the
+leak) and D8 (label noise) as the evaluation-design cluster in §5.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -251,6 +412,7 @@ not housekeeping adjacent to it.
 | Judge distillation vs direct API calls | Distil anyway, state the real reason | Spends a week on a component whose stated rationale is void at this scale |
 | Frontier parity vs cost/latency | Documented tradeoff, not parity | Cannot claim "matches GPT-4o"; must argue the curve instead |
 | Repo size vs offline reproducibility | Commit 3.4 MB of vendored assets | Heavier clone |
+| iCloud backup vs sync churn | Live on the Desktop (D19) | ~1 GB of venv + git still syncing; no per-folder exclusion exists |
 | Real data realism vs privacy | Synthetic PII spans only | No real-world messiness in the PII task |
 
 ---
@@ -262,6 +424,12 @@ Filled in as results arrive. **Empty is the correct state today.**
 ### Measurements pending
 | What | Value | Recorded |
 |---|---|---|
+| Day-1 license + availability checks (7 of 8) | **all pass** — see findings | Phase 0 |
+| OpenAI API reachable, spend cap set | **auth ok, 129 models; cap $15** | Phase 0 |
+| Datasets mirrored + provenance recorded | **3 of 4** · 26.6 MB, reproducible | Phase 0 |
+| Eval splits frozen (F35) | **intent 770 (10/class), drafting 300** | Phase 0 |
+| Majority-class floor, intent | **0.0130 micro-accuracy** | Phase 0 |
+| PII binary-task confound | **0.9999 cross-corpus / 0.5102 unseen-surrogate** | Phase 0 |
 | vLLM multi-LoRA works on rented A10G? | — | Phase 0 |
 | Adapter vs prompted baseline, per task | — | Phase 1 |
 | P95 latency, per adapter, rented GPU | — | Phase 1 |
@@ -278,7 +446,103 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
 
-*(none yet — Phase 0 not started)*
+**Phase 0 · A binary PII task cannot be validly constructed from this data — measured
+twice, failed twice.** The mirrored ai4privacy split contains **zero negatives**: every
+one of 20,000 rows has at least one PII span, median six. A binary "PII present" flag
+therefore needs negatives from somewhere, and both available constructions were built and
+probed (`uv run adapterops pii-task`, results in `data/pii/CONFOUND.json`).
+
+*Construction 1 — negatives from Bitext.* A classifier that cannot see any PII (positives
+replaced by their masked text, all template markers stripped from both sides) separates
+the classes at **0.9999**, against 0.5 chance. Length alone reaches 0.779. The task is
+almost entirely "which corpus is this", not "does this contain PII". Mitigations were
+applied first — Bitext *responses* rather than *instructions*, to close a 47-vs-354
+character gap — and made no material difference.
+
+*Construction 2 — negatives from the same documents*, each PII span replaced by a
+type-matched surrogate, so no corpus confound is possible. Trained on one surrogate
+vocabulary and tested on a disjoint one: **0.9918 → 0.5102**, a drop of 0.4816. The
+classifier had learned the twelve surrogate phrases, not PII.
+
+*Means:* F3 as written — "PII/compliance flag" as binary classification — produces an
+adapter whose score measures an artifact. Any number it reports would be meaningless, and
+would look excellent.
+
+*Changes the plan:* yes — F3 is now span detection (D21), PRD v2.5 changelog 24-25.
+
+**Phase 0 · Two credential-handling near-misses, both fixed.** The OpenAI key was stored
+in `.env` wrapped in literal double quotes — 166 characters sent for a 164-character key —
+which OpenAI rejected as `invalid_api_key` while echoing the quotes back. Diagnosed by
+inspecting the file's shape rather than its contents. More importantly, the fix produced a
+`.env.bak`, and `.gitignore` listed only `.env`, which **does not match `.env.bak`** — a
+second copy of a live key would have been committable to a public repo. *Means:* the
+pattern, not the filename, is what protects a secret. *Changes the plan:* `.gitignore` now
+covers `.env` and `.env.*`; `python-dotenv` replaces ad-hoc `split('=')` parsing so quotes
+and comments are handled properly.
+
+**Phase 0 · `uv` editable installs were silently inert on this Mac — `site` skips
+hidden `.pth` files.** `uv run adapterops` failed with `ModuleNotFoundError` even though
+`adapterops.pth` existed in site-packages with the correct path. Root cause: every file
+under `.venv` carries the macOS `UF_HIDDEN` flag, and CPython's `site.addpackage` skips
+hidden `.pth` files *silently* — no error, no warning. A byte-identical `.pth` created by
+hand was honoured; the flagged one was not. `chflags -R nohidden .venv` fixes it.
+*Means:* two venvs on this machine had dead editable installs — this one and
+`IncidentIQ`'s. **Cause, established on the second investigation:** on this Mac every
+*dot-prefixed* file and directory inside the iCloud-synced Desktop carries `UF_HIDDEN`,
+recursively — `.git`, `.venv`, `.gradle`, `.idea`, `.vscode`, `.claude`, `.gitignore`,
+`.python-version`, across eight unrelated projects — while no non-dot item does
+(`src`, `data`, `pyproject.toml`, `STATUS.md`: all clean). `FXICloudDriveDesktop` is `1`
+and the iCloud store contains those dot-items. Items created minutes earlier are *not*
+yet flagged, which is why an immediate check on a fresh venv looked like a disproof and
+was not. *Changes the plan:* yes — see D20. `chflags -R nohidden <venv>` remains the
+one-line rescue if it is ever seen again.
+
+**Phase 0 · What was NOT observed — the probe came back negative.** A probe ran 24
+samples over 24 minutes: a dot-dir, a dot-file, a normal dir, a normal file and a
+`.nosync` dir on the Desktop, against a dot-dir control in `~/Downloads`. **Nothing was
+flagged, in any sample, including the Desktop dot-dir.** So the flagging was not
+reproduced and the trigger is unknown; a "syncs then flags within minutes" model is ruled
+out at this timescale.
+
+What the evidence still supports is a *correlation*, not a mechanism: every dot-prefixed
+item on the Desktop older than today is flagged, nothing non-dot is, and nothing created
+today is — which is consistent with a trigger on a much longer cycle (daily, login, or a
+backup pass) but does not establish one. The attribution to iCloud is therefore
+**unproven inference**, and is recorded here as such rather than as a cause.
+
+**This does not weaken the fix.** D20 removes the precondition — a venv with no leading
+dot is outside the behaviour whatever produces it. Separately disproved along the way: a
+`.nosync` suffix does not exclude anything from this sync — the probe's `skip.nosync`
+contents are in the iCloud store.
+
+**Cheap open experiment:** the probe directories are left in place at
+`~/Desktop/_flagprobe` and `~/Downloads/_flagprobe`. If the Desktop dot-items are flagged
+on a later check and the `~/Downloads` control is not, the trigger is long-cycle and
+location-bound, and the iCloud attribution firms up. `ls -ldO ~/Desktop/_flagprobe/.dotdir`
+answers it in one command.
+
+**Phase 0 · `PolyAI/banking77` cannot be loaded by modern `datasets`.** It is
+script-based (`banking77.py`, no parquet) and `datasets` 5.0.1 rejects loading scripts
+entirely; the Hub has no auto-converted parquet branch for it. *Means:* the PRD's named
+intent source is unusable as specified. *Changes the plan:* yes — switched to
+`mteb/banking77` (D16). PRD corrected in v2.4, changelog 21.
+
+**Phase 0 · `ai4privacy/pii-masking-openpii-1m` is multilingual and far larger than
+assumed.** 1,143,397 train + 284,746 validation rows, with `language` and `region`
+columns covering at least English and French. *Means:* the PRD's "~3K subsample" is still
+right, but the subsample **must filter to English** or it silently violates non-goal 11.
+*Changes the plan:* a filter step in data prep, not a scope change. PRD v2.4, changelog 22.
+
+**Phase 0 · All four licenses are permissive — better than assumed.** Qwen2.5-1.5B
+Apache-2.0; `mteb/banking77` MIT; Kaggle ticket-priority **CC0 public domain**;
+`ai4privacy/pii-masking-openpii-1m` CC-BY-4.0 (declared as `other` + `license_name:
+cc-by-4.0`, with the README confirming CC-BY-4.0); Bitext CDLA-Sharing-1.0. *Means:* the
+PRD's flagged risk that the ai4privacy variant might restrict portfolio use does not
+materialise, and no adapter has to be cut. *Changes the plan:* no — but Bitext's
+share-alike attribution still has to go in the README.
+
+**Phase 0 · Bitext confirmed at 26,872 rows**, loads cleanly, columns
+`flags / instruction / category / intent / response`. Matches the PRD's 26.8K.
 
 ---
 

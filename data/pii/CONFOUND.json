@@ -1,0 +1,28 @@
+{
+  "verdict": "Both constructions of a binary PII task are invalid on this data. Cross-corpus negatives are separable with all PII removed; same-corpus surrogate negatives collapse to chance on unseen surrogates. See STATUS.md.",
+  "stats": {
+    "rows": 40000,
+    "balance": {
+      "yes": 20000,
+      "no": 20000
+    },
+    "mean_chars": {
+      "positives": 353.6,
+      "negatives": 635.6
+    }
+  },
+  "cross_corpus_probe": {
+    "chance": 0.5,
+    "pii_blind_accuracy": 0.9999,
+    "pii_visible_accuracy": 0.9996,
+    "length_only_accuracy": 0.779,
+    "leakage_above_chance": 0.4999,
+    "interpretation": "pii_blind_accuracy is the confound. A classifier that cannot see any PII should sit near 0.5; everything above that is source-style leakage. Compare any trained adapter's score against pii_blind_accuracy, not against chance."
+  },
+  "same_corpus_probe": {
+    "accuracy_seen_surrogates": 0.9918,
+    "accuracy_unseen_surrogates": 0.5102,
+    "drop": 0.4816,
+    "interpretation": "Collapse toward chance on unseen surrogates means the classifier learned the surrogate phrases, not PII \u2014 so this construction is invalid too."
+  }
+}

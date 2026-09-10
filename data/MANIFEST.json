@@ -1,0 +1,106 @@
+{
+  "purpose": "Local mirror of the PRD \u00a79 sources; guards against upstream takedown.",
+  "regenerate": "uv run python -m adapterops.data.mirror",
+  "sources": [
+    {
+      "task": "intent",
+      "hf_id": "mteb/banking77",
+      "revision": "18072d2685ea682290f7b8924d94c62acc19c0b2",
+      "note": "Parquet-native mirror of Banking77. PolyAI/banking77 is script-based and modern `datasets` refuses to load it \u2014 see PRD changelog 21.",
+      "columns_kept": "all",
+      "filter": null,
+      "sampling_seed": null,
+      "splits": {
+        "train": {
+          "rows_upstream": 9993,
+          "rows_after_filter": 9993,
+          "rows_mirrored": 9993,
+          "capped_at": null
+        },
+        "test": {
+          "rows_upstream": 3076,
+          "rows_after_filter": 3076,
+          "rows_mirrored": 3076,
+          "capped_at": null
+        }
+      },
+      "files": [
+        {
+          "file": "data/intent/train.parquet",
+          "bytes": 288451,
+          "sha256": "3b60278055fdaffe827746fb9df3ed2939235870ef01d130348c9185cefecdff"
+        },
+        {
+          "file": "data/intent/test.parquet",
+          "bytes": 89108,
+          "sha256": "50625f56474b2a2f082297908803a9dd5393ba67e229c38637260373408ba293"
+        }
+      ]
+    },
+    {
+      "task": "drafting",
+      "hf_id": "bitext/Bitext-customer-support-llm-chatbot-training-dataset",
+      "revision": "430d1a89bd93bd1fa23c16f29dd53e73f0087443",
+      "note": "CDLA-Sharing-1.0. Attribution + share-alike; attribution belongs in the README.",
+      "columns_kept": "all",
+      "filter": null,
+      "sampling_seed": null,
+      "splits": {
+        "train": {
+          "rows_upstream": 26872,
+          "rows_after_filter": 26872,
+          "rows_mirrored": 26872,
+          "capped_at": null
+        }
+      },
+      "files": [
+        {
+          "file": "data/drafting/train.parquet",
+          "bytes": 5893937,
+          "sha256": "4e233f422a0e8695f07d47317bfd46dccba975db5390d3d821b1b749c0229f63"
+        }
+      ]
+    },
+    {
+      "task": "pii",
+      "hf_id": "ai4privacy/pii-masking-openpii-1m",
+      "revision": "ecfdc547f4a0955600cfe6ab98ba2a162207fcc0",
+      "note": "English rows only \u2014 the source spans 23 languages and is only ~12.5% English, so an unfiltered subsample would violate non-goal 11 (PRD changelog 22). mbert_tokens / mbert_token_classes dropped: unused and by far the largest columns. Capped after filtering: 143,515 English train rows is ~47x what PRD \u00a79 needs (~3K subsample) and would put 147 MB of parquet in git for no benefit.",
+      "columns_kept": [
+        "source_text",
+        "masked_text",
+        "privacy_mask",
+        "language",
+        "region"
+      ],
+      "filter": "language in ['en']",
+      "sampling_seed": 20260909,
+      "splits": {
+        "train": {
+          "rows_upstream": 1143397,
+          "rows_after_filter": 143515,
+          "rows_mirrored": 20000,
+          "capped_at": 20000
+        },
+        "validation": {
+          "rows_upstream": 284746,
+          "rows_after_filter": 35904,
+          "rows_mirrored": 5000,
+          "capped_at": 5000
+        }
+      },
+      "files": [
+        {
+          "file": "data/pii/train.parquet",
+          "bytes": 16287944,
+          "sha256": "a50bee3fc6301c74c35e526c220ebb285bd580334852e5c32a7cb89f930a6697"
+        },
+        {
+          "file": "data/pii/validation.parquet",
+          "bytes": 4046572,
+          "sha256": "74c2813fd86ef0b346d223c1490d87bb3eda3ae07f8e6a261183a3c06fbda31f"
+        }
+      ]
+    }
+  ]
+}

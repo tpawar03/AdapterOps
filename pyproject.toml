@@ -26,6 +26,8 @@ dependencies = [
     "gradio>=4.44",
     "openai>=1.50",
     "wandb>=0.18",
+    "python-dotenv>=1.0",
+    "kagglehub>=1.0",   # urgency dataset (PRD §9) — Kaggle, not on the HF Hub
 ]
 
 [project.optional-dependencies]

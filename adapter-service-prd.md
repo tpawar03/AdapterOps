@@ -1,6 +1,6 @@
 # PRD: Multi-Task Adapter Service with Cost-Aware Routing and Calibrated Evaluation
 
-**Version:** 2.3 (two-split evaluation with measured gate sensitivity)
+**Version:** 2.5 (PII task reframed after its confound was measured)
 **Owner:** Solo build
 **Status:** Ready to start
 **Estimated duration:** 9 weeks at 20 hrs/week (~180 hours)
@@ -34,7 +34,7 @@ Two rounds of substantive revision, each triggered by the previous version claim
 | 12 | **Frontier adjudication screen before an item enters the split.** | A set built from "examples the model got wrong" concentrates *source label noise* — Banking77 and the Kaggle priority set both contain genuinely mislabeled rows, and those are exactly the rows a decent model "fails". Items where the frontier model also disagrees with the gold label are quarantined, not gated on. The quarantine rate is itself worth reporting. |
 | 13 | **Gate policy resolved: report for two runs, then gate on a variance-derived threshold.** "Any drop blocks promotion" is removed. | v2.1 contradicted itself — §11 asserted the split blocks promotion, §15 listed block-vs-warn as an open question. Worse, "any drop blocks" on a 100–150 example set reintroduces exactly the unfalsifiable gate that change #6 raised the golden set to avoid. |
 | 14 | **Adapter failures and router misroutes separated.** Only adapter failures enter the gated split. | v2.1 pooled two different components' errors into one number. A misroute is a router defect; an adapter failure is a model defect. Blending them makes a moved gate untraceable to a cause. |
-| 15 | **Golden set sized per task. Intent raised 300 → 770; gated metric is micro-accuracy, not macro-F1.** | Inherited from v2 and missed twice. Banking77 has 77 classes — 300 examples is under 4 per class, where macro-F1 is dominated by sampling noise and per-class F1 is not reportable at all. Banking77's test split holds 3,080, so 770 (≈10/class) is free. |
+| 15 | **Golden set sized per task. Intent raised 300 → 770; gated metric is micro-accuracy, not macro-F1.** | Inherited from v2 and missed twice. Banking77 has 77 classes — 300 examples is under 4 per class, where macro-F1 is dominated by sampling noise and per-class F1 is not reportable at all. Banking77's test split holds ~3,080, so 770 (≈10/class) is free. |
 | 16 | **Cross-source shift test redesigned** to a within-task lexical-cluster and length holdout. | Task identity is a router input feature and each task is bound to one source — intent labels exist only in Banking77, urgency only in the Kaggle set. Splitting by source also splits by task, so the v2 test measured behaviour on an unseen task value. It would have failed for the wrong reason. |
 | 17 | **Second, subtle injected regression added** — an under-trained checkpoint — scored on both splits. | v2.1 claimed the split "makes the regression gate meaningfully harder to pass" and offered no evidence. The only injected failure was a shuffled-label adapter, which the random set catches on its own, so the split was decoration. |
 | 18 | **Teacher model resolved: GPT-4o for judge labels, GPT-4o-mini for escalation and the frontier ceiling.** | v2.1 said GPT-4o in §9, §10 and F13, and GPT-4o-mini in §12. At ~1,200 judgments the GPT-4o cost is roughly $4, so the stronger teacher is affordable. |
@@ -45,6 +45,22 @@ Two rounds of substantive revision, each triggered by the previous version claim
 | # | Change | Reason |
 |---|---|---|
 | 20 | **Version renumbered 2.2 → 2.3. No change to scope, requirements, evaluation, timeline or budget.** | Logged rather than applied quietly. §9 pins eval-split versions into the manifest precisely so that a moved bar shows up as a diff instead of an unexplained score change; a spec that renumbers itself without saying why would hold its own document to a looser standard than the system it describes. The entry exists to make the answer to "what changed in 2.3?" be *nothing*, in writing, rather than a gap someone has to reconstruct. |
+
+### v2.3 → v2.4 — day-1 verification results
+
+| # | Change | Reason |
+|---|---|---|
+| 21 | **Intent source changed from `PolyAI/banking77` to `mteb/banking77`.** | Day-1 check. `PolyAI/banking77` ships a loading script and no parquet, and modern `datasets` refuses loading scripts outright — the Hub has no auto-converted parquet branch to fall back on either. The named source was unusable in this project's own environment, which no amount of license checking would have caught. `mteb/banking77` is parquet-native and MIT, with the same 77 classes; the cost is 14 fewer rows than canonical, which the 770-example golden set does not notice. |
+| 22 | **PII subsample must filter to English.** | Day-1 check. `ai4privacy/pii-masking-openpii-1m` turned out to hold 1,143,397 train rows across multiple languages, carrying `language` and `region` columns. The ~3K subsample was always right, but drawn naively it would have included French and silently violated non-goal 11. A filter step in data prep, not a scope change. |
+| 23 | **All four licenses verified permissive; the ai4privacy restriction risk did not materialise.** | Qwen2.5-1.5B Apache-2.0, `mteb/banking77` MIT, Kaggle ticket-priority CC0, ai4privacy CC-BY-4.0, Bitext CDLA-Sharing-1.0. §9's warning that the PII variant might restrict portfolio use is resolved — no adapter is cut. Bitext's share-alike attribution requirement stands and goes in the README. |
+
+### v2.4 → v2.5 — the PII task, measured and reframed
+
+| # | Change | Reason |
+|---|---|---|
+| 24 | **F3 reframed from a binary PII flag to PII span detection / masking.** | The mirrored ai4privacy split has **zero negatives** — every row carries at least one PII span, median six — so a binary flag needs negatives invented from somewhere. Two constructions were built and probed. Cross-corpus negatives from Bitext: a classifier *with all PII removed* separates the classes at **0.9999** against 0.5 chance, so the task is corpus identification, not PII detection. Same-corpus negatives, each span replaced by a type-matched surrogate: trained on one surrogate vocabulary and tested on a disjoint one, **0.9918 → 0.5102** — the model had learned the surrogate phrases. Span detection invents no negatives: the data supplies `source_text`, `masked_text` and `privacy_mask` offsets directly. Both probes are reproducible via `uv run adapterops pii-task`. |
+| 25 | **PII's gated metric changes from macro-F1 to span-level F1;** its golden set stays 300 documents. | A span task is scored on predicted spans against gold offsets, not a per-document label. 300 documents at a median of six spans is ~1,800 scored spans — a denser signal than 300 binary labels, so changelog 15's sizing rationale still holds. |
+| 26 | **Drafting splits are group-aware on `instruction`.** | Caught by a test on its first run: Bitext repeats 989 instructions up to eight times, so a row-wise golden/train split leaves copies of golden texts in training. Splitting on unique instruction text removes the leak. |
 
 ---
 
@@ -111,7 +127,7 @@ The v2.2 revisions are themselves part of the signal. A split that leaks into tr
 | # | Criterion | Target | How measured |
 |---|---|---|---|
 | M1 | All 4 adapters trained, versioned, served concurrently | vLLM serves all 4 from one process | Automated smoke test hitting all 4 |
-| M2 | Each adapter evaluated against a prompted baseline on the same golden set | Report (not gate): accuracy delta vs. base+few-shot, cost/1K, P95 latency, per task. Gated metric is micro-accuracy for intent, macro-F1 for urgency and PII, judge score for drafting. | Golden-set eval script — 770 held-out for intent, 300 for the rest (§11) |
+| M2 | Each adapter evaluated against a prompted baseline on the same golden set | Report (not gate): accuracy delta vs. base+few-shot, cost/1K, P95 latency, per task. Gated metric is micro-accuracy for intent, macro-F1 for urgency, **span-level F1 for PII**, judge score for drafting. | Golden-set eval script — 770 held-out for intent, 300 for the rest (§11) |
 | M3 | Router evaluated as an operating curve against 3 baselines | Curve of quality-retained vs. frontier-call-rate across ≥5 thresholds, plotted against always-cheap, always-frontier, and confidence-based routing | Held-out router eval set, disjoint from the hard-cases split |
 | M4 | Router tested for distribution shift | Reported degradation (or lack of it) on a within-task lexical-cluster and length holdout, with every task present on both sides | Shift eval (§11) |
 | M5 | Judge calibration reported | Spearman/Pearson correlation **and** agreement-within-±1, both reported with no pass threshold | 150-example held-out calibration set |
@@ -144,7 +160,7 @@ The v2.2 revisions are themselves part of the signal. A split that leaks into tr
 
 1. Reviewer opens the hosted demo.
 2. Selects or pastes a support ticket, e.g. *"my card hasn't arrived, it's been 3 weeks, this is unacceptable"*.
-3. Sees, per task: the router's decision (local vs. escalate) with predicted-success score, the classification outputs with confidence, a drafted reply, and per-request cost and latency.
+3. Sees, per task: the router's decision (local vs. escalate) with predicted-success score, the classification outputs (intent, urgency) with confidence, the PII spans detected, a drafted reply, and per-request cost and latency.
 4. Opens the **results view**: adapter scorecards with random-set and hard-cases scores side by side, the router operating curve with the chosen operating point marked, and judge calibration numbers.
 5. Opens the **failure demo view**: the recorded detect → block → rollback sequence for the gross regression, and the sensitivity result for the subtle one.
 
@@ -163,7 +179,7 @@ The v2.2 revisions are themselves part of the signal. A split that leaks into tr
 |---|---|---|
 | F1 | Train QLoRA adapter: intent classification (Banking77) | P0 |
 | F2 | Train QLoRA adapter: urgency/priority (Kaggle ticket-priority) | P0 |
-| F3 | Train QLoRA adapter: PII/compliance flag (ai4privacy) | P0 |
+| F3 | Train QLoRA adapter: **PII span detection / masking** (ai4privacy) — reframed from a binary flag, see changelog 24 | P0 |
 | F4 | Train QLoRA adapter: draft-reply generation (Bitext) | P0 |
 | F5 | Serve all 4 adapters concurrently via vLLM multi-LoRA | P0 |
 | F6 | Golden-set eval harness comparing adapter vs. prompted baseline vs. frontier, per-task sizing (F35) | P0 |
@@ -195,7 +211,7 @@ The v2.2 revisions are themselves part of the signal. A split that leaks into tr
 | F32 | Report random-set and hard-cases scores as separate dashboard rows; never blend them | P0 |
 | F33 | Derive the hard-cases gating threshold from run-to-run variance observed across the first two Phase 4 runs; record the derivation in the repo | P0 |
 | F34 | Build the subtle regression (under-trained checkpoint) and score it on both splits; publish the outcome either way | P0 |
-| F35 | Per-task golden-set sizing: intent 770 gated on micro-accuracy; urgency, PII, drafting 300 | P0 |
+| F35 | Per-task golden-set sizing: intent 770 gated on micro-accuracy; urgency, PII, drafting 300 (PII = 300 documents, ~1,800 spans) | P0 |
 | F36 | Within-task shift set: TF-IDF cluster holdout plus top/bottom length deciles, every task present on both sides | P0 |
 | F37 | Router-misroute diagnostic set — reported per run, not gated | P1 |
 
@@ -222,7 +238,7 @@ The v2.2 revisions are themselves part of the signal. A split that leaks into tr
 flowchart TB
     subgraph Offline["Offline / Training Path"]
         direction TB
-        D1["Public datasets:<br/>Banking77, Kaggle tickets,<br/>ai4privacy, Bitext"] --> T1["QLoRA training<br/>x4 adapters"]
+        D1["Public datasets:<br/>mteb/banking77, Kaggle tickets,<br/>ai4privacy (en), Bitext"] --> T1["QLoRA training<br/>x4 adapters"]
         T1 --> REG["HF Hub registry<br/>(adapter revisions)"]
         REG --> E1["Eval harness:<br/>adapter vs prompted<br/>vs frontier"]
         E1 --> REG
@@ -288,10 +304,10 @@ flowchart TB
 
 | Task | Source | Volume used | License | Labeling | Splits |
 |---|---|---|---|---|---|
-| Intent | `PolyAI/banking77` (HF) | 13,083 avail. → ~4K train | Verify on HF page at day 1 | Pre-labeled, 77 classes | Train/val + **770 golden** (≈10/class, from the 3,080-example test split) |
-| Urgency | Kaggle `albertobircoci/support-ticket-priority-dataset-50k` | 50K avail. → ~4K | Kaggle license — verify day 1 | Pre-labeled | 70/15/15, 300 golden |
-| PII | `ai4privacy/pii-masking-openpii-1m` or `-200k` | ~3K subsample | Free for research; commercial variants restricted — **confirm the specific variant permits portfolio use** | Pre-labeled, synthetic | 70/15/15, 300 golden |
-| Drafting | `bitext/Bitext-customer-support-llm-chatbot-training-dataset` | 26.8K avail. → ~2K | CDLA-Sharing 1.0 | Pre-labeled instruction/response pairs | 70/15/15, 300 golden |
+| Intent | `mteb/banking77` (HF) — parquet-native mirror; `PolyAI/banking77` is script-based and unloadable (changelog 21) | 13,069 avail. (9,993 train / 3,076 test) → ~4K train | **MIT** — verified | Pre-labeled, 77 classes | Train/val + **770 golden** (10/class, 25% of the 3,076-example test split) |
+| Urgency | Kaggle `albertobircoci/support-ticket-priority-dataset-50k` | 50K avail. → ~4K | **CC0 public domain** — verified | Pre-labeled | 70/15/15, 300 golden |
+| PII | `ai4privacy/pii-masking-openpii-1m` | 1,143,397 train avail. → ~3K subsample, **English rows only** | **CC-BY-4.0** — verified | Pre-labeled, synthetic. Multilingual: filter on the `language` column (non-goal 11). **Span offsets, not a document label** — the split has zero PII-free rows (changelog 24) | 70/15/15, 300 golden |
+| Drafting | `bitext/Bitext-customer-support-llm-chatbot-training-dataset` | 26,872 avail. → ~2K | CDLA-Sharing 1.0 — verified (attribution + share-alike; attribution goes in the README) | Pre-labeled instruction/response pairs | 70/15/15, 300 golden |
 | Router | Generated: ticket pool → adapter outputs → harness scoring | ~3,000 pairs | Inherits source licenses | **Computed automatically** | Held-out eval + within-task shift set. **Hard-cases items removed before training.** |
 | Judge | GPT-4o judgments on drafting outputs | ~1,200 | N/A (generated) | LLM-generated | 150 held out for calibration |
 | Hard cases | Mined from retained **adapter-failure** records, then frontier-adjudicated | ~150 mined → ~100 retained per task | Inherits source licenses | **Computed**, then screened by a frontier adjudication pass | Held separate from the random golden set *and* from router training. Versioned; grows in capped batches, never continuously. |
@@ -309,7 +325,7 @@ Gating promotion on an unscreened failure-mined set therefore means blocking rel
 
 **Versioning.** Each dataset snapshot is mirrored locally and committed to the repo. Adapters, router, judge *and both eval splits* are versioned, with model cards recording eval scores at upload time. The manifest pins split versions so that a change in the bar is always visible as a diff.
 
-**Licensing caveat.** The license entries above reflect what was verified at planning time. Re-verify each one immediately before download on day 1.
+**Licensing caveat.** All five entries above were verified against the live sources during day-1 checks and are marked accordingly. Licenses and Kaggle availability still change — re-verify before any future re-download rather than trusting this table indefinitely.
 
 ---
 
@@ -339,7 +355,7 @@ Gating promotion on an unscreened failure-mined set therefore means blocking rel
 
 | What | Dataset | When | Tooling |
 |---|---|---|---|
-| Per-adapter quality vs. prompted baseline vs. frontier | Random golden set — 770 intent, 300 urgency/PII/drafting | Every training run | Custom eval script |
+| Per-adapter quality vs. prompted baseline vs. frontier | Random golden set — 770 intent, 300 urgency/PII (documents)/drafting | Every training run | Custom eval script |
 | **Hard-cases score** | Mined, adjudicated failure split (~100/task), held separately | Every regression run from Phase 4 | Same eval script, second split |
 | Cost and latency per adapter | Random golden set, **on dedicated rented GPU only** | Once per adapter version; re-run if serving stack changes | Async load script |
 | Router operating curve | Held-out router eval set (disjoint from hard cases) | Every router training run | Custom script + matplotlib |
@@ -362,9 +378,9 @@ The corrected policy: the hard-cases score is **reported but not gating for its 
 
 ### Golden-set sizing — corrected, and now per task
 
-v2 raised every golden set from 100 to 300 on the reasoning that 100 sits inside the noise floor. Correct for urgency (a handful of classes), PII (binary) and drafting (a 1–5 judge score). Wrong for intent: **Banking77 has 77 classes, so 300 examples averages under four per class.** Macro-F1 at that density is dominated by which four examples happened to be drawn, and per-class F1 is not reportable at all.
+v2 raised every golden set from 100 to 300 on the reasoning that 100 sits inside the noise floor. Correct for urgency (a handful of classes), PII (300 documents, ~1,800 scored spans) and drafting (a 1–5 judge score). Wrong for intent: **Banking77 has 77 classes, so 300 examples averages under four per class.** Macro-F1 at that density is dominated by which four examples happened to be drawn, and per-class F1 is not reportable at all.
 
-Intent's golden set is therefore 770 (≈10 per class, drawn from Banking77's 3,080-example test split) and its *gated* metric is micro-accuracy. Macro-F1 is reported alongside and explicitly marked indicative, not gate-worthy. Inference on 770 short texts is seconds on the rented GPU, so this costs essentially nothing — it was simply missed twice.
+Intent's golden set is therefore 770 (10 per class, drawn from the mirror's 3,076-example test split — 25% of it) and its *gated* metric is micro-accuracy. Macro-F1 is reported alongside and explicitly marked indicative, not gate-worthy. Inference on 770 short texts is seconds on the rented GPU, so this costs essentially nothing — it was simply missed twice.
 
 ### Cross-source shift — redesigned, because the v2 test was confounded
 
@@ -507,9 +523,9 @@ M11 sits last among the cuttable items because it is cheap — the checkpoint al
 - **Headline claim:** *"A multi-adapter LLM service that cuts inference cost through learned routing — evaluated on both random and failure-mined splits, and proven, via two injected failures, to detect and roll back its own regressions."*
 - **Done means:** live demo + public repo with recorded benchmark evidence. No production uptime obligations.
 - **Day one is zero.** No prior code, data, or infrastructure carries over.
-- Qwen2.5-1.5B-Instruct's license permits this use — **flagged for day-1 verification.**
-- Dataset licenses per §9 require re-verification before download.
-- Banking77's test split is assumed to hold ~3,080 examples, which the 770-example intent golden set draws from. Verify on day 1 alongside the license.
+- Qwen2.5-1.5B-Instruct is **Apache-2.0** — verified day 1.
+- ~~Dataset licenses per §9 require re-verification before download.~~ **Resolved day 1:** all four verified permissive.
+- ~~Banking77's test split is assumed to hold ~3,080 examples.~~ **Resolved day 1:** the `mteb/banking77` mirror holds 3,076 test rows — the 770-example golden set is exactly 10 per class and 25% of the split.
 
 ### Glossary
 

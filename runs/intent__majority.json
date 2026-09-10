@@ -1,0 +1,15 @@
+{
+  "task": "intent",
+  "split": "evals/golden/intent.parquet",
+  "split_sha256": "ca4851759de2429632ba03a96619b558103b841f78506b6ccd7acac35590a2e9",
+  "system": "majority",
+  "n": 770,
+  "gated_metric": "micro_accuracy",
+  "metrics": {
+    "micro_accuracy": 0.012987012987012988,
+    "macro_f1": 0.000333000333000333,
+    "weighted_f1": 0.00033300033300033295
+  },
+  "seconds": 0.0001,
+  "host": "macOS-26.6.2-arm64-arm-64bit"
+}
