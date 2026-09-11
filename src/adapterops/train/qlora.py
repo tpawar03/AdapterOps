@@ -53,7 +53,7 @@ PROMPTS = {
 
 COLUMNS = {
     "intent": ("text", "label_text"),
-    "urgency": ("text", "label"),
+    "urgency": ("text", "priority"),
     "pii": ("source_text", "target"),
     "drafting": ("instruction", "response"),
 }
@@ -120,7 +120,16 @@ def load_split(task: str, split: str, subsample: int | None = None) -> pd.DataFr
 
 TASK_CONFIGS: dict[str, dict] = {
     "intent": {"max_seq_length": 128, "batch_size": 8, "grad_accum": 4},
-    "urgency": {"max_seq_length": 128, "batch_size": 8, "grad_accum": 4},
+    "urgency": {
+        # Full tickets, not one-line queries: measured median 83 / p95 161 / max 315
+        # tokens against intent's 34. 320 covers even the longest row, so nothing is
+        # truncated. Batch 4 keeps peak loss memory (batch x seq x 151,936 vocab, fp32
+        # plus gradient) near 0.8 GB.
+        "max_seq_length": 320,
+        "batch_size": 4,
+        "grad_accum": 8,
+        "epochs": 3,   # not 2 — see STATUS: epochs=2 was over-generalised from intent
+    },
     "pii": {
         # Sequences run median 160 / p95 429 / max 802 tokens against intent's 34.
         # Peak loss memory is batch x seq x 151,936 vocab, upcast to fp32 with a gradient:

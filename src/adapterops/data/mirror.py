@@ -39,6 +39,13 @@ class Source:
     cap_rows: dict[str, int] | None = None
     """Per-split row cap. Applied after filtering, with SEED, so the mirror stays a
     reasonable size in git. Only used where the upstream split dwarfs what the PRD needs."""
+    data_files: str | None = None
+    """Explicit file within the repo, for datasets that ship several CSVs with no default
+    config. Without it `load_dataset` either guesses or refuses."""
+    drop_na: list[str] = field(default_factory=list)
+    """Columns that must be present; rows missing any of them are dropped."""
+    licence: str = ""
+    """Recorded in MANIFEST.json. Non-permissive licences must also reach the README."""
 
 
 SOURCES = [
@@ -69,6 +76,27 @@ SOURCES = [
         filter_column="language",
         filter_values=["en"],
         cap_rows={"train": 20000, "validation": 5000},
+        licence="cc-by-4.0",
+    ),
+    Source(
+        task="urgency",
+        hf_id="Tobi-Bueck/customer-support-tickets",
+        note=(
+            "Replaces Kaggle albertobircoci/support-ticket-priority-dataset-50k, which has "
+            "NO TICKET TEXT — it is a tabular dataset whose `description_length` column is an "
+            "integer and whose description is absent (PRD changelog 27). English rows only: "
+            "the source is 60% English / 40% German, the same trap as ai4privacy. Rows "
+            "missing body or priority are dropped (1,033 of 11,923). "
+            "LICENCE IS cc-by-nc-4.0 — non-commercial, attribution required. This is the "
+            "only non-permissive source in the project and the derived adapter inherits it; "
+            "disclosed in the README and the adapter card."
+        ),
+        data_files="dataset-tickets-multi-lang-4-20k.csv",
+        keep_columns=["subject", "body", "priority", "language", "type", "queue"],
+        filter_column="language",
+        filter_values=["en"],
+        drop_na=["body", "priority"],
+        licence="cc-by-nc-4.0",
     ),
 ]
 
@@ -86,13 +114,16 @@ def mirror(source: Source) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     revision = dataset_info(source.hf_id).sha
-    dataset = load_dataset(source.hf_id)
+    dataset = (load_dataset(source.hf_id, data_files=source.data_files)
+               if source.data_files else load_dataset(source.hf_id))
 
     splits, files = {}, []
     for split_name, split in dataset.items():
         before = len(split)
         if source.filter_column:
             split = split.filter(lambda r: r[source.filter_column] in source.filter_values)
+        for column in source.drop_na:
+            split = split.filter(lambda r, c=column: r[c] is not None and str(r[c]).strip() != "")
         rows_after_filter = len(split)
         cap = (source.cap_rows or {}).get(split_name)
         if cap and len(split) > cap:
@@ -122,11 +153,14 @@ def mirror(source: Source) -> dict:
         "hf_id": source.hf_id,
         "revision": revision,
         "note": source.note,
+        "licence": source.licence or "unrecorded",
+        "licence_permissive": source.licence not in {"cc-by-nc-4.0"},
         "columns_kept": source.keep_columns or "all",
         "filter": (
             f"{source.filter_column} in {source.filter_values}" if source.filter_column else None
         ),
         "sampling_seed": SEED if source.cap_rows else None,
+        "dropped_rows_missing": source.drop_na or None,
         "splits": splits,
         "files": files,
     }

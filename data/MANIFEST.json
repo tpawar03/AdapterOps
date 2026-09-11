@@ -7,9 +7,12 @@
       "hf_id": "mteb/banking77",
       "revision": "18072d2685ea682290f7b8924d94c62acc19c0b2",
       "note": "Parquet-native mirror of Banking77. PolyAI/banking77 is script-based and modern `datasets` refuses to load it \u2014 see PRD changelog 21.",
+      "licence": "unrecorded",
+      "licence_permissive": true,
       "columns_kept": "all",
       "filter": null,
       "sampling_seed": null,
+      "dropped_rows_missing": null,
       "splits": {
         "train": {
           "rows_upstream": 9993,
@@ -42,9 +45,12 @@
       "hf_id": "bitext/Bitext-customer-support-llm-chatbot-training-dataset",
       "revision": "430d1a89bd93bd1fa23c16f29dd53e73f0087443",
       "note": "CDLA-Sharing-1.0. Attribution + share-alike; attribution belongs in the README.",
+      "licence": "unrecorded",
+      "licence_permissive": true,
       "columns_kept": "all",
       "filter": null,
       "sampling_seed": null,
+      "dropped_rows_missing": null,
       "splits": {
         "train": {
           "rows_upstream": 26872,
@@ -66,6 +72,8 @@
       "hf_id": "ai4privacy/pii-masking-openpii-1m",
       "revision": "ecfdc547f4a0955600cfe6ab98ba2a162207fcc0",
       "note": "English rows only \u2014 the source spans 23 languages and is only ~12.5% English, so an unfiltered subsample would violate non-goal 11 (PRD changelog 22). mbert_tokens / mbert_token_classes dropped: unused and by far the largest columns. Capped after filtering: 143,515 English train rows is ~47x what PRD \u00a79 needs (~3K subsample) and would put 147 MB of parquet in git for no benefit.",
+      "licence": "cc-by-4.0",
+      "licence_permissive": true,
       "columns_kept": [
         "source_text",
         "masked_text",
@@ -75,6 +83,7 @@
       ],
       "filter": "language in ['en']",
       "sampling_seed": 20260909,
+      "dropped_rows_missing": null,
       "splits": {
         "train": {
           "rows_upstream": 1143397,
@@ -99,6 +108,43 @@
           "file": "data/pii/validation.parquet",
           "bytes": 4046572,
           "sha256": "74c2813fd86ef0b346d223c1490d87bb3eda3ae07f8e6a261183a3c06fbda31f"
+        }
+      ]
+    },
+    {
+      "task": "urgency",
+      "hf_id": "Tobi-Bueck/customer-support-tickets",
+      "revision": "ddf1c81a5475992c4fa6752bf1e8b4e31f07bbeb",
+      "note": "Replaces Kaggle albertobircoci/support-ticket-priority-dataset-50k, which has NO TICKET TEXT \u2014 it is a tabular dataset whose `description_length` column is an integer and whose description is absent (PRD changelog 27). English rows only: the source is 60% English / 40% German, the same trap as ai4privacy. Rows missing body or priority are dropped (1,033 of 11,923). LICENCE IS cc-by-nc-4.0 \u2014 non-commercial, attribution required. This is the only non-permissive source in the project and the derived adapter inherits it; disclosed in the README and the adapter card.",
+      "licence": "cc-by-nc-4.0",
+      "licence_permissive": false,
+      "columns_kept": [
+        "subject",
+        "body",
+        "priority",
+        "language",
+        "type",
+        "queue"
+      ],
+      "filter": "language in ['en']",
+      "sampling_seed": null,
+      "dropped_rows_missing": [
+        "body",
+        "priority"
+      ],
+      "splits": {
+        "train": {
+          "rows_upstream": 20000,
+          "rows_after_filter": 11922,
+          "rows_mirrored": 11922,
+          "capped_at": null
+        }
+      },
+      "files": [
+        {
+          "file": "data/urgency/train.parquet",
+          "bytes": 2300090,
+          "sha256": "209fcf6d98dcdde22bb0b582220ca119c4c8ec0704760b0d79c2f17e293d5fef"
         }
       ]
     }

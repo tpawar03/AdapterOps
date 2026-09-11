@@ -1,0 +1,28 @@
+{
+  "task": "drafting",
+  "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "train_rows": 6000,
+  "val_rows": 3982,
+  "trainable_params": 18464768,
+  "trainable_pct": 2.0356,
+  "train_loss": 0.7142,
+  "best_checkpoint": "checkpoint-376 (final step)",
+  "best_eval_loss": 0.655184268951416,
+  "val_loss_by_epoch": [0.6853, 0.6552],
+  "prompt_tokens_masked": true,
+  "seed": 20260909,
+  "device": "NVIDIA A10, bf16",
+  "wall_clock_minutes": 23,
+  "hub_repos": {
+    "adapter": "Tanny03/adapterops-drafting",
+    "m11_undertrained": "Tanny03/adapterops-drafting-undertrained-m11"
+  },
+  "qualitative_check": {
+    "method": "three golden-set generations read by hand — there is no automatic metric until the Phase 3 judge",
+    "verdict": "coherent, on-task support replies in the right register; {{Order Number}} placeholders preserved rather than hallucinated into values",
+    "caveat": "val loss was still falling at epoch 2, but a loss number cannot say whether replies got better. Left as-is pending the judge."
+  },
+  "warnings": [
+    "Two CUDA OOM warnings at steps 18 and 122 (allocator recovered, training completed). batch 4 x 512 runs close to the edge even on a 24 GB A10."
+  ]
+}

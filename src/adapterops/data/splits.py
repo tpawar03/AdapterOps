@@ -50,6 +50,19 @@ class SplitSpec:
     tests/test_splits_and_harness.py on its first run."""
 
 
+def urgency_text(df: pd.DataFrame) -> pd.DataFrame:
+    """Combine subject and body into the single `text` column the task classifies.
+
+    Subject is missing on 1,032 of the English rows, so it is concatenated only when
+    present rather than producing a literal "nan" prefix.
+    """
+    df = df.copy()
+    subject = df.subject.fillna("").astype(str).str.strip()
+    body = df.body.fillna("").astype(str).str.strip()
+    df["text"] = (subject + "\n" + body).str.strip()
+    return df
+
+
 def pii_targets(df: pd.DataFrame) -> pd.DataFrame:
     """Add the `target` column: one `LABEL: value` line per span, in source order.
 
@@ -77,6 +90,23 @@ SPECS = [
             "770 = exactly 10 per class across 77 classes (PRD §11). The upstream test "
             "split holds 39-40 per class, so 10/class is comfortably drawable. Gated "
             "metric is micro-accuracy; macro-F1 is indicative only at this density."
+        ),
+    ),
+    SplitSpec(
+        task="urgency",
+        label_column="priority",
+        golden_size=300,
+        stratified=True,
+        golden_from="data/urgency/train.parquet",
+        trainval_from="data/urgency/train.parquet",
+        transform=urgency_text,
+        note=(
+            "Single upstream split, so golden is held out first. 300 = 100 per class over "
+            "three priorities (low/medium/high) — stratified because the source is "
+            "imbalanced (medium 4,951 / high 4,571 / low 2,400) and an unstratified golden "
+            "set would under-sample `low`. Gated metric is macro-F1, not accuracy: with "
+            "three classes and a 2:1 imbalance, accuracy rewards ignoring the rare class. "
+            "Source is cc-by-nc-4.0 — see the README."
         ),
     ),
     SplitSpec(

@@ -11,6 +11,8 @@ at **$25** (§14). Update this and STATUS.md §1 together.
 | 0 | OpenAI | `models.list()` auth check — free endpoint | — | $0.00 | $0.00 |
 | 0 | Colab | Intent adapter QLoRA training, free T4 | 27 min | $0.00 | $0.00 |
 | 0 | Lambda | **Gate 0.5** — A10 24GB, vLLM multi-LoRA | ~35 min | ~$0.44 | ~$0.44 |
+| 1 | Lambda | Train PII + drafting adapters, A10 | ~50 min | ~$0.63 | ~$1.07 |
+| 1 | Lambda | Retrain PII, 8K rows / 3 epochs + eval | ~70 min | ~$0.88 | ~$1.95 |
 
 ## Budget envelope (PRD §12)
 

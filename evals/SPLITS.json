@@ -2,7 +2,8 @@
   "purpose": "Frozen evaluation splits (F35). Golden sets must never move.",
   "regenerate": "uv run adapterops splits --force  (this invalidates prior comparisons)",
   "pending": [
-    "urgency \u2014 no data: awaiting a Kaggle API token, then `adapterops mirror`"
+    "urgency \u2014 awaiting Kaggle mirror",
+    "pii \u2014 blocked, see STATUS.md"
   ],
   "tasks": [
     {
@@ -38,6 +39,41 @@
         "min": 10,
         "max": 10,
         "classes": 77
+      }
+    },
+    {
+      "task": "urgency",
+      "seed": 20260909,
+      "label_column": "priority",
+      "stratified": true,
+      "group_column": null,
+      "golden_from": "data/urgency/train.parquet",
+      "trainval_from": "data/urgency/train.parquet",
+      "note": "Single upstream split, so golden is held out first. 300 = 100 per class over three priorities (low/medium/high) \u2014 stratified because the source is imbalanced (medium 4,951 / high 4,571 / low 2,400) and an unstratified golden set would under-sample `low`. Gated metric is macro-F1, not accuracy: with three classes and a 2:1 imbalance, accuracy rewards ignoring the rare class. Source is cc-by-nc-4.0 \u2014 see the README.",
+      "splits": {
+        "golden": {
+          "file": "evals/golden/urgency.parquet",
+          "rows": 300,
+          "bytes": 118488,
+          "sha256": "d18da5aa08741ef27dd6cb1c1bed10373f0176c9e1e20c85e89df3d5003332b9"
+        },
+        "val": {
+          "file": "data/urgency/split_val.parquet",
+          "rows": 1743,
+          "bytes": 670750,
+          "sha256": "4915f3a419a58ac1fb93a7329351d77528db546c26b4770b351dc66f1c4ca8dd"
+        },
+        "train": {
+          "file": "data/urgency/split_train.parquet",
+          "rows": 9879,
+          "bytes": 3830744,
+          "sha256": "8da7a8adcc9c51464de433029e2e75233a0d76c772b7b3ace31ceb706973f1c6"
+        }
+      },
+      "golden_per_class": {
+        "min": 100,
+        "max": 100,
+        "classes": 3
       }
     },
     {

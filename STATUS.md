@@ -431,6 +431,38 @@ shortfall blamed on the model.
 
 ---
 
+### D23 · Urgency moves to an NC-licensed source, because the CC0 one has no text
+**Rejected:** the PRD's own `albertobircoci/support-ticket-priority-dataset-50k` (CC0);
+dropping urgency and shipping three adapters.
+
+**Why:** the Kaggle dataset contains **no ticket text**. Every string column is a short
+categorical (`'Wed'`, `'Small'`, `'media'`, max 15 chars) and `description_length` is an
+*integer* — the description was measured and discarded. It is a tabular dataset where
+`priority` is predicted from `error_rate_pct`, `downtime_min` and `security_incident_flag`,
+which gradient-boosted trees would do better and cheaper. It also does not fit the
+architecture: the router dispatches ticket *text*, and there is none here.
+
+`Tobi-Bueck/customer-support-tickets` has subject and body, three priority classes, and
+11,922 usable English rows after filtering. Its licence is **cc-by-nc-4.0**.
+
+**Cost:** the first non-permissive source in the project. The derived adapter inherits the
+restriction — non-commercial, attribution required — and that is disclosed in the README,
+`data/MANIFEST.json` (which now records `licence` and `licence_permissive` per source), and
+the adapter card. Three of four adapters remain unrestricted.
+
+**What this exposes about day-1 check 4:** it verified the dataset *existed* and was CC0.
+It never opened the file. Existence and licensing were checked; **suitability was assumed**,
+and the assumption survived several sessions of treating a missing Kaggle token as the
+blocker. The token was never the blocker and could not have been — the dataset is public
+and downloads anonymously.
+
+**Interview angle:** a verification step that checks the wrong property is worse than no
+check, because it produces confidence. "Licence verified, availability verified" read as
+"source verified" for weeks. The fix is cheap and now in the mirror: load the data and look
+at its columns as part of verification, not after.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -455,7 +487,7 @@ Filled in as results arrive. **Empty is the correct state today.**
 |---|---|---|
 | Day-1 license + availability checks (7 of 8) | **all pass** — see findings | Phase 0 |
 | OpenAI API reachable, spend cap set | **auth ok, 129 models; cap $15** | Phase 0 |
-| Datasets mirrored + provenance recorded | **3 of 4** · 26.6 MB, reproducible | Phase 0 |
+| Datasets mirrored + provenance recorded | **4 of 4** · 28.9 MB, reproducible | Phase 1 |
 | Eval splits frozen (F35) | **intent 770 (10/class), drafting 300** | Phase 0 |
 | Majority-class floor, intent | **0.0130 micro-accuracy** | Phase 0 |
 | Intent adapter trained | **done** — 3 epochs, 27 min, free T4 | Phase 0 |
@@ -468,6 +500,9 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Serving latency, A10 | **P50 81ms · P95 155ms** @ concurrency 16 | Phase 0 |
 | PII span scorer ceiling | **0.9942** on the frozen golden set (vs 0.8973 for masked text) | Phase 1 |
 | PII splits frozen | golden 300 docs / **2,394 spans**, train 17,000 | Phase 1 |
+| **PII adapter (8K rows, 3 epochs)** | **0.9182 strict** / 0.9472 relaxed — 92.4% of the 0.9942 ceiling | Phase 1 |
+| Drafting adapter | trained, published; judge-scored in Phase 3 | Phase 1 |
+| Adapters on the Hub | intent, pii, drafting (+ 3 M11 checkpoints) | Phase 1 |
 | M11 under-trained checkpoint retained | **saved at step 119 of 798** | Phase 0 |
 | PII binary-task confound | **0.9999 cross-corpus / 0.5102 unseen-surrogate** | Phase 0 |
 | vLLM multi-LoRA works on rented A10G? | — | Phase 0 |
@@ -485,6 +520,30 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 1 · `epochs: 2` was over-generalised from one task, and it cost a retrain.** The
+intent adapter overfitted at epoch 3 in three consecutive runs, so 2 became the global
+default. PII and drafting then both finished with validation loss **still falling** and
+`best_checkpoint` at the final step — under-trained, not over-trained. PII scored **0.8708
+strict against a 0.9942 ceiling**, with recall (0.8475) well below precision (0.8954):
+missing spans, not inventing them.
+
+*Means:* intent is 77-way classification over 34-token sequences; PII is extraction of ~7
+spans over 160-token sequences. They do not share a convergence profile, and one task's
+overfitting point is not evidence about another's. The epoch count belongs in
+`TASK_CONFIGS` alongside sequence length and batch size, not as a global default.
+
+*What saved it:* the escalation rule written into `TrainConfig.train_subsample` before
+training — *well below ceiling AND train loss still falling → data-limited* — fired
+correctly and turned an ambiguous result into a decision. Retraining at 8,000 rows /
+3 epochs took strict F1 **0.8708 → 0.9182** and recall **0.8475 → 0.8977**, for ~$0.88.
+
+*And the same rule then said stop.* Val loss moved 0.01226 → 0.01192 across the final
+epoch — 2.8%, against 38% for epoch 1→2 — with train loss at 0.003. The curve is flat, so
+data and epochs are no longer the binding constraint. The remaining 7.6 points to the
+ceiling would need LoRA rank raised from 16, which is a different experiment and not
+obviously worth ~$1 at this margin. **Having a stopping rule written down before the
+numbers arrived is what made both calls uncontroversial.**
 
 **Phase 1 · Per-task training configs, because one size silently truncates.** PII
 sequences run median 160 / p95 429 / max 802 tokens against intent's 34. At the shared
