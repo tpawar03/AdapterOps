@@ -1,0 +1,228 @@
+"""QLoRA training for the task adapters (F1-F4).
+
+One entrypoint, task as an argument — BUILD-PLAN Phase 0. Reads the *frozen* splits
+(`data/<task>/split_train.parquet`), never the raw mirror, so training can never
+accidentally see a golden-set row.
+
+CUDA-only imports (`bitsandbytes`) are deferred into `train()` so this module stays
+importable on macOS for formatting and inspection.
+
+**M11 side-effect, deliberate:** an early checkpoint is saved partway through training and
+kept. That under-trained adapter is the subtle regression the Phase 5 gate-sensitivity test
+needs (PRD M11). It costs nothing now and a full retrain in week 9.
+"""
+
+from __future__ import annotations
+
+import inspect
+import json
+import math
+from dataclasses import dataclass, field
+from pathlib import Path
+
+import pandas as pd
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+SEED = 20260909
+
+PROMPT = (
+    "Classify the customer's banking request into one intent label.\n"
+    "Request: {text}\n"
+    "Intent:"
+)
+
+
+@dataclass
+class TrainConfig:
+    task: str = "intent"
+    base_model: str = "Qwen/Qwen2.5-1.5B-Instruct"
+    max_seq_length: int = 128
+    """A hard cap only. Real lengths are ~34 tokens (p95 = 54); padding is dynamic."""
+    epochs: float = 3.0
+    batch_size: int = 16
+    grad_accum: int = 2
+    learning_rate: float = 2e-4
+    lora_r: int = 16
+    lora_alpha: int = 32
+    lora_dropout: float = 0.05
+    target_modules: list[str] = field(default_factory=lambda: [
+        "q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj",
+    ])
+    early_checkpoint_fraction: float = 0.15
+    """Where to snapshot the under-trained adapter for M11. 15% of steps is deliberately
+    too few to have converged — that is the point."""
+    output_dir: str = "checkpoints/intent"
+    hub_repo: str | None = None          # e.g. "tpawar03/adapterops-intent"
+
+
+def label_column(task: str) -> str:
+    return {"intent": "label_text", "urgency": "label"}[task]
+
+
+def text_column(task: str) -> str:
+    return {"intent": "text", "urgency": "text"}[task]
+
+
+def load_split(task: str, split: str) -> pd.DataFrame:
+    path = REPO_ROOT / f"data/{task}/split_{split}.parquet"
+    if not path.exists():
+        msg = f"{path} missing — run `uv run adapterops splits` first"
+        raise FileNotFoundError(msg)
+    return pd.read_parquet(path)
+
+
+def format_examples(df: pd.DataFrame, task: str) -> list[dict[str, str]]:
+    """One prompt/completion pair per row. The completion is the bare label, so scoring
+    is an exact-match check rather than parsing free text."""
+    tcol, lcol = text_column(task), label_column(task)
+    return [
+        {"prompt": PROMPT.format(text=r[tcol]), "completion": " " + str(r[lcol])}
+        for _, r in df.iterrows()
+    ]
+
+
+def train(cfg: TrainConfig) -> dict:
+    from importlib.metadata import version
+
+    import torch
+    from datasets import Dataset
+    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+    from transformers import (
+        AutoModelForCausalLM,
+        AutoTokenizer,
+        BitsAndBytesConfig,
+        DataCollatorForLanguageModeling,
+        Trainer,
+        TrainerCallback,
+        TrainingArguments,
+    )
+
+    if not torch.cuda.is_available():
+        msg = "QLoRA needs CUDA — run this on Colab/Kaggle or the rented GPU, not locally"
+        raise RuntimeError(msg)
+
+    tok = AutoTokenizer.from_pretrained(cfg.base_model)
+    tok.pad_token = tok.pad_token or tok.eos_token
+
+    def encode(batch: dict) -> dict:
+        joined = [p + c + tok.eos_token for p, c in zip(batch["prompt"], batch["completion"], strict=True)]
+        # No padding here. DataCollatorForLanguageModeling pads each batch to its own
+        # longest sequence and sets label -100 on the padding. Padding to a fixed 128
+        # when the mean length is 34 tokens wastes ~4x the compute per step.
+        return tok(joined, truncation=True, max_length=cfg.max_seq_length)
+
+    train_ds = Dataset.from_list(format_examples(load_split(cfg.task, "train"), cfg.task))
+    val_ds = Dataset.from_list(format_examples(load_split(cfg.task, "val"), cfg.task))
+    train_ds = train_ds.map(encode, batched=True, remove_columns=["prompt", "completion"])
+    val_ds = val_ds.map(encode, batched=True, remove_columns=["prompt", "completion"])
+
+    model = AutoModelForCausalLM.from_pretrained(
+        cfg.base_model,
+        quantization_config=BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=(
+                torch.bfloat16 if torch.cuda.get_device_capability(0)[0] >= 8 else torch.float16
+            ),
+            bnb_4bit_use_double_quant=True,
+        ),
+        device_map="auto",
+    )
+    # Gradient checkpointing recomputes activations to save memory, at roughly a third
+    # of throughput. At 1.5B in 4-bit with ~50-token sequences there is ample headroom on
+    # a 16 GB T4, so it is off. If this OOMs, set use_gradient_checkpointing=True and/or
+    # halve TrainConfig.batch_size.
+    model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
+    model = get_peft_model(model, LoraConfig(
+        r=cfg.lora_r, lora_alpha=cfg.lora_alpha, lora_dropout=cfg.lora_dropout,
+        target_modules=cfg.target_modules, task_type="CAUSAL_LM", bias="none"))
+    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total = sum(p.numel() for p in model.parameters())
+
+    out_dir = REPO_ROOT / cfg.output_dir
+    early_dir = out_dir.parent / f"{Path(cfg.output_dir).name}-undertrained-m11"
+
+    class EarlyCheckpoint(TrainerCallback):
+        """Snapshot an under-trained adapter for the M11 gate-sensitivity test."""
+
+        def __init__(self) -> None:
+            self.saved = False
+
+        def on_step_end(self, args, state, control, **kw):
+            if self.saved or not state.max_steps:
+                return control
+            if state.global_step >= max(1, int(state.max_steps * cfg.early_checkpoint_fraction)):
+                kw["model"].save_pretrained(early_dir)
+                self.saved = True
+                print(f"  [M11] under-trained checkpoint saved at step {state.global_step} -> {early_dir}")
+            return control
+
+    # transformers 5 removed `warmup_ratio` and kept `warmup_steps`, so compute the steps
+    # ourselves — `warmup_steps` exists in both 4.x and 5.x.
+    # T4 (Turing, SM 7.5) has no bf16 tensor cores; asking for bf16 there runs an
+    # emulated path several times slower than fp16. Do NOT use
+    # torch.cuda.is_bf16_supported() — its `including_emulation` argument defaults to
+    # True, so it answers True on Turing. Real bf16 starts at Ampere (SM 8.0).
+    bf16_ok = torch.cuda.get_device_capability(0)[0] >= 8
+    precision = {"bf16": True} if bf16_ok else {"fp16": True}
+    print(f"  precision: {'bf16' if bf16_ok else 'fp16'} "
+          f"(device {torch.cuda.get_device_name(0)}, capability {torch.cuda.get_device_capability(0)})")
+
+    steps_per_epoch = math.ceil(len(train_ds) / (cfg.batch_size * cfg.grad_accum))
+    total_steps = int(steps_per_epoch * cfg.epochs)
+    ta_kwargs = {
+        "output_dir": str(out_dir),
+        "num_train_epochs": cfg.epochs,
+        "per_device_train_batch_size": cfg.batch_size,
+        "gradient_accumulation_steps": cfg.grad_accum,
+        "learning_rate": cfg.learning_rate,
+        "lr_scheduler_type": "cosine",
+        "warmup_steps": max(10, int(0.03 * total_steps)),
+        "logging_steps": 10,
+        "eval_strategy": "epoch",
+        "save_strategy": "epoch",
+        "save_total_limit": 1,
+        **precision,
+        "optim": "paged_adamw_8bit",
+        "report_to": [],
+        "seed": SEED,
+    }
+    # Fail with something actionable rather than a bare TypeError halfway through a
+    # rented GPU session, the way `warmup_ratio` did.
+    supported = set(inspect.signature(TrainingArguments.__init__).parameters)
+    unsupported = sorted(set(ta_kwargs) - supported)
+    if unsupported:
+        msg = (f"TrainingArguments in transformers {version('transformers')} does not accept "
+               f"{unsupported}. Update train/qlora.py for this version.")
+        raise TypeError(msg)
+    args = TrainingArguments(**ta_kwargs)
+    trainer = Trainer(
+        model=model, args=args, train_dataset=train_ds, eval_dataset=val_ds,
+        data_collator=DataCollatorForLanguageModeling(tok, mlm=False),
+        callbacks=[EarlyCheckpoint()],
+    )
+    result = trainer.train()
+    model.save_pretrained(out_dir)
+    tok.save_pretrained(out_dir)
+
+    summary = {
+        "task": cfg.task,
+        "base_model": cfg.base_model,
+        "train_rows": len(train_ds),
+        "val_rows": len(val_ds),
+        "trainable_params": trainable,
+        "total_params": total,
+        "trainable_pct": round(100 * trainable / total, 4),
+        "train_loss": round(float(result.training_loss), 4),
+        "adapter_dir": str(out_dir.relative_to(REPO_ROOT)),
+        "m11_undertrained_dir": str(early_dir.relative_to(REPO_ROOT)),
+        "seed": SEED,
+    }
+    (out_dir / "train_summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+
+    if cfg.hub_repo:
+        model.push_to_hub(cfg.hub_repo, private=False)
+        tok.push_to_hub(cfg.hub_repo, private=False)
+        summary["hub_repo"] = cfg.hub_repo
+
+    return summary

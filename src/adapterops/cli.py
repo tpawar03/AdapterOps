@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from adapterops import __version__
@@ -24,6 +25,15 @@ def _cmd_pii_task(_: argparse.Namespace) -> int:
     from adapterops.data.pii_task import main as pii_main
 
     return pii_main()
+
+
+def _cmd_train(args: argparse.Namespace) -> int:
+    from adapterops.train.qlora import TrainConfig, train
+
+    cfg = TrainConfig(task=args.task, output_dir=f"checkpoints/{args.task}", hub_repo=args.hub_repo)
+    summary = train(cfg)
+    print(json.dumps(summary, indent=2))
+    return 0
 
 
 def _cmd_eval(args: argparse.Namespace) -> int:
@@ -65,6 +75,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_pii = sub.add_parser("pii-task", help="build the PII binary task and probe its confound")
     p_pii.set_defaults(func=_cmd_pii_task)
+
+    p_train = sub.add_parser("train", help="QLoRA-train a task adapter (needs CUDA)")
+    p_train.add_argument("--task", required=True, choices=["intent", "urgency"])
+    p_train.add_argument("--hub-repo", default=None, help="push to this HF Hub repo when done")
+    p_train.set_defaults(func=_cmd_train)
 
     p_eval = sub.add_parser("eval", help="score a system on a split (F6)")
     p_eval.add_argument("--split", required=True, help="path to a split parquet")

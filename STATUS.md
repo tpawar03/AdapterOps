@@ -20,13 +20,13 @@ and in the phase column of §4.
 
 | | |
 |---|---|
-| **Phase** | Phase 0 — repo + Python environment scaffolded; verification not begun |
+| **Phase** | Phase 0 — data, splits, harness and training code done; **Gate 0.5 not yet reached** |
 | **Spec** | PRD v2.4, published + in repo |
 | **Hours logged** | 0 / 180 |
 | **Spend** | $0.00 / $50.00 |
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, 244 packages locked, base env installs clean on macOS. |
 | **Blocking** | 1 of 8 day-1 checks remains: Kaggle API token, for the urgency dataset mirror (check 4). Blocks Phase 1, not Phase 0. |
-| **Done so far** | Repo scaffold, `pyproject.toml` with base/gpu split, `uv.lock`, package skeleton, `COST-LOG.md`, ruff clean, initial commit pushed, **7 of 8 day-1 checks verified**, 3 of 4 datasets mirrored, OpenAI key working with a $15 cap |
+| **Done so far** | **7 of 8 day-1 checks**, 3 of 4 datasets mirrored with provenance, eval splits frozen (intent 770 / drafting 300), eval harness + majority floor, PII confound measured and F3 reframed (PRD v2.5), OpenAI key + $15 cap, 2 commits pushed, secret scan clean |
 | **Next action** | Kaggle API token → mirror the urgency dataset; then OpenAI billing cap (day-1 check 8) |
 
 ### Milestone tracker
@@ -429,6 +429,8 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Datasets mirrored + provenance recorded | **3 of 4** · 26.6 MB, reproducible | Phase 0 |
 | Eval splits frozen (F35) | **intent 770 (10/class), drafting 300** | Phase 0 |
 | Majority-class floor, intent | **0.0130 micro-accuracy** | Phase 0 |
+| Intent adapter trained | — | Phase 0, next |
+| M11 under-trained checkpoint retained | — | saved automatically at 15% of steps |
 | PII binary-task confound | **0.9999 cross-corpus / 0.5102 unseen-surrogate** | Phase 0 |
 | vLLM multi-LoRA works on rented A10G? | — | Phase 0 |
 | Adapter vs prompted baseline, per task | — | Phase 1 |
