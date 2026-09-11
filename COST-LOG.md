@@ -9,6 +9,7 @@ at **$25** (§14). Update this and STATUS.md §1 together.
 |---|---|---|---|---|---|
 | 0 | HuggingFace | Mirror 3 of 4 datasets (26.6 MB) | — | $0.00 | $0.00 |
 | 0 | OpenAI | `models.list()` auth check — free endpoint | — | $0.00 | $0.00 |
+| 0 | Colab | Intent adapter QLoRA training, free T4 | 27 min | $0.00 | $0.00 |
 
 ## Budget envelope (PRD §12)
 

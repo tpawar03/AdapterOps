@@ -1,0 +1,34 @@
+{
+  "task": "intent",
+  "system": "adapter",
+  "split": "evals/golden/intent.parquet",
+  "n": 770,
+  "gated_metric": "micro_accuracy",
+  "metrics": {
+    "micro_accuracy": 0.9233766233766234,
+    "macro_f1": 0.8686414750353371,
+    "exact_label_rate": 0.9935064935064936
+  },
+  "training": {
+    "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+    "method": "QLoRA 4-bit",
+    "trainable_params": 18464768,
+    "trainable_pct": 2.0356,
+    "train_rows": 8495,
+    "epochs_run": 3,
+    "final_train_loss": 0.8868,
+    "val_loss_by_epoch": [0.897238, 0.859952, 0.880945],
+    "checkpoint_used": "epoch 3 (final)",
+    "seed": 20260909
+  },
+  "caveats": [
+    "Epoch 3 overfit: val loss rose 0.8600 -> 0.8809 while train loss fell. load_best_model_at_end was not set, so the saved adapter is the final epoch, not the best. save_total_limit=1 deleted the epoch-2 checkpoint.",
+    "Loss covers prompt tokens as well as the completion (labels unmasked), so val loss is a noisy proxy and not comparable across prompt formats.",
+    "Measured on a free Colab T4. Per PRD non-functional requirements, latency and cost from this tier are NOT reportable - those come from the rented A10G."
+  ],
+  "context": {
+    "majority_class_floor": 0.0130,
+    "prompted_baseline": null,
+    "frontier_ceiling": null
+  }
+}
