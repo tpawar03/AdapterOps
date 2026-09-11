@@ -44,12 +44,18 @@ PROMPTS = {
         "Text: {text}\n"
         "Found:\n"
     ),
+    "drafting": (
+        "Write a helpful customer-support reply to this request.\n"
+        "Request: {text}\n"
+        "Reply:"
+    ),
 }
 
 COLUMNS = {
     "intent": ("text", "label_text"),
     "urgency": ("text", "label"),
     "pii": ("source_text", "target"),
+    "drafting": ("instruction", "response"),
 }
 
 
@@ -125,6 +131,18 @@ TASK_CONFIGS: dict[str, dict] = {
         "grad_accum": 16,
         # Start here and let the measurement decide; see TrainConfig.train_subsample.
         "train_subsample": 3000,
+    },
+    "drafting": {
+        # median 127 / p95 286 / max 468 tokens. 512 covers everything with no truncation.
+        # Batch 4 at p95 is ~1.4 GB peak loss memory — comfortable on a 24 GB A10, and
+        # still under the ~2.1 GB that OOM'd a 16 GB T4.
+        "max_seq_length": 512,
+        "batch_size": 4,
+        "grad_accum": 8,
+        # 6,000 of 22,566, on the same measure-then-scale logic as PII. Drafting is
+        # judge-scored in Phase 3, so there is no cheap automatic metric to escalate on —
+        # which is a reason to start small and look at outputs before buying more rows.
+        "train_subsample": 6000,
     },
 }
 

@@ -2,8 +2,7 @@
   "purpose": "Frozen evaluation splits (F35). Golden sets must never move.",
   "regenerate": "uv run adapterops splits --force  (this invalidates prior comparisons)",
   "pending": [
-    "urgency \u2014 awaiting Kaggle mirror",
-    "pii \u2014 blocked, see STATUS.md"
+    "urgency \u2014 no data: awaiting a Kaggle API token, then `adapterops mirror`"
   ],
   "tasks": [
     {
