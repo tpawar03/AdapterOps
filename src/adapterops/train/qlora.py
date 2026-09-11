@@ -39,8 +39,12 @@ class TrainConfig:
     max_seq_length: int = 128
     """A hard cap only. Real lengths are ~34 tokens (p95 = 54); padding is dynamic."""
     epochs: float = 3.0
-    batch_size: int = 16
-    grad_accum: int = 2
+    batch_size: int = 8
+    """Micro-batch. Peak memory is dominated by the loss over Qwen's 151,936-token
+    vocabulary: logits are [batch x seq x 151936] and cross_entropy upcasts them to fp32,
+    so batch 16 with a 110-token sequence peaks around 2.1 GB for the loss alone and OOMs
+    a 16 GB T4. Effective batch stays 32 via grad_accum."""
+    grad_accum: int = 4
     learning_rate: float = 2e-4
     lora_r: int = 16
     lora_alpha: int = 32
@@ -174,6 +178,7 @@ def train(cfg: TrainConfig) -> dict:
         "output_dir": str(out_dir),
         "num_train_epochs": cfg.epochs,
         "per_device_train_batch_size": cfg.batch_size,
+        "per_device_eval_batch_size": cfg.batch_size,
         "gradient_accumulation_steps": cfg.grad_accum,
         "learning_rate": cfg.learning_rate,
         "lr_scheduler_type": "cosine",
