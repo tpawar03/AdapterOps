@@ -6,11 +6,10 @@
 #   export HF_USER=Tanny03
 #   ./scripts/train_all.sh
 #
-# urgency is NOT here: it has no mirrored data and no frozen split, because no Kaggle API
-# token was ever supplied. Add `urgency` to TASKS once `adapterops mirror` has it.
+# Override with e.g. TASKS="pii drafting" to retrain others.
 set -euo pipefail
 
-TASKS="${TASKS:-pii drafting}"
+TASKS="${TASKS:-urgency}"
 : "${HF_USER:?set HF_USER}"
 : "${HF_TOKEN:?set HF_TOKEN (Write scope)}"
 
@@ -18,8 +17,12 @@ cd "$(dirname "$0")/.."
 export PYTHONPATH=src
 export HF_TOKEN
 
-python -c "import torch; assert torch.cuda.is_available(); \
-    print('gpu:', torch.cuda.get_device_name(0))"
+# Check the GPU *and* the token before spending any time. A bad HF_TOKEN used to
+# surface 20 minutes in, on the first Hub call inside training.
+python -c "
+import torch; assert torch.cuda.is_available(); print('gpu:', torch.cuda.get_device_name(0))
+from huggingface_hub import HfApi
+print('hf user:', HfApi().whoami()['name'])"
 
 for task in $TASKS; do
   echo ""
