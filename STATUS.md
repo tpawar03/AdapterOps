@@ -20,7 +20,7 @@ and in the phase column of §4.
 
 | | |
 |---|---|
-| **Phase** | Phase 0 — data, splits, harness and training code done; **Gate 0.5 not yet reached** |
+| **Phase** | **Phase 0 complete.** Next is Gate 0.5 — vLLM multi-LoRA on a rented A10G. |
 | **Spec** | PRD v2.4, published + in repo |
 | **Hours logged** | 0 / 180 |
 | **Spend** | $0.00 / $50.00 |
@@ -430,8 +430,11 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Eval splits frozen (F35) | **intent 770 (10/class), drafting 300** | Phase 0 |
 | Majority-class floor, intent | **0.0130 micro-accuracy** | Phase 0 |
 | Intent adapter trained | **done** — 3 epochs, 27 min, free T4 | Phase 0 |
-| **Intent adapter, golden set** | **0.9273 micro-accuracy** · macro-F1 **0.9265** · exact-label 1.000 | Phase 0 |
-| **M2: adapter vs prompted baseline** | **+0.4052** (0.9273 vs 0.5221) — fine-tuning justified | Phase 0 |
+| **Intent adapter, golden set** | **0.9312 micro-accuracy** · macro-F1 **0.9302** · exact-label 1.000 | Phase 0 |
+| **M2: adapter vs prompted baseline** | **+0.4091** (0.9312 vs 0.5221) — fine-tuning justified | Phase 0 |
+| Run-to-run variance, 2 independent runs | **±0.0039 micro-accuracy** (3 of 770) — all of it from training | Phase 0 |
+| Eval harness determinism | **bit-identical** — baseline reproduced to 15 dp across VMs | Phase 0 |
+| Adapters published | `Tanny03/adapterops-intent` + `-undertrained-m11` | Phase 0 |
 | M11 under-trained checkpoint retained | **saved at step 119 of 798** | Phase 0 |
 | PII binary-task confound | **0.9999 cross-corpus / 0.5102 unseen-surrogate** | Phase 0 |
 | vLLM multi-LoRA works on rented A10G? | — | Phase 0 |

@@ -20,5 +20,14 @@
     "84 of 770 outputs (10.9%) were not a valid label. Accuracy among well-formed outputs is 0.586, so roughly 0.064 of the 0.405 gap is formatting and roughly 0.341 is genuine classification ability.",
     "macro_f1 0.349 vs micro 0.522 means the baseline is very uneven across the 77 classes - strong on some, near-zero on others. The adapter's macro and micro are within 0.001 of each other.",
     "WEAKNESS TO DISCLOSE: the 10 demonstrations cover only 10 of 77 classes. A one-demo-per-class baseline (~3,000 tokens) would be a stronger comparison. The delta is large enough to survive that, but the baseline as run is not the strongest possible."
-  ]
+  ],
+  "reproducibility": {
+    "independent_runs": 2,
+    "micro_accuracy": [
+      0.522077922077922,
+      0.522077922077922
+    ],
+    "spread": 0.0,
+    "interpretation": "Bit-identical across two runs on different Colab VMs. Greedy decoding over a fixed base model has no nondeterminism, so the evaluation harness itself is exactly reproducible."
+  }
 }

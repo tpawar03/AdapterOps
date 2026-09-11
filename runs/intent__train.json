@@ -1,0 +1,16 @@
+{
+  "task": "intent",
+  "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "train_rows": 8495,
+  "val_rows": 1498,
+  "trainable_params": 18464768,
+  "total_params": 907081216,
+  "trainable_pct": 2.0356,
+  "train_loss": 0.2153,
+  "adapter_dir": "checkpoints/intent",
+  "best_checkpoint": "/content/AdapterOps/checkpoints/intent/checkpoint-532",
+  "best_eval_loss": 0.05935819819569588,
+  "prompt_tokens_masked": true,
+  "m11_undertrained_dir": "checkpoints/intent-undertrained-m11",
+  "seed": 20260909
+}
