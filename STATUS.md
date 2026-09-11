@@ -430,7 +430,8 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Eval splits frozen (F35) | **intent 770 (10/class), drafting 300** | Phase 0 |
 | Majority-class floor, intent | **0.0130 micro-accuracy** | Phase 0 |
 | Intent adapter trained | **done** — 3 epochs, 27 min, free T4 | Phase 0 |
-| **Intent adapter, golden set** | 0.9234 micro-accuracy — **stale, weights lost, retrain pending** | Phase 0 |
+| **Intent adapter, golden set** | **0.9273 micro-accuracy** · macro-F1 **0.9265** · exact-label 1.000 | Phase 0 |
+| **M2: adapter vs prompted baseline** | **+0.4052** (0.9273 vs 0.5221) — fine-tuning justified | Phase 0 |
 | M11 under-trained checkpoint retained | **saved at step 119 of 798** | Phase 0 |
 | PII binary-task confound | **0.9999 cross-corpus / 0.5102 unseen-surrogate** | Phase 0 |
 | vLLM multi-LoRA works on rented A10G? | — | Phase 0 |

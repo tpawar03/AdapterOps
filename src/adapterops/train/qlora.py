@@ -228,6 +228,8 @@ def train(cfg: TrainConfig) -> dict:
     result = trainer.train()
     model.save_pretrained(out_dir)
     tok.save_pretrained(out_dir)
+    if early_dir.is_dir():
+        tok.save_pretrained(early_dir)
 
     summary = {
         "task": cfg.task,
@@ -247,9 +249,26 @@ def train(cfg: TrainConfig) -> dict:
     }
     (out_dir / "train_summary.json").write_text(json.dumps(summary, indent=2) + "\n")
 
+    # Push here, not in a later cell. A Colab VM can be recycled between cells; this
+    # adapter has been lost twice that way, once with the whole clone. Uploading inside
+    # train() means the weights are durable the moment they exist, and a failure here is
+    # loud rather than discovered 20 minutes later.
     if cfg.hub_repo:
-        model.push_to_hub(cfg.hub_repo, private=False)
-        tok.push_to_hub(cfg.hub_repo, private=False)
-        summary["hub_repo"] = cfg.hub_repo
+        from huggingface_hub import HfApi
+
+        api = HfApi()
+        pushed = {}
+        for local, repo in (
+            (out_dir, cfg.hub_repo),
+            (early_dir, f"{cfg.hub_repo}-undertrained-m11"),
+        ):
+            if not local.is_dir():
+                print(f"  WARNING: {local} missing, not pushed")
+                continue
+            api.create_repo(repo, exist_ok=True)
+            api.upload_folder(folder_path=str(local), repo_id=repo)
+            pushed[repo] = str(local)
+            print(f"  pushed {repo}")
+        summary["hub_repos"] = pushed
 
     return summary

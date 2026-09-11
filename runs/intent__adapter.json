@@ -5,38 +5,40 @@
   "n": 770,
   "gated_metric": "micro_accuracy",
   "metrics": {
-    "micro_accuracy": 0.9233766233766234,
-    "macro_f1": 0.8686414750353371,
-    "exact_label_rate": 0.9935064935064936
+    "micro_accuracy": 0.9272727272727272,
+    "macro_f1": 0.9264816030994729,
+    "exact_label_rate": 1.0
   },
   "training": {
     "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
     "method": "QLoRA 4-bit",
+    "device": "Tesla T4 (free Colab), fp16",
     "trainable_params": 18464768,
     "trainable_pct": 2.0356,
     "train_rows": 8495,
     "epochs_run": 3,
-    "final_train_loss": 0.8868,
+    "checkpoint_used": "checkpoint-532 (end of epoch 2) \u2014 selected by load_best_model_at_end",
+    "best_eval_loss": 0.061251163482666016,
     "val_loss_by_epoch": [
-      0.897238,
-      0.859952,
-      0.880945
+      0.098747,
+      0.061251,
+      0.061834
     ],
-    "checkpoint_used": "epoch 3 (final)",
+    "final_train_loss": 0.2149,
+    "prompt_tokens_masked": true,
+    "wall_clock_minutes": 26,
     "seed": 20260909
   },
-  "caveats": [
-    "Epoch 3 overfit: val loss rose 0.8600 -> 0.8809 while train loss fell. load_best_model_at_end was not set, so the saved adapter is the final epoch, not the best. save_total_limit=1 deleted the epoch-2 checkpoint.",
-    "Loss covers prompt tokens as well as the completion (labels unmasked), so val loss is a noisy proxy and not comparable across prompt formats.",
-    "Measured on a free Colab T4. Per PRD non-functional requirements, latency and cost from this tier are NOT reportable - those come from the rented A10G."
+  "notes": [
+    "Supersedes the earlier 0.9234 run, which trained without prompt masking and saved the overfit final epoch. Those weights were lost when the Colab runtime recycled.",
+    "Losses are NOT comparable to that run: masking scores ~4 label tokens per example instead of ~36 prompt-plus-label tokens.",
+    "Validation bottomed at epoch 2 in both runs under two different loss definitions - 2 epochs looks like the right schedule for the remaining adapters.",
+    "The Colab cell that produced these numbers self-labelled 'adapter-epoch3'; that tag was hardcoded and is wrong. The weights are the epoch-2 best checkpoint."
   ],
   "context": {
     "majority_class_floor": 0.013,
-    "prompted_baseline": null,
-    "frontier_ceiling": null
-  },
-  "superseded": {
-    "status": "stale \u2014 retrain required",
-    "reason": "Produced by a config that has since changed: prompt tokens were NOT masked from the loss, and the final (overfit) epoch was saved rather than the best. The 0.9234 measurement is real and was honestly obtained, but the weights no longer exist (Colab runtime recycled before the Hub push) and the current code would not reproduce them. Treat as a baseline data point, not the shipped adapter."
+    "prompted_baseline": 0.522077922077922,
+    "frontier_ceiling": null,
+    "delta_vs_baseline": 0.4051948051948052
   }
 }

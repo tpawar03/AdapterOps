@@ -1,0 +1,24 @@
+{
+  "task": "intent",
+  "system": "prompted-baseline",
+  "split": "evals/golden/intent.parquet",
+  "n": 770,
+  "gated_metric": "micro_accuracy",
+  "metrics": {
+    "micro_accuracy": 0.522077922077922,
+    "macro_f1": 0.3487194813731232,
+    "exact_label_rate": 0.8909090909090909
+  },
+  "setup": {
+    "model": "Qwen/Qwen2.5-1.5B-Instruct, no adapter",
+    "prompt": "all 77 labels listed + 10 worked examples drawn from split_train (asserted disjoint from golden)",
+    "prompt_tokens": 772,
+    "decoding": "greedy, max_new_tokens=12 - identical to the adapter run",
+    "seed": 20260909
+  },
+  "notes": [
+    "84 of 770 outputs (10.9%) were not a valid label. Accuracy among well-formed outputs is 0.586, so roughly 0.064 of the 0.405 gap is formatting and roughly 0.341 is genuine classification ability.",
+    "macro_f1 0.349 vs micro 0.522 means the baseline is very uneven across the 77 classes - strong on some, near-zero on others. The adapter's macro and micro are within 0.001 of each other.",
+    "WEAKNESS TO DISCLOSE: the 10 demonstrations cover only 10 of 77 classes. A one-demo-per-class baseline (~3,000 tokens) would be a stronger comparison. The delta is large enough to survive that, but the baseline as run is not the strongest possible."
+  ]
+}
