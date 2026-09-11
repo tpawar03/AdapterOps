@@ -95,7 +95,7 @@ def train(cfg: TrainConfig) -> dict:
         AutoModelForCausalLM,
         AutoTokenizer,
         BitsAndBytesConfig,
-        DataCollatorForLanguageModeling,
+        DataCollatorForSeq2Seq,
         Trainer,
         TrainerCallback,
         TrainingArguments,
@@ -109,11 +109,24 @@ def train(cfg: TrainConfig) -> dict:
     tok.pad_token = tok.pad_token or tok.eos_token
 
     def encode(batch: dict) -> dict:
-        joined = [p + c + tok.eos_token for p, c in zip(batch["prompt"], batch["completion"], strict=True)]
-        # No padding here. DataCollatorForLanguageModeling pads each batch to its own
-        # longest sequence and sets label -100 on the padding. Padding to a fixed 128
-        # when the mean length is 34 tokens wastes ~4x the compute per step.
-        return tok(joined, truncation=True, max_length=cfg.max_seq_length)
+        """Tokenise prompt and completion separately so the prompt can be masked out of
+        the loss with -100. Without this the model spends most of its capacity learning
+        to reproduce the customer's request, and the reported loss is not comparable
+        across prompt formats. Tokenising the two halves separately (rather than slicing
+        a joined sequence by character length) keeps the boundary exact under BPE.
+
+        No padding here — the collator pads each batch to its own longest sequence.
+        """
+        input_ids, labels, attention = [], [], []
+        for prompt, completion in zip(batch["prompt"], batch["completion"], strict=True):
+            p_ids = tok(prompt, add_special_tokens=False)["input_ids"]
+            c_ids = tok(completion, add_special_tokens=False)["input_ids"] + [tok.eos_token_id]
+            ids = (p_ids + c_ids)[: cfg.max_seq_length]
+            lab = ([-100] * len(p_ids) + c_ids)[: cfg.max_seq_length]
+            input_ids.append(ids)
+            labels.append(lab)
+            attention.append([1] * len(ids))
+        return {"input_ids": input_ids, "labels": labels, "attention_mask": attention}
 
     train_ds = Dataset.from_list(format_examples(load_split(cfg.task, "train"), cfg.task))
     val_ds = Dataset.from_list(format_examples(load_split(cfg.task, "val"), cfg.task))
@@ -132,9 +145,9 @@ def train(cfg: TrainConfig) -> dict:
         ),
         device_map="auto",
     )
-    # Gradient checkpointing recomputes activations to save memory, at roughly a third
-    # of throughput. At 1.5B in 4-bit with ~50-token sequences there is ample headroom on
-    # a 16 GB T4, so it is off. If this OOMs, set use_gradient_checkpointing=True and/or
+    # Gradient checkpointing recomputes activations to save memory, at roughly a third of
+    # throughput. At 1.5B in 4-bit with ~50-token sequences there is ample headroom on a
+    # 16 GB T4, so it is off. If this OOMs, set use_gradient_checkpointing=True and/or
     # halve TrainConfig.batch_size.
     model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
     model = get_peft_model(model, LoraConfig(
@@ -170,7 +183,8 @@ def train(cfg: TrainConfig) -> dict:
     bf16_ok = torch.cuda.get_device_capability(0)[0] >= 8
     precision = {"bf16": True} if bf16_ok else {"fp16": True}
     print(f"  precision: {'bf16' if bf16_ok else 'fp16'} "
-          f"(device {torch.cuda.get_device_name(0)}, capability {torch.cuda.get_device_capability(0)})")
+          f"(device {torch.cuda.get_device_name(0)}, "
+          f"capability {torch.cuda.get_device_capability(0)})")
 
     steps_per_epoch = math.ceil(len(train_ds) / (cfg.batch_size * cfg.grad_accum))
     total_steps = int(steps_per_epoch * cfg.epochs)
@@ -186,7 +200,10 @@ def train(cfg: TrainConfig) -> dict:
         "logging_steps": 10,
         "eval_strategy": "epoch",
         "save_strategy": "epoch",
-        "save_total_limit": 1,
+        "save_total_limit": 2,   # >=2 so the best checkpoint survives pruning
+        "load_best_model_at_end": True,
+        "metric_for_best_model": "eval_loss",
+        "greater_is_better": False,
         **precision,
         "optim": "paged_adamw_8bit",
         "report_to": [],
@@ -203,7 +220,9 @@ def train(cfg: TrainConfig) -> dict:
     args = TrainingArguments(**ta_kwargs)
     trainer = Trainer(
         model=model, args=args, train_dataset=train_ds, eval_dataset=val_ds,
-        data_collator=DataCollatorForLanguageModeling(tok, mlm=False),
+        # Seq2Seq, not ForLanguageModeling: the LM collator rebuilds labels from
+        # input_ids and would discard the prompt masking above.
+        data_collator=DataCollatorForSeq2Seq(tok, padding=True, label_pad_token_id=-100),
         callbacks=[EarlyCheckpoint()],
     )
     result = trainer.train()
@@ -220,6 +239,9 @@ def train(cfg: TrainConfig) -> dict:
         "trainable_pct": round(100 * trainable / total, 4),
         "train_loss": round(float(result.training_loss), 4),
         "adapter_dir": str(out_dir.relative_to(REPO_ROOT)),
+        "best_checkpoint": trainer.state.best_model_checkpoint,
+        "best_eval_loss": trainer.state.best_metric,
+        "prompt_tokens_masked": True,
         "m11_undertrained_dir": str(early_dir.relative_to(REPO_ROOT)),
         "seed": SEED,
     }

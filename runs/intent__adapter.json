@@ -17,7 +17,11 @@
     "train_rows": 8495,
     "epochs_run": 3,
     "final_train_loss": 0.8868,
-    "val_loss_by_epoch": [0.897238, 0.859952, 0.880945],
+    "val_loss_by_epoch": [
+      0.897238,
+      0.859952,
+      0.880945
+    ],
     "checkpoint_used": "epoch 3 (final)",
     "seed": 20260909
   },
@@ -27,8 +31,12 @@
     "Measured on a free Colab T4. Per PRD non-functional requirements, latency and cost from this tier are NOT reportable - those come from the rented A10G."
   ],
   "context": {
-    "majority_class_floor": 0.0130,
+    "majority_class_floor": 0.013,
     "prompted_baseline": null,
     "frontier_ceiling": null
+  },
+  "superseded": {
+    "status": "stale \u2014 retrain required",
+    "reason": "Produced by a config that has since changed: prompt tokens were NOT masked from the loss, and the final (overfit) epoch was saved rather than the best. The 0.9234 measurement is real and was honestly obtained, but the weights no longer exist (Colab runtime recycled before the Hub push) and the current code would not reproduce them. Treat as a baseline data point, not the shipped adapter."
   }
 }

@@ -430,7 +430,7 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Eval splits frozen (F35) | **intent 770 (10/class), drafting 300** | Phase 0 |
 | Majority-class floor, intent | **0.0130 micro-accuracy** | Phase 0 |
 | Intent adapter trained | **done** — 3 epochs, 27 min, free T4 | Phase 0 |
-| **Intent adapter, golden set** | **0.9234 micro-accuracy** (floor 0.0130) · macro-F1 0.8686 | Phase 0 |
+| **Intent adapter, golden set** | 0.9234 micro-accuracy — **stale, weights lost, retrain pending** | Phase 0 |
 | M11 under-trained checkpoint retained | **saved at step 119 of 798** | Phase 0 |
 | PII binary-task confound | **0.9999 cross-corpus / 0.5102 unseen-surrogate** | Phase 0 |
 | vLLM multi-LoRA works on rented A10G? | — | Phase 0 |
@@ -458,10 +458,18 @@ varies across classes rather than a few classes collapsing.
 
 *Caveat, recorded rather than buried:* epoch 3 overfit — val loss rose 0.8600 → 0.8809
 while train loss fell to 0.7185. `load_best_model_at_end` was not set, so the saved
-adapter is the final epoch, not the best, and `save_total_limit=1` had already deleted
-the epoch-2 checkpoint. The score is strong enough that this is cosmetic, but it is not
-known what epoch 2 would have scored, and the next adapter should set best-checkpoint
-selection and mask prompt tokens from the loss.
+adapter was the final epoch, not the best, and `save_total_limit=1` had already deleted
+the epoch-2 checkpoint.
+
+*Both flaws are now fixed in `train/qlora.py`* — best-checkpoint selection on `eval_loss`,
+and prompt tokens masked to `-100` so the loss scores only the label. Masking required
+swapping `DataCollatorForLanguageModeling` for `DataCollatorForSeq2Seq`: the LM collator
+rebuilds labels from `input_ids` and silently discards any masking applied upstream.
+
+*Consequence:* the 0.9234 weights were lost when the Colab runtime recycled before the
+Hub push, and the current code would not reproduce them anyway. `runs/intent__adapter.json`
+is marked stale. **The adapter must be retrained (~27 min, free) and re-measured**, and
+the new number is the one that counts. Push to the Hub before anything else next time.
 
 *Means:* nothing about M2 yet. **0.9234 is meaningless until the prompted baseline is
 measured** — the same base model with a strong few-shot prompt and no adapter. That
