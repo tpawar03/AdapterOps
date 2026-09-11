@@ -1,0 +1,30 @@
+{
+  "task": "pii",
+  "system": "hybrid-baseline",
+  "description": "regex + lexicons + spaCy en_core_web_sm NER — the strongest reasonable non-model baseline",
+  "split": "evals/golden/pii.parquet",
+  "n": 300,
+  "gated_metric": "span_f1_strict",
+  "ceiling_strict": 0.9942,
+  "metrics": {
+    "strict":  {"precision": 0.599, "recall": 0.430, "f1": 0.5006},
+    "relaxed": {"precision": null,  "recall": null,  "f1": 0.5939}
+  },
+  "per_label_strict_f1": {
+    "GIVENNAME": 0.396, "SURNAME": 0.391, "CITY": 0.426, "STREET": 0.375
+  },
+  "comparison": {
+    "regex_only_strict_f1": 0.4299,
+    "spacy_contribution": 0.0707,
+    "adapter_strict_f1": 0.919,
+    "delta_vs_adapter": 0.4184,
+    "verdict": "Adding NER closes 0.071 of a 0.489 gap. The adapter still wins by 0.418 strict F1."
+  },
+  "notes": [
+    "The four name-like labels move off zero to roughly 0.38-0.43 F1 — real, but far below the adapter.",
+    "Relaxed F1 rises more than strict (0.4632 -> 0.5939 vs 0.4299 -> 0.5006), which locates the weakness precisely: spaCy finds the right REGIONS but the boundaries and the GIVENNAME/SURNAME split are wrong. Gold occasionally treats two words as one GIVENNAME ('Vera-Maria Kélia'), which a token-position heuristic cannot know.",
+    "Precision FELL from 0.715 to 0.599 when spaCy was added. It buys recall (0.307 -> 0.430) at a cost in precision — the usual NER trade, and worth recording rather than presenting only the F1 improvement.",
+    "CARDINAL is deliberately unmapped: it would have to guess between AGE and BUILDINGNUM, and guessing costs precision on both.",
+    "This is now a serious baseline rather than a regex demo, so the 0.418 gap is a much firmer claim than the earlier 0.489 upper bound."
+  ]
+}

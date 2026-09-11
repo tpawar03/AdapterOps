@@ -500,7 +500,8 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Serving latency, A10 | **P50 81ms · P95 155ms** @ concurrency 16 | Phase 0 |
 | PII span scorer ceiling | **0.9942** on the frozen golden set (vs 0.8973 for masked text) | Phase 1 |
 | PII splits frozen | golden 300 docs / **2,394 spans**, train 17,000 | Phase 1 |
-| **PII adapter (8K rows, 3 epochs)** | **0.9190 strict** / 0.9477 relaxed — 92.4% of the 0.9942 ceiling | Phase 1 |
+| **PII adapter (8K rows, 3 epochs)** | **0.9190 strict** / 0.9477 relaxed — 92.4% of ceiling, rev `5405e954` | Phase 1 |
+| PII baseline (regex+spaCy) | **0.5006 strict** — adapter wins by **+0.418** | Phase 1 |
 | **Urgency adapter** | **0.470 micro / 0.421 macro — LOSES to TF-IDF (0.547/0.547)** | Phase 1 |
 | Drafting adapter | trained, published; judge-scored in Phase 3 | Phase 1 |
 | Adapters on the Hub | intent, pii, drafting (+ 3 M11 checkpoints) | Phase 1 |
@@ -521,6 +522,32 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 1 · The PII adapter earns its place; the regex baseline says why.** A
+pattern-and-lexicon baseline scores **0.4299 strict** against the adapter's **0.9190** —
+a 0.489 gap, the opposite verdict to urgency.
+
+The per-label breakdown is the useful part. **EMAIL: 0.995** — regex essentially solves it.
+**ZIPCODE: 0.166** — five digits look like an age, a building number, a tax number or part
+of a phone number. Those two are the same phenomenon from opposite ends: a shape nothing
+else shares, versus a shape everything shares. The four name-like labels (GIVENNAME,
+SURNAME, CITY, STREET — 33% of spans) score zero because patterns cannot reach them at all.
+
+*Means:* PII detection is only marginally a pattern-matching problem. One label of nineteen
+is genuinely solved by regex; the rest need something that reads context. That is a
+specific claim about where the adapter's value sits, rather than "the model is better".
+
+*The caveat was then closed.* The first version left ~33% of spans (names, cities,
+streets) unattempted, making 0.489 an upper bound rather than a figure. Adding spaCy
+`en_core_web_sm` lifts those labels to 0.38-0.43 F1 and the baseline to **0.5006 strict** —
+so the adapter's real advantage is **+0.418**, not +0.489.
+
+*Where NER falls short is itself informative.* Relaxed F1 rose much more than strict
+(0.4632 → 0.5939 against 0.4299 → 0.5006): spaCy finds the right **regions** but the
+boundaries and the GIVENNAME/SURNAME split are wrong, because gold sometimes treats two
+words as one given name and a token-position heuristic cannot know that. Precision also
+**fell**, 0.715 → 0.599 — NER buys recall at a cost in precision, which is worth stating
+alongside the F1 gain rather than reporting only the improvement.
 
 **Phase 1 · The urgency adapter loses to bag-of-words, and that is the finding.** It
 scores **0.470 micro / 0.421 macro-F1** on the 300-row stratified golden set. TF-IDF plus

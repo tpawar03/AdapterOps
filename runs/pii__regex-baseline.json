@@ -1,0 +1,61 @@
+{
+  "task": "pii",
+  "system": "regex-baseline",
+  "split": "evals/golden/pii.parquet",
+  "n": 300,
+  "gated_metric": "span_f1_strict",
+  "ceiling_strict": 0.9942,
+  "metrics": {
+    "strict": {
+      "precision": 0.7146,
+      "recall": 0.3074,
+      "f1": 0.4299,
+      "tp": 736,
+      "fp": 294,
+      "fn": 1658
+    },
+    "relaxed": {
+      "precision": 0.7699,
+      "recall": 0.3312,
+      "f1": 0.4632,
+      "tp": 793,
+      "fp": 237,
+      "fn": 1601
+    }
+  },
+  "per_label_strict_f1": {
+    "EMAIL": 0.995,
+    "DATE": 0.775,
+    "TAXNUM": 0.742,
+    "PASSPORTNUM": 0.684,
+    "TITLE": 0.664,
+    "SEX": 0.556,
+    "DRIVERLICENSENUM": 0.497,
+    "GENDER": 0.443,
+    "CREDITCARDNUMBER": 0.429,
+    "TELEPHONENUM": 0.318,
+    "IDCARDNUM": 0.317,
+    "SOCIALNUM": 0.232,
+    "ZIPCODE": 0.166,
+    "GIVENNAME": 0.0,
+    "SURNAME": 0.0,
+    "CITY": 0.0,
+    "STREET": 0.0,
+    "AGE": 0.0,
+    "BUILDINGNUM": 0.0
+  },
+  "comparison": {
+    "adapter_strict_f1": 0.919,
+    "delta": 0.4891,
+    "verdict": "The adapter beats the pattern baseline by 0.489 strict F1. Unlike urgency, the PII adapter clearly earns its place."
+  },
+  "notes": [
+    "Written to be a fair baseline, not a strawman: patterns are ordered most-specific-first, closed classes (TITLE/GENDER/SEX) use lexicons, and the design is documented with what it can and cannot reach before it was run.",
+    "Structural ceiling is ~58% recall (the pattern- and lexicon-reachable share of spans). Measured recall is 0.307 \u2014 barely half of that, because the numeric labels are mutually ambiguous as character sequences. A pattern precise enough for one costs recall on another.",
+    "EMAIL at 0.995 and ZIPCODE at 0.166 are the two ends of the same phenomenon: a shape nothing else shares versus five digits that look like everything else.",
+    "The four largest name-like labels (GIVENNAME, SURNAME, CITY, STREET \u2014 33% of spans) are not attempted at all; they need NER. A spaCy baseline would raise this number and has not been run.",
+    "Fair-comparison caveat: the adapter's 0.9190 was measured on an A10 via generation; this baseline runs locally and is deterministic. Both use the identical 300-document golden set and the same scorer.",
+    "Kept as the pattern-only component. The headline baseline is now regex+spaCy at 0.5006 strict; this file isolates how much of that comes from patterns alone."
+  ],
+  "superseded_as_headline_baseline_by": "runs/pii__hybrid-baseline.json"
+}
