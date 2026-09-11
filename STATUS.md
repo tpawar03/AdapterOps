@@ -20,7 +20,7 @@ and in the phase column of §4.
 
 | | |
 |---|---|
-| **Phase** | **Phase 0 complete.** Next is Gate 0.5 — vLLM multi-LoRA on a rented A10G. |
+| **Phase** | **Gate 0.5 PASSED.** The headline claim holds. Phase 1 next — three more adapters. |
 | **Spec** | PRD v2.4, published + in repo |
 | **Hours logged** | 0 / 180 |
 | **Spend** | $0.00 / $50.00 |
@@ -402,6 +402,35 @@ leak) and D8 (label noise) as the evaluation-design cluster in §5.
 
 ---
 
+### D22 · The PII adapter emits `LABEL: value` lines, not masked text
+**Rejected:** generating ai4privacy-style masked text (`[GIVENNAME_1]` in place of a name)
+and recovering offsets by aligning it against the source — the format the dataset ships,
+and the obvious choice.
+
+**Why:** it caps the gated metric. Feeding ai4privacy's **own ground-truth masked text**
+through offset recovery scores **0.8973 strict span F1**, not 1.0. A perfect model would
+score 0.897. The cause is not a bug: `Sarhat Shegë Böhmerle Cekci` masked as
+`[GIVENNAME_1] [SURNAME_1]` has one space between the placeholders and three in the source,
+and nothing indicates which is the boundary. `WJ@gmail.com` splits at the wrong dot for the
+same reason. Relaxed (overlap) F1 is 0.9994, which confirms the labels are right and only
+the boundaries are lost.
+
+`LABEL: value` output recovers offsets by locating each value in the source: **0.9974
+strict** on the same 1,000 documents. The residual 0.26% is values appearing more than once
+where left-to-right assignment picks the wrong occurrence.
+
+**Cost:** the training target is no longer the column the dataset ships, so `masked_text`
+has to be converted to `LABEL: value` lines at training time. `spans_from_masked` is kept
+in `eval/spans.py` as the evidence for this decision, with a test asserting it still scores
+below 0.95 — if someone "fixes" it, the test explains why it cannot be fixed.
+
+**Interview angle:** the output format silently determined the metric's ceiling. Measuring
+the ceiling *before* training — by running ground truth through the scorer and checking it
+scores 1.0 — cost one command and would otherwise have surfaced as an unexplained 10-point
+shortfall blamed on the model.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -435,6 +464,10 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Run-to-run variance, 2 independent runs | **±0.0039 micro-accuracy** (3 of 770) — all of it from training | Phase 0 |
 | Eval harness determinism | **bit-identical** — baseline reproduced to 15 dp across VMs | Phase 0 |
 | Adapters published | `Tanny03/adapterops-intent` + `-undertrained-m11` | Phase 0 |
+| **Gate 0.5 — concurrent multi-LoRA** | **PASS** — 2 adapters, 400 reqs @ 16, 159 rps | Phase 0 |
+| Serving latency, A10 | **P50 81ms · P95 155ms** @ concurrency 16 | Phase 0 |
+| PII span scorer ceiling | **0.9942** on the frozen golden set (vs 0.8973 for masked text) | Phase 1 |
+| PII splits frozen | golden 300 docs / **2,394 spans**, train 17,000 | Phase 1 |
 | M11 under-trained checkpoint retained | **saved at step 119 of 798** | Phase 0 |
 | PII binary-task confound | **0.9999 cross-corpus / 0.5102 unseen-surrogate** | Phase 0 |
 | vLLM multi-LoRA works on rented A10G? | — | Phase 0 |
@@ -452,6 +485,59 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 1 · Per-task training configs, because one size silently truncates.** PII
+sequences run median 160 / p95 429 / max 802 tokens against intent's 34. At the shared
+`max_seq_length=128` most PII targets would have been **cut mid-span**, teaching the model
+to stop early — a failure that shows up as poor recall and looks like a model problem.
+
+`TASK_CONFIGS` now carries per-task sequence length, batch size and accumulation. PII gets
+512 tokens at micro-batch 2 (effective batch still 32), sized from the same memory model
+that explained the intent OOM: peak loss memory is batch x seq x 151,936 vocab upcast to
+fp32 with a gradient, so batch 4 at p95 would be ~2.1 GB — the figure that already OOM'd a
+T4.
+
+*Training volume is now a measurement, not a citation.* PRD §9 says "~3K subsample", but
+that figure assumed free-tier-only training — a constraint Gate 0.5 weakened, since it cost
+$0.44 of a $20 GPU allocation and proved the rented path. The reason to start at 3,000 is
+different and better: 3,000 documents is already ~21,000 span examples over a fixed
+19-label vocabulary, it costs 30 free minutes, and **it produces the number that decides
+whether more data would help at all**. The escalation rule is written into the config —
+if the result sits well below the 0.9942 ceiling *and* train loss is still falling, the
+task is data-limited and the full 17,000 is worth ~$1 of rented A10; if it lands near the
+ceiling, more rows buy a longer run and nothing else. The split stays frozen at 17,000 and
+`train_subsample` caps consumption, so scaling up is a config change, not a re-freeze.
+
+*Also applied:* `epochs` now defaults to **2**, not 3 — validation loss bottomed at epoch 2
+in every intent run under two different loss definitions.
+
+**Phase 1 · The PII scorer's ceiling was measured before any training.** Running
+ai4privacy's ground truth through the span scorer should score 1.0. Masked-text recovery
+scored **0.8973**; `LABEL: value` recovery scored **0.9974**. *Means:* the output format
+caps the gated metric, and the obvious format (the one the dataset ships) caps it 10 points
+low. *Changes the plan:* D22 — the adapter emits `LABEL: value` lines, built directly from
+`privacy_mask` (which carries label, value and offsets), so `masked_text` is not used at
+all. Ceiling on the frozen golden set: **0.9942 strict**.
+
+**Phase 0 · Gate 0.5 passed — the headline claim survives contact with hardware.** vLLM
+0.29.0 served one Qwen2.5-1.5B base with two LoRA adapters on a single A10: 400 interleaved
+requests at concurrency 16, no errors, **159 req/s**, **P50 81 ms / P95 155 ms**.
+
+*The check that mattered:* the two adapters disagreed on **43 of 200** prompts, and scored
+0.940 against 0.775. Had vLLM silently resolved both names to one adapter, every other
+number would have looked healthy and the gate would have read as passed. The M11
+under-trained checkpoint — captured for an unrelated Phase 5 purpose — was the
+discriminator.
+
+*Stronger evidence still:* the two adapters' latencies are within **1.5 ms** of each other
+at both P50 and P95. A swap-per-request implementation would show a penalty on alternation.
+There is none, which means they are genuinely batched together — `PunicaWrapperGPU` in the
+startup log names the kernel doing it.
+
+*Means:* "many adapters, one base" is measured, not assumed, and the §7 latency budget has
+enormous headroom. The KV cache reported room for **545×** the tested concurrency, so 16 is
+nowhere near the limit — the actual ceiling is unmeasured and the honest claim is bounded
+by what was tested.
 
 **Phase 0 · First real number: the intent adapter reaches 0.9234 micro-accuracy** on the
 frozen 770-example golden set, against a 0.0130 majority-class floor. `exact_label_rate`

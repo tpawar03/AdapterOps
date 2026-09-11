@@ -31,14 +31,48 @@ PROMPT = (
     "Intent:"
 )
 
+PROMPTS = {
+    "intent": PROMPT,
+    "urgency": (
+        "Classify the urgency of this support ticket.\n"
+        "Ticket: {text}\n"
+        "Urgency:"
+    ),
+    "pii": (
+        "List every piece of personal information in the text, one per line, "
+        "as LABEL: value.\n"
+        "Text: {text}\n"
+        "Found:\n"
+    ),
+}
+
+COLUMNS = {
+    "intent": ("text", "label_text"),
+    "urgency": ("text", "label"),
+    "pii": ("source_text", "target"),
+}
+
 
 @dataclass
 class TrainConfig:
     task: str = "intent"
     base_model: str = "Qwen/Qwen2.5-1.5B-Instruct"
     max_seq_length: int = 128
-    """A hard cap only. Real lengths are ~34 tokens (p95 = 54); padding is dynamic."""
-    epochs: float = 3.0
+    """A truncation cap only; padding is dynamic. Per-task values are in TASK_CONFIGS —
+    PII sequences run 5x longer than intent's and would be cut mid-span at 128."""
+    epochs: float = 2.0
+    """2, not 3. Validation loss bottomed at epoch 2 in every intent run, under two
+    different loss definitions, and epoch 3 overfitted each time."""
+    train_subsample: int | None = None
+    """Cap on training rows, applied after the frozen split.
+
+    PII starts at 3,000 of its 17,000 — not to satisfy PRD §9, whose figure assumed
+    free-tier-only training, but because 3,000 documents is already ~21,000 span examples
+    over a fixed 19-label vocabulary, and it is unknown whether more helps. 3,000 costs
+    30 free minutes and produces the number that decides. If the result sits well below
+    the 0.9942 scorer ceiling AND train loss is still falling at the end, the task is
+    data-limited and the full 17,000 is worth ~$1 of rented A10. If it lands near the
+    ceiling, the extra rows would buy a longer run and nothing else."""
     batch_size: int = 8
     """Micro-batch. Peak memory is dominated by the loss over Qwen's 151,936-token
     vocabulary: logits are [batch x seq x 151936] and cross_entropy upcasts them to fp32,
@@ -60,19 +94,45 @@ class TrainConfig:
 
 
 def label_column(task: str) -> str:
-    return {"intent": "label_text", "urgency": "label"}[task]
+    return COLUMNS[task][1]
 
 
 def text_column(task: str) -> str:
-    return {"intent": "text", "urgency": "text"}[task]
+    return COLUMNS[task][0]
 
 
-def load_split(task: str, split: str) -> pd.DataFrame:
+def load_split(task: str, split: str, subsample: int | None = None) -> pd.DataFrame:
     path = REPO_ROOT / f"data/{task}/split_{split}.parquet"
     if not path.exists():
         msg = f"{path} missing — run `uv run adapterops splits` first"
         raise FileNotFoundError(msg)
-    return pd.read_parquet(path)
+    df = pd.read_parquet(path)
+    if subsample is not None and len(df) > subsample:
+        df = df.sample(n=subsample, random_state=SEED).reset_index(drop=True)
+    return df
+
+
+TASK_CONFIGS: dict[str, dict] = {
+    "intent": {"max_seq_length": 128, "batch_size": 8, "grad_accum": 4},
+    "urgency": {"max_seq_length": 128, "batch_size": 8, "grad_accum": 4},
+    "pii": {
+        # Sequences run median 160 / p95 429 / max 802 tokens against intent's 34.
+        # Peak loss memory is batch x seq x 151,936 vocab, upcast to fp32 with a gradient:
+        # batch 4 at p95 is ~2.1 GB, which is what OOM'd the T4 on intent. Batch 2 is
+        # ~1.0 GB. Effective batch stays 32.
+        "max_seq_length": 512,
+        "batch_size": 2,
+        "grad_accum": 16,
+        # Start here and let the measurement decide; see TrainConfig.train_subsample.
+        "train_subsample": 3000,
+    },
+}
+
+
+def config_for(task: str, **overrides) -> TrainConfig:
+    """Per-task defaults, overridable. One entrypoint, four tasks."""
+    base = {"task": task, "output_dir": f"checkpoints/{task}"}
+    return TrainConfig(**{**base, **TASK_CONFIGS.get(task, {}), **overrides})
 
 
 def format_examples(df: pd.DataFrame, task: str) -> list[dict[str, str]]:
@@ -80,7 +140,7 @@ def format_examples(df: pd.DataFrame, task: str) -> list[dict[str, str]]:
     is an exact-match check rather than parsing free text."""
     tcol, lcol = text_column(task), label_column(task)
     return [
-        {"prompt": PROMPT.format(text=r[tcol]), "completion": " " + str(r[lcol])}
+        {"prompt": PROMPTS[task].format(text=r[tcol]), "completion": " " + str(r[lcol])}
         for _, r in df.iterrows()
     ]
 
@@ -128,7 +188,8 @@ def train(cfg: TrainConfig) -> dict:
             attention.append([1] * len(ids))
         return {"input_ids": input_ids, "labels": labels, "attention_mask": attention}
 
-    train_ds = Dataset.from_list(format_examples(load_split(cfg.task, "train"), cfg.task))
+    train_ds = Dataset.from_list(
+        format_examples(load_split(cfg.task, "train", cfg.train_subsample), cfg.task))
     val_ds = Dataset.from_list(format_examples(load_split(cfg.task, "val"), cfg.task))
     train_ds = train_ds.map(encode, batched=True, remove_columns=["prompt", "completion"])
     val_ds = val_ds.map(encode, batched=True, remove_columns=["prompt", "completion"])

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -39,11 +40,29 @@ class SplitSpec:
     golden_from: str          # which mirrored file the golden set is drawn from
     trainval_from: str        # which mirrored file train/val come from
     val_fraction: float = 0.15
+    transform: Callable[[pd.DataFrame], pd.DataFrame] | None = None
+    """Applied to every split after slicing. Used to derive training targets that are not
+    a column of the mirror — PII's `LABEL: value` target, for instance."""
     group_column: str | None = None
     """Split on unique values of this column rather than on rows. Required where the
     source repeats a text: Bitext has 989 instructions appearing up to 8 times, so a
     row-wise split leaves copies of golden texts in train — a leak, caught by
     tests/test_splits_and_harness.py on its first run."""
+
+
+def pii_targets(df: pd.DataFrame) -> pd.DataFrame:
+    """Add the `target` column: one `LABEL: value` line per span, in source order.
+
+    Derived from `privacy_mask`, which carries label, value and offsets directly — the
+    `masked_text` column is NOT used, because recovering exact boundaries from it is
+    impossible in general and caps strict span F1 at 0.897 (STATUS.md D22).
+    """
+    df = df.copy()
+    df["target"] = [
+        "\n".join(f"{s['label']}: {s['value']}" for s in sorted(mask, key=lambda s: s["start"]))
+        for mask in df.privacy_mask
+    ]
+    return df
 
 
 SPECS = [
@@ -58,6 +77,22 @@ SPECS = [
             "770 = exactly 10 per class across 77 classes (PRD §11). The upstream test "
             "split holds 39-40 per class, so 10/class is comfortably drawable. Gated "
             "metric is micro-accuracy; macro-F1 is indicative only at this density."
+        ),
+    ),
+    SplitSpec(
+        task="pii",
+        label_column="target",
+        golden_size=300,
+        stratified=False,
+        golden_from="data/pii/validation.parquet",
+        trainval_from="data/pii/train.parquet",
+        transform=pii_targets,
+        note=(
+            "Span detection, not classification (PRD v2.5 changelog 24-25). Golden is 300 "
+            "documents drawn from the upstream validation split, ~1,800 spans at a median "
+            "of six per document. The target is `LABEL: value` lines built from "
+            "`privacy_mask`; masked_text is not used (D22). Gated metric is strict span "
+            "F1 via adapterops.eval.spans, whose ceiling on this format is 0.9974."
         ),
     ),
     SplitSpec(
@@ -119,6 +154,9 @@ def build(spec: SplitSpec) -> dict:
     trainval = trainval_src.sample(frac=1.0, random_state=SEED)
     n_val = int(len(trainval) * spec.val_fraction)
     val, train = trainval.iloc[:n_val], trainval.iloc[n_val:]
+
+    if spec.transform is not None:
+        golden, val, train = (spec.transform(f) for f in (golden, val, train))
 
     EVAL_DIR.mkdir(parents=True, exist_ok=True)
     out_dir = REPO_ROOT / "data" / spec.task

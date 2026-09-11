@@ -9,6 +9,14 @@
 # gap between them is the discriminator.
 set -euo pipefail
 
+# Install into a venv, never --user. Lambda Stack (and most ML images) ship system
+# packages compiled against numpy 1.x; vLLM pulls numpy 2, and every compiled system
+# package then fails on an ABI mismatch — scipy, scikit-learn, ml_dtypes, one after
+# another. A venv does not inherit /usr/lib/python3/dist-packages, so the problem
+# cannot arise:
+#     python3 -m venv ~/venv && source ~/venv/bin/activate
+#     pip install vllm pandas pyarrow requests
+
 BASE="${BASE:-Qwen/Qwen2.5-1.5B-Instruct}"
 HF_USER="${HF_USER:-Tanny03}"
 PORT="${PORT:-8000}"
@@ -27,5 +35,4 @@ exec vllm serve "$BASE" \
       "intent=${HF_USER}/adapterops-intent" \
       "intent-undertrained=${HF_USER}/adapterops-intent-undertrained-m11" \
   --max-model-len 1024 \
-  --gpu-memory-utilization 0.90 \
-  --disable-log-requests
+  --gpu-memory-utilization 0.90

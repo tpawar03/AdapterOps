@@ -24,10 +24,14 @@ def test_intent_golden_is_exactly_ten_per_class():
     assert entry["splits"]["golden"]["rows"] == 770
 
 
+TEXT_COLUMN = {"intent": "text", "urgency": "text", "pii": "source_text",
+               "drafting": "instruction"}
+
+
 def test_golden_never_overlaps_train_or_val():
     """A golden row appearing in training makes every later comparison meaningless."""
     for entry in manifest()["tasks"]:
-        text_col = "text" if entry["task"] == "intent" else "instruction"
+        text_col = TEXT_COLUMN[entry["task"]]
         frames = {n: pd.read_parquet(ROOT / s["file"]) for n, s in entry["splits"].items()}
         golden = set(frames["golden"][text_col])
         for other in ("train", "val"):

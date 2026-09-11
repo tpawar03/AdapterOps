@@ -67,8 +67,8 @@ def score(task: str, gold: Sequence[str], pred: Sequence[str]) -> dict:
         msg = "drafting is judge-scored (Phase 3); no label metric applies"
         raise NotImplementedError(msg)
     if task == "pii":
-        msg = ("pii is span detection, not classification (PRD changelog 24) — "
-               "score_spans() lands with the Phase 1 adapter")
+        msg = ("pii is span detection: use adapterops.eval.spans.score_spans on "
+               "Span lists, not score() on label strings (PRD changelog 24-25)")
         raise NotImplementedError(msg)
     return {
         "micro_accuracy": float(accuracy_score(gold, pred)),

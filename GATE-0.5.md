@@ -46,10 +46,23 @@ what §7 can promise.
 
 ## On the box
 
+Use a **Lambda Stack 24.04** image (Ubuntu 24.04 → Python 3.12). Ubuntu 22.04 ships
+Python 3.10 and this project requires ≥ 3.12. Plain Ubuntu images have no CUDA or torch
+and cost you paid minutes to build.
+
+**Install into a venv, not `--user`.** Lambda Stack ships scipy, scikit-learn, pandas and
+ml_dtypes compiled against numpy 1.x. vLLM pulls numpy 2, and each of those then dies on an
+ABI mismatch in turn — four separate failures before the server starts. A venv does not
+inherit `/usr/lib/python3/dist-packages`, so none of it applies.
+
 ```bash
 git clone --depth 1 https://github.com/tpawar03/AdapterOps.git && cd AdapterOps
+python3 --version              # expect 3.12.x
+python3 -m venv ~/venv && source ~/venv/bin/activate
 pip install vllm pandas pyarrow requests
 ```
+
+Terminal 2 must `source ~/venv/bin/activate` as well.
 
 **Shell 1 — serve.** Blocks; wait for `Application startup complete`.
 
@@ -59,8 +72,11 @@ pip install vllm pandas pyarrow requests
 
 **Shell 2 — probe.**
 
+The package lives under `src/`, so it is not importable from the repo root without help.
+`PYTHONPATH=src` is the one-line fix — no install step, nothing to go stale.
+
 ```bash
-python -m adapterops.serve.gate05_probe --n 200 --concurrency 16
+cd AdapterOps && PYTHONPATH=src python -m adapterops.serve.gate05_probe --n 200 --concurrency 16
 ```
 
 Writes `runs/gate05.json`.

@@ -1,0 +1,36 @@
+{
+  "gate": "0.5 — vLLM concurrent multi-LoRA",
+  "verdict": "PASS",
+  "hardware": "NVIDIA A10 24GB (Lambda Cloud), vLLM 0.29.0, bf16, PunicaWrapperGPU",
+  "concurrency": 16,
+  "requests": 400,
+  "wall_seconds": 2.5,
+  "throughput_rps": 159.3,
+  "adapters_distinct": {
+    "disagreements": 43,
+    "of": 200,
+    "rate": 0.215,
+    "verdict": "PASS"
+  },
+  "accuracy": {
+    "intent": 0.94,
+    "intent-undertrained": 0.775
+  },
+  "latency_ms": {
+    "intent": {"p50": 81.1, "p95": 154.5, "mean": 98.1},
+    "intent-undertrained": {"p50": 80.0, "p95": 153.1, "mean": 97.8}
+  },
+  "criteria": {
+    "1_both_load": "PASS — /v1/models lists base + both adapters",
+    "2_adapters_distinct": "PASS — 43/200 disagreements; quality gap 0.940 vs 0.775 confirms per-request routing, not one adapter serving both names",
+    "3_concurrent_load": "PASS — 400 interleaved requests at concurrency 16, no errors",
+    "4_quality_preserved": "PASS — 0.940 on this 200-row subset vs 0.9312 recorded offline on the full 770",
+    "5_latency": "PASS — P95 154ms, target was under ~2s",
+    "6_affordable": "PASS — A10, ~$0.75/hr"
+  },
+  "notes": [
+    "The two adapters' P50/P95 are within 1.5ms of each other, which is the strongest evidence that they are genuinely batched together rather than swapped between requests. A swap-per-request implementation would show a latency penalty on alternation; there is none.",
+    "0.940 vs the offline 0.9312 is measured on the first 200 golden rows, not all 770, so the two are not strictly comparable. It rules out a serving-path regression, which is what criterion 4 asks.",
+    "KV cache had room for 545x the tested concurrency, so 16 is nowhere near the hardware limit. The concurrency ceiling is unmeasured."
+  ]
+}

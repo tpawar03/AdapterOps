@@ -28,9 +28,9 @@ def _cmd_pii_task(_: argparse.Namespace) -> int:
 
 
 def _cmd_train(args: argparse.Namespace) -> int:
-    from adapterops.train.qlora import TrainConfig, train
+    from adapterops.train.qlora import config_for, train
 
-    cfg = TrainConfig(task=args.task, output_dir=f"checkpoints/{args.task}", hub_repo=args.hub_repo)
+    cfg = config_for(args.task, hub_repo=args.hub_repo)
     summary = train(cfg)
     print(json.dumps(summary, indent=2))
     return 0
@@ -77,7 +77,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_pii.set_defaults(func=_cmd_pii_task)
 
     p_train = sub.add_parser("train", help="QLoRA-train a task adapter (needs CUDA)")
-    p_train.add_argument("--task", required=True, choices=["intent", "urgency"])
+    p_train.add_argument("--task", required=True, choices=["intent", "urgency", "pii"])
     p_train.add_argument("--hub-repo", default=None, help="push to this HF Hub repo when done")
     p_train.set_defaults(func=_cmd_train)
 

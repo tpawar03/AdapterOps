@@ -42,6 +42,36 @@
       }
     },
     {
+      "task": "pii",
+      "seed": 20260909,
+      "label_column": "target",
+      "stratified": false,
+      "group_column": null,
+      "golden_from": "data/pii/validation.parquet",
+      "trainval_from": "data/pii/train.parquet",
+      "note": "Span detection, not classification (PRD v2.5 changelog 24-25). Golden is 300 documents drawn from the upstream validation split, ~1,800 spans at a median of six per document. The target is `LABEL: value` lines built from `privacy_mask`; masked_text is not used (D22). Gated metric is strict span F1 via adapterops.eval.spans, whose ceiling on this format is 0.9974.",
+      "splits": {
+        "golden": {
+          "file": "evals/golden/pii.parquet",
+          "rows": 300,
+          "bytes": 224549,
+          "sha256": "12e344e5be2d0e0e602ed848069f469045bc43488ae6448308f0dc7c5237f828"
+        },
+        "val": {
+          "file": "data/pii/split_val.parquet",
+          "rows": 3000,
+          "bytes": 1927658,
+          "sha256": "3a65a94847a814085e545d03afca32398938566a018b7a0d0d7f1b354cd2d572"
+        },
+        "train": {
+          "file": "data/pii/split_train.parquet",
+          "rows": 17000,
+          "bytes": 10773757,
+          "sha256": "ce4d70763d1abc866273dd6d4666498fe143faeb5e82410ea152945903e073b1"
+        }
+      }
+    },
+    {
       "task": "drafting",
       "seed": 20260909,
       "label_column": "intent",

@@ -93,8 +93,8 @@ def main() -> int:
         "gate": "0.5 — vLLM concurrent multi-LoRA",
         "concurrency": args.concurrency,
         "requests": len(jobs),
-        "wall_seconds": round(wall, 1),
-        "throughput_rps": round(len(jobs) / wall, 2),
+        "wall_seconds": round(wall, 3),
+        "throughput_rps": round(len(jobs) / max(wall, 1e-6), 2),
         "adapters_distinct": {
             "disagreements": disagree,
             "of": len(gold),
