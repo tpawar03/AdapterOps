@@ -500,7 +500,8 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Serving latency, A10 | **P50 81ms · P95 155ms** @ concurrency 16 | Phase 0 |
 | PII span scorer ceiling | **0.9942** on the frozen golden set (vs 0.8973 for masked text) | Phase 1 |
 | PII splits frozen | golden 300 docs / **2,394 spans**, train 17,000 | Phase 1 |
-| **PII adapter (8K rows, 3 epochs)** | **0.9182 strict** / 0.9472 relaxed — 92.4% of the 0.9942 ceiling | Phase 1 |
+| **PII adapter (8K rows, 3 epochs)** | **0.9190 strict** / 0.9477 relaxed — 92.4% of the 0.9942 ceiling | Phase 1 |
+| **Urgency adapter** | **0.470 micro / 0.421 macro — LOSES to TF-IDF (0.547/0.547)** | Phase 1 |
 | Drafting adapter | trained, published; judge-scored in Phase 3 | Phase 1 |
 | Adapters on the Hub | intent, pii, drafting (+ 3 M11 checkpoints) | Phase 1 |
 | M11 under-trained checkpoint retained | **saved at step 119 of 798** | Phase 0 |
@@ -520,6 +521,34 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 1 · The urgency adapter loses to bag-of-words, and that is the finding.** It
+scores **0.470 micro / 0.421 macro-F1** on the 300-row stratified golden set. TF-IDF plus
+logistic regression — seconds to train on a laptop — reaches **0.5467 / 0.5465**. Chance
+on three balanced classes is 0.3333.
+
+*What it is not.* Not a format failure: `exact_label_rate` is 1.000, every output is a
+valid class. Not label noise: across 9,879 unique tickets, **zero** identical texts carry
+different priorities. Not unlearnable: TF-IDF is 21 points above chance.
+
+*What it is.* The text-to-priority signal is genuinely weak. Even TF-IDF is near-random on
+`medium` (F1 0.52), and its best class is `high` at 0.59. And there is corroborating
+evidence from the source we rejected: the CC0 Kaggle dataset predicted priority from
+`customer_tier`, `error_rate_pct`, `downtime_min` and `security_incident_flag` — account
+and incident **metadata, not wording**. Its designers did not treat priority as a text
+problem either. D23 rejected that dataset for having no text; its schema was telling us
+something about the task that we only confirmed empirically 35 GPU-minutes later.
+
+*Means:* F2 as specified — urgency from ticket text alone — has a low ceiling, and the
+adapter is not even reaching it. Whether the shortfall against TF-IDF is fixable (rank,
+learning rate, or the ~2 supervised tokens per example after prompt masking) or whether a
+1.5B decoder is simply the wrong tool for a 3-class problem with weak lexical signal is
+**untested**.
+
+*Why this is worth keeping rather than quietly fixing:* it is the second place the project
+has found a baseline beating the sophisticated approach, after the router's confidence
+baseline in §5. A portfolio that reports those is more credible than one where every
+number is good.
 
 **Phase 1 · `epochs: 2` was over-generalised from one task, and it cost a retrain.** The
 intent adapter overfitted at epoch 3 in three consecutive runs, so 2 became the global

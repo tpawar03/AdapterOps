@@ -6,8 +6,22 @@
   "gated_metric": "span_f1_strict",
   "ceiling_strict": 0.9942,
   "metrics": {
-    "strict": {"precision": 0.9397, "recall": 0.8977, "f1": 0.9182, "tp": 2149, "fp": 138, "fn": 245},
-    "relaxed": {"precision": 0.9694, "recall": 0.9261, "f1": 0.9472, "tp": 2217, "fp": 70, "fn": 177}
+    "strict": {
+      "precision": 0.9397,
+      "recall": 0.8977,
+      "f1": 0.9182,
+      "tp": 2149,
+      "fp": 138,
+      "fn": 245
+    },
+    "relaxed": {
+      "precision": 0.9694,
+      "recall": 0.9261,
+      "f1": 0.9472,
+      "tp": 2217,
+      "fp": 70,
+      "fn": 177
+    }
   },
   "pct_of_ceiling": 0.9236,
   "training": {
@@ -17,7 +31,11 @@
     "batch": "2 x 16 (effective 32)",
     "lora_r": 16,
     "final_train_loss": 0.0345,
-    "val_loss_by_epoch": [0.0182, 0.01226, 0.01192],
+    "val_loss_by_epoch": [
+      0.0182,
+      0.01226,
+      0.01192
+    ],
     "best_checkpoint": "checkpoint-750 (final step)",
     "device": "NVIDIA A10, bf16",
     "wall_clock_minutes": 61
@@ -33,10 +51,12 @@
     "rule": "TrainConfig.train_subsample: escalate only while BELOW ceiling AND train loss still falling",
     "status": "no longer fires",
     "evidence": "val loss 0.01226 -> 0.01192 across the final epoch is a 2.8% move against 38% for epoch 1->2; train loss is 0.003. The curve has flattened, so more rows or epochs are not the binding constraint.",
-    "remaining_gap": "0.9182 vs 0.9942 ceiling. Recall (0.8977) still trails precision (0.9397): 245 spans missed, 138 invented. If this is pursued, the next knob is LoRA rank (16), not data — a different experiment, and not obviously worth ~$1 at this margin."
+    "remaining_gap": "0.9182 vs 0.9942 ceiling. Recall (0.8977) still trails precision (0.9397): 245 spans missed, 138 invented. If this is pursued, the next knob is LoRA rank (16), not data \u2014 a different experiment, and not obviously worth ~$1 at this margin."
   },
   "notes": [
     "Relaxed 0.9472 vs strict 0.9182: a 0.029 gap, so most remaining errors are missed or spurious spans rather than boundary slips.",
     "The ceiling is 0.9942, not 1.0, because values appearing more than once are assigned left-to-right (D22). 0.9182 is 92.4% of what is achievable on this scorer."
-  ]
+  ],
+  "hub_revision": "5405e954fb99d911ae98a7ca3f6f5736b91c14f7",
+  "revision_note": "main was briefly overwritten by a weaker 3K/2-epoch run; this revision is the 8K/3-epoch adapter these numbers describe. Pinning the revision, not the branch, is what F16's manifest requires."
 }

@@ -1,6 +1,6 @@
 # PRD: Multi-Task Adapter Service with Cost-Aware Routing and Calibrated Evaluation
 
-**Version:** 2.5 (PII task reframed after its confound was measured)
+**Version:** 2.6 (urgency source replaced; the urgency adapter loses to bag-of-words)
 **Owner:** Solo build
 **Status:** Ready to start
 **Estimated duration:** 9 weeks at 20 hrs/week (~180 hours)
@@ -61,6 +61,14 @@ Two rounds of substantive revision, each triggered by the previous version claim
 | 24 | **F3 reframed from a binary PII flag to PII span detection / masking.** | The mirrored ai4privacy split has **zero negatives** — every row carries at least one PII span, median six — so a binary flag needs negatives invented from somewhere. Two constructions were built and probed. Cross-corpus negatives from Bitext: a classifier *with all PII removed* separates the classes at **0.9999** against 0.5 chance, so the task is corpus identification, not PII detection. Same-corpus negatives, each span replaced by a type-matched surrogate: trained on one surrogate vocabulary and tested on a disjoint one, **0.9918 → 0.5102** — the model had learned the surrogate phrases. Span detection invents no negatives: the data supplies `source_text`, `masked_text` and `privacy_mask` offsets directly. Both probes are reproducible via `uv run adapterops pii-task`. |
 | 25 | **PII's gated metric changes from macro-F1 to span-level F1;** its golden set stays 300 documents. | A span task is scored on predicted spans against gold offsets, not a per-document label. 300 documents at a median of six spans is ~1,800 scored spans — a denser signal than 300 binary labels, so changelog 15's sizing rationale still holds. |
 | 26 | **Drafting splits are group-aware on `instruction`.** | Caught by a test on its first run: Bitext repeats 989 instructions up to eight times, so a row-wise golden/train split leaves copies of golden texts in training. Splitting on unique instruction text removes the leak. |
+
+### v2.5 → v2.6 — urgency rebuilt, and a negative result kept
+
+| # | Change | Reason |
+|---|---|---|
+| 27 | **Urgency source replaced: the CC0 Kaggle dataset contains no ticket text.** Now `Tobi-Bueck/customer-support-tickets`, **CC BY-NC 4.0**. | Every string column in `albertobircoci/support-ticket-priority-dataset-50k` is a short categorical (`'Wed'`, `'Small'`, max 15 chars) and `description_length` is an *integer* — the description was measured and discarded. It is a tabular dataset predicting `priority` from `error_rate_pct`, `downtime_min` and `security_incident_flag`, which gradient-boosted trees would do better, and it cannot feed a router that dispatches ticket *text*. Day-1 check 4 verified the dataset existed and was CC0; it never opened the file. **The replacement is the project's only non-permissive source** — the derived adapter inherits non-commercial terms, disclosed in the README, `data/MANIFEST.json` and the adapter card. 11,922 usable English rows after filtering (the source is 60% English / 40% German). |
+| 28 | **F2 is reported as a negative result: the urgency adapter loses to TF-IDF.** The adapter is kept and shipped anyway. | Adapter **0.470 micro / 0.421 macro-F1**; TF-IDF plus logistic regression **0.5467 / 0.5465**; chance on three balanced classes 0.3333. Ruled out: format failure (`exact_label_rate` 1.000), label noise (zero of 9,879 unique tickets carry contradictory priorities), and unlearnability (TF-IDF is 21 points above chance). The text-to-priority signal is simply weak — even TF-IDF is near-random on `medium`. Corroboration: the rejected Kaggle set predicted priority from account and incident *metadata*, so its designers did not treat this as a text problem either. Whether the gap to TF-IDF is fixable (LoRA rank, learning rate, or the ~2 supervised tokens per example after prompt masking) is untested and stated as such. |
+| 29 | **Adapter registry pins revisions, not `main`.** | A stale clone re-ran training against an old config and overwrote a published adapter's `main`; the recorded score then described weights that were no longer deployed. The weights were recoverable only because Hugging Face repos keep commit history. F16 already required revision pinning for reproducibility — this is the concrete failure that justifies it. |
 
 ---
 
@@ -178,7 +186,7 @@ The v2.2 revisions are themselves part of the signal. A split that leaks into tr
 | # | Requirement | Priority |
 |---|---|---|
 | F1 | Train QLoRA adapter: intent classification (Banking77) | P0 |
-| F2 | Train QLoRA adapter: urgency/priority (Kaggle ticket-priority) | P0 |
+| F2 | Train QLoRA adapter: urgency/priority (`Tobi-Bueck/customer-support-tickets`, CC BY-NC) — **reported as a negative result, see changelog 28** | P0 |
 | F3 | Train QLoRA adapter: **PII span detection / masking** (ai4privacy) — reframed from a binary flag, see changelog 24 | P0 |
 | F4 | Train QLoRA adapter: draft-reply generation (Bitext) | P0 |
 | F5 | Serve all 4 adapters concurrently via vLLM multi-LoRA | P0 |
@@ -305,7 +313,7 @@ flowchart TB
 | Task | Source | Volume used | License | Labeling | Splits |
 |---|---|---|---|---|---|
 | Intent | `mteb/banking77` (HF) — parquet-native mirror; `PolyAI/banking77` is script-based and unloadable (changelog 21) | 13,069 avail. (9,993 train / 3,076 test) → ~4K train | **MIT** — verified | Pre-labeled, 77 classes | Train/val + **770 golden** (10/class, 25% of the 3,076-example test split) |
-| Urgency | Kaggle `albertobircoci/support-ticket-priority-dataset-50k` | 50K avail. → ~4K | **CC0 public domain** — verified | Pre-labeled | 70/15/15, 300 golden |
+| Urgency | `Tobi-Bueck/customer-support-tickets` | 20K avail. → 11,922 English | **CC BY-NC 4.0** — non-commercial, attribution required. The only non-permissive source; the derived adapter inherits it (changelog 27) | Pre-labeled. English rows only (source is 40% German); rows missing `body` or `priority` dropped | 300 golden, **stratified 100/class** — the source is imbalanced 2:1, and the gated metric is macro-F1 so accuracy cannot be won by ignoring `low` |
 | PII | `ai4privacy/pii-masking-openpii-1m` | 1,143,397 train avail. → ~3K subsample, **English rows only** | **CC-BY-4.0** — verified | Pre-labeled, synthetic. Multilingual: filter on the `language` column (non-goal 11). **Span offsets, not a document label** — the split has zero PII-free rows (changelog 24) | 70/15/15, 300 golden |
 | Drafting | `bitext/Bitext-customer-support-llm-chatbot-training-dataset` | 26,872 avail. → ~2K | CDLA-Sharing 1.0 — verified (attribution + share-alike; attribution goes in the README) | Pre-labeled instruction/response pairs | 70/15/15, 300 golden |
 | Router | Generated: ticket pool → adapter outputs → harness scoring | ~3,000 pairs | Inherits source licenses | **Computed automatically** | Held-out eval + within-task shift set. **Hard-cases items removed before training.** |

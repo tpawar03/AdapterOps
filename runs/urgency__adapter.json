@@ -1,0 +1,28 @@
+{
+  "task": "urgency",
+  "system": "adapter",
+  "adapter": "Tanny03/adapterops-urgency",
+  "split": "evals/golden/urgency.parquet",
+  "n": 300,
+  "gated_metric": "macro_f1",
+  "metrics": {"micro_accuracy": 0.47, "macro_f1": 0.421, "exact_label_rate": 1.0},
+  "context": {
+    "chance_3_balanced_classes": 0.3333,
+    "tfidf_logreg_baseline": {"micro_accuracy": 0.5467, "macro_f1": 0.5465},
+    "verdict": "The adapter LOSES to TF-IDF + logistic regression by 7.7 points micro / 12.6 macro."
+  },
+  "training": {
+    "rows": 9879, "epochs": 3, "max_seq_length": 320, "batch": "4 x 8 (effective 32)",
+    "val_loss_by_epoch": [0.505, 0.4726, 0.5338],
+    "best_checkpoint": "checkpoint-618 (epoch 2) — epoch 3 overfitted, selection worked",
+    "final_train_loss": 0.6378, "device": "NVIDIA A10, bf16", "wall_clock_minutes": 35
+  },
+  "diagnosis": [
+    "Not a format failure: exact_label_rate is 1.000, every output is a valid class.",
+    "Not label noise: zero identical texts carry different priorities across 9,879 unique rows.",
+    "Not unlearnable: TF-IDF reaches 0.5467, well above the 0.3333 chance line.",
+    "The signal ceiling is genuinely low. Even TF-IDF is near-random on 'medium' (F1 0.52) and its best class is 'high' at 0.59.",
+    "Corroborating evidence from the rejected source: the CC0 Kaggle dataset predicted priority from customer_tier, error_rate_pct, downtime_min and security_incident_flag - account and incident METADATA, not wording. Its designers did not believe priority was a text problem either. Our result is the same conclusion reached empirically."
+  ],
+  "open_question": "Whether the adapter's shortfall against TF-IDF is fixable (rank, learning rate, the ~2-token supervision signal per example after prompt masking) or whether a 1.5B decoder is simply the wrong tool for a 3-class problem with weak lexical signal. Untested."
+}
