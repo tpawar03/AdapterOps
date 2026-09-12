@@ -1,0 +1,83 @@
+{
+  "purpose": "Frozen router pool (F7). Re-drawing it moves the router's training data and the population the hard-cases split is mined from.",
+  "regenerate": "uv run adapterops router-pool --force",
+  "seed": 20260909,
+  "pairs": 3000,
+  "file": "data/router/pool.parquet",
+  "bytes": 668310,
+  "sha256": "615de230594d3df13c426711712b27d8eebff87e8fa709373ce26d6ff6c269ba",
+  "drawn_from": "data/<task>/split_val.parquet \u2014 held out from both the adapters and the golden sets",
+  "exclusions_verified": {
+    "drafting": {
+      "in_golden": 0,
+      "in_adapter_train": 0,
+      "duplicate_texts": 0
+    },
+    "intent": {
+      "in_golden": 0,
+      "in_adapter_train": 0,
+      "duplicate_texts": 0
+    },
+    "pii": {
+      "in_golden": 0,
+      "in_adapter_train": 0,
+      "duplicate_texts": 0
+    },
+    "urgency": {
+      "in_golden": 0,
+      "in_adapter_train": 0,
+      "duplicate_texts": 0
+    }
+  },
+  "not_excluded_here": "hard-cases items (F31) \u2014 unknown until the pool is scored; cut in adapterops.router.dataset",
+  "tasks": [
+    {
+      "task": "intent",
+      "text_column": "text",
+      "gold_column": "label_text",
+      "source": "data/intent/split_val.parquet",
+      "source_rows": 1498,
+      "excluded_in_golden": 0,
+      "excluded_in_adapter_train": 0,
+      "excluded_duplicate_text": 0,
+      "eligible": 1498,
+      "sampled": 750
+    },
+    {
+      "task": "urgency",
+      "text_column": "text",
+      "gold_column": "priority",
+      "source": "data/urgency/split_val.parquet",
+      "source_rows": 1743,
+      "excluded_in_golden": 0,
+      "excluded_in_adapter_train": 0,
+      "excluded_duplicate_text": 0,
+      "eligible": 1743,
+      "sampled": 750
+    },
+    {
+      "task": "pii",
+      "text_column": "source_text",
+      "gold_column": "target",
+      "source": "data/pii/split_val.parquet",
+      "source_rows": 3000,
+      "excluded_in_golden": 0,
+      "excluded_in_adapter_train": 0,
+      "excluded_duplicate_text": 0,
+      "eligible": 3000,
+      "sampled": 750
+    },
+    {
+      "task": "drafting",
+      "text_column": "instruction",
+      "gold_column": "response",
+      "source": "data/drafting/split_val.parquet",
+      "source_rows": 3982,
+      "excluded_in_golden": 0,
+      "excluded_in_adapter_train": 467,
+      "excluded_duplicate_text": 16,
+      "eligible": 3499,
+      "sampled": 750
+    }
+  ]
+}

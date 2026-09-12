@@ -463,6 +463,55 @@ at its columns as part of verification, not after.
 
 ---
 
+### D24 · Drafting's frozen train/val leak is recorded and routed around, not re-frozen
+**Rejected:** re-running `adapterops splits --force` to fix it.
+**Why:** the drafting split is group-aware where the *golden* set is carved out — 989
+instructions repeat up to 8x, and a row-wise golden holdout would have left copies of
+golden texts in train. That guard works. But the remainder is then split into train and
+val row-wise, so the same protection was never applied one level down: **467 of 3,982 val
+rows (11.7%) share an `instruction` with `split_train`.**
+
+Consequence, stated at its real size: training uses `load_best_model_at_end` on
+`eval_loss`, so drafting's checkpoint was selected against a val set that is 11.7%
+memorised. The bias is mild — it inflates every checkpoint's val loss roughly equally, so
+the *ranking* the selection depends on is largely preserved — and it touches **no reported
+number**, because every score in §4 comes from the golden sets, which are clean.
+
+Re-freezing would move `split_train`, which invalidates the drafting adapter's provenance
+and costs a retrain to restore. That is a paid run to fix a bias that changes no published
+figure, so the split stays and the number is written down instead. The exclusion is
+applied where it actually bites — the router pool drops all 467 rows (D25).
+
+**Interview angle:** the same defect at two levels, guarded at one. A group-aware split is
+not a property of a function call; it is a property that has to hold at *every* cut of the
+data, and the second cut was made by different code three lines later. Also a worked
+example of pricing a fix: the honest move here is the measurement, not the retrain.
+
+---
+
+### D25 · Router pool drawn from the val splits, filtered against adapter training, unstratified
+**Rejected:** drawing the pool from each task's full mirror, and stratifying it on the
+task label.
+**Why:** the router's label is computed — run a pair through its adapter, score it, and
+the pair is a success or a failure. So the pool decides what "success rate" means. A row
+the adapter was fine-tuned on is answered from memory, and a router trained on those
+learns a success rate that does not exist at serving time. The pool therefore comes from
+`split_val.parquet` — held out from both the adapter and the golden set — with two further
+filters whose removal counts are recorded in `evals/ROUTER_POOL.json`: texts that also
+appear in `split_train` (467, all drafting, per D24) and texts that repeat inside val
+itself (16).
+
+**Not stratified**, unlike the golden sets, and for the opposite reason. The golden sets
+are stratified because their gated metrics demand it. Here the label *is* adapter success,
+and stratifying on the task label would reshape the base rate the router exists to learn.
+
+**Interview angle:** "what is your training data for the router?" has a boring answer and
+an interesting one. The interesting one is that the pool's provenance defines the label,
+so every leak is a silent inflation rather than an error — which is why the freeze verifies
+the exclusions by recomputing them from the source files rather than trusting the builder.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -514,6 +563,8 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Learned router vs confidence baseline | — | Phase 2 |
 | Within-task shift degradation | — | Phase 2 |
 | Judge correlation + ±1 agreement | — | Phase 3 |
+| **Router pool frozen (F7)** | **3,000 pairs**, 750/task · exclusions verified zero | Phase 2 |
+| Drafting val rows sharing an instruction with train | **467 of 3,982 (11.7%)** — D24 | Phase 1 |
 | **Label-noise quarantine rate, per task** | — | Phase 4 |
 | Hard-split run-to-run variance | — | Phase 4 |
 | **M11: does the hard split catch what the random set misses?** | — | Phase 5 |
@@ -522,6 +573,27 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 2 · The drafting split leaks at the second cut, and the pool test found the
+third.** Building the router pool surfaced two things neither the splits code nor its
+tests were looking for.
+
+*First:* `split_val` and `split_train` for drafting share 467 instructions (11.7%). The
+group-aware guard was written for the golden holdout and never applied to the train/val
+cut made three lines later (D24). No reported number moves — every score comes from the
+golden sets — but drafting's best-checkpoint selection ran against a partly memorised val
+set, and the router pool would have inherited the whole problem.
+
+*Second, and this one was caught by a test rather than by reading:* the first frozen pool
+contained the same drafting instruction twice. Val itself repeats 92 instructions, and the
+draw took both copies of one. Two identical texts either side of the router's own
+train/eval split is the same leak one level down — so the pool now drops in-split
+duplicates too, and the freeze re-verifies all three exclusions by recomputing them from
+the source files instead of trusting the builder that just applied them.
+
+*Means:* the useful generalisation is not "check for leaks" but **check at every cut**. One
+group-aware split does not make a pipeline group-aware; each new slice of the data is a new
+chance to break it, and the check has to be independent of the code that did the slicing.
 
 **Phase 1 · The PII adapter earns its place; the regex baseline says why.** A
 pattern-and-lexicon baseline scores **0.4299 strict** against the adapter's **0.9190** —

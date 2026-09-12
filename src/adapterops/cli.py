@@ -27,6 +27,12 @@ def _cmd_pii_task(_: argparse.Namespace) -> int:
     return pii_main()
 
 
+def _cmd_router_pool(args: argparse.Namespace) -> int:
+    from adapterops.router.pool import main as pool_main
+
+    return pool_main(force=args.force)
+
+
 def _cmd_train(args: argparse.Namespace) -> int:
     from adapterops.train.qlora import config_for, train
 
@@ -76,8 +82,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_pii = sub.add_parser("pii-task", help="build the PII binary task and probe its confound")
     p_pii.set_defaults(func=_cmd_pii_task)
 
+    p_pool = sub.add_parser("router-pool", help="freeze the router (ticket, task) pool (F7)")
+    p_pool.add_argument("--force", action="store_true",
+                        help="re-draw the pool — moves the router's training data")
+    p_pool.set_defaults(func=_cmd_router_pool)
+
     p_train = sub.add_parser("train", help="QLoRA-train a task adapter (needs CUDA)")
-    p_train.add_argument("--task", required=True, choices=["intent", "urgency", "pii"])
+    p_train.add_argument("--task", required=True, choices=["intent", "urgency", "pii", "drafting"])
     p_train.add_argument("--hub-repo", default=None, help="push to this HF Hub repo when done")
     p_train.set_defaults(func=_cmd_train)
 
