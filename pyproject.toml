@@ -27,6 +27,8 @@ dependencies = [
     "openai>=1.50",
     "wandb>=0.18",
     "spacy>=3.7",          # NER baseline for the PII task — names/cities/streets
+    "sentencepiece>=0.2",  # DeBERTa-v3 router tokenizer (F10). transformers 5.x cannot
+                           # convert deberta-v3's vocab without it and fails at load.
     "python-dotenv>=1.0",
     "kagglehub>=1.0",   # urgency dataset (PRD §9) — Kaggle, not on the HF Hub
 ]

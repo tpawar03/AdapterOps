@@ -245,9 +245,8 @@ def main(limit: int | None = None, workers: int = 6, purpose: str | None = None)
         print("  no OPENAI_API_KEY in the environment or .env")
         return 2
 
-    pool = pd.read_parquet(POOL_FILE)
-    if purpose:
-        pool = pool[pool.purpose == purpose]
+    full_pool = pd.read_parquet(POOL_FILE)
+    pool = full_pool[full_pool.purpose == purpose] if purpose else full_pool
 
     cached = load_cache()
     todo = pool[~pool.pair_id.isin(cached)]
@@ -272,13 +271,15 @@ def main(limit: int | None = None, workers: int = 6, purpose: str | None = None)
         return 0
 
     if ledger.stopped:
-        write_outputs(pool)
+        # Always the full pool: a --purpose resume must not shrink the frozen artifact to
+        # the slice it happened to be working on.
+        write_outputs(full_pool)
         print(f"\n  STOPPED: {ledger.reason}. {ledger.requests:,} requests, "
               f"${ledger.usd:.4f} spent. Cached results are kept; re-run to resume.")
         return 1
 
     failed = [r for r in results if r.get("error")]
-    write_outputs(pool)
+    write_outputs(full_pool)
     print(f"\n  {len(results) - len(failed):,} calls · {ledger.requests:,} requests · "
           f"${ledger.usd:.4f} · {elapsed:.0f}s "
           f"({ledger.input_tokens:,} in / {ledger.output_tokens:,} out)")

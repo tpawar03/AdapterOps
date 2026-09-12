@@ -25,7 +25,9 @@ because ranking is what the budget sweep consumes.
 
 from __future__ import annotations
 
+import inspect
 import json
+import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -48,8 +50,12 @@ class RouterConfig:
     batch_size: int = 16
     learning_rate: float = 2e-5
     weight_decay: float = 0.01
-    warmup_ratio: float = 0.1
+    warmup_fraction: float = 0.1
+    """Converted to `warmup_steps` below. `warmup_ratio` was removed from
+    TrainingArguments in transformers 5 — qlora.py already hit this and the guard it
+    added is reused here, because the failure mode is a TypeError partway into a run."""
     seed: int = SEED
+    use_cpu: bool = False
     output_dir: str = str(OUT_DIR)
 
 
@@ -113,23 +119,36 @@ def train(cfg: RouterConfig | None = None) -> dict:
                       batched=True, remove_columns=["text"])
 
     model = AutoModelForSequenceClassification.from_pretrained(cfg.base_model, num_labels=2)
-    args = TrainingArguments(
-        output_dir=cfg.output_dir,
-        num_train_epochs=cfg.epochs,
-        per_device_train_batch_size=cfg.batch_size,
-        per_device_eval_batch_size=cfg.batch_size * 2,
-        learning_rate=cfg.learning_rate,
-        weight_decay=cfg.weight_decay,
-        warmup_ratio=cfg.warmup_ratio,
-        eval_strategy="epoch",
-        save_strategy="epoch",
-        load_best_model_at_end=True,
-        metric_for_best_model="eval_loss",
-        save_total_limit=1,
-        seed=cfg.seed,
-        report_to=[],
-        logging_steps=25,
-    )
+
+    total_steps = math.ceil(len(splits["train"]) / cfg.batch_size) * cfg.epochs
+    ta_kwargs = {
+        "output_dir": cfg.output_dir,
+        "num_train_epochs": cfg.epochs,
+        "per_device_train_batch_size": cfg.batch_size,
+        "per_device_eval_batch_size": cfg.batch_size * 2,
+        "learning_rate": cfg.learning_rate,
+        "weight_decay": cfg.weight_decay,
+        "warmup_steps": max(10, int(cfg.warmup_fraction * total_steps)),
+        "eval_strategy": "epoch",
+        "save_strategy": "epoch",
+        "load_best_model_at_end": True,
+        "metric_for_best_model": "eval_loss",
+        "greater_is_better": False,
+        "save_total_limit": 2,   # >=2 so the best checkpoint survives pruning
+        "seed": cfg.seed,
+        "report_to": [],
+        "logging_steps": 25,
+        "use_cpu": cfg.use_cpu,
+    }
+    # Same guard as qlora.py, for the same reason: surface an unsupported argument as a
+    # readable error rather than a TypeError partway into training.
+    supported = set(inspect.signature(TrainingArguments.__init__).parameters)
+    unsupported = sorted(set(ta_kwargs) - supported)
+    if unsupported:
+        msg = (f"TrainingArguments does not accept {unsupported} in this transformers "
+               f"version. Update router/train.py.")
+        raise TypeError(msg)
+    args = TrainingArguments(**ta_kwargs)
     trainer = Trainer(model=model, args=args,
                       train_dataset=encode(splits["train"]),
                       eval_dataset=encode(splits["eval"]),
