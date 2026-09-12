@@ -39,7 +39,7 @@ and in the phase column of §4.
 | M4 | Within-task distribution shift | **no measurable degradation** — local 0.656 → 0.652, router AUC 0.707 → 0.716 · consistent with a router that barely reads the text |
 | M5 | Judge calibration reported | not started |
 | M6 | Manifest drives serving | manifest format + promote/rollback built · serving reads it after the GPU run |
-| M7 | **detect → block → rollback proven** | block + rollback built and tested · detect needs the regression run |
+| M7 | **detect → block → rollback proven** | **detect (F18) → block proven in code** on the frozen splits, serving mocked · rollback tested · remains: real serving + the F21 shuffled-label adapter (GPU) |
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
 | M9 | Spend ≤ $50 | on track ($2.16) |
 | M10 | Hard-cases split mined + adjudicated | **done** — 525 mined → **507 retained**, 18 quarantined · intent label-noise rate **24.0%** · screen applied only where it beats chance (D36) |

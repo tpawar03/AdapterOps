@@ -67,6 +67,12 @@ def _cmd_frontier(args: argparse.Namespace) -> int:
     return frontier_main(limit=args.limit, workers=args.workers, purpose=args.purpose)
 
 
+def _cmd_regress(args: argparse.Namespace) -> int:
+    from adapterops.eval.regression import main as regress_main
+
+    return regress_main(base_url=args.base_url, name=args.name, baseline=args.baseline)
+
+
 def _cmd_hard_cases(args: argparse.Namespace) -> int:
     from adapterops.router.adjudicate import main as hard_main
 
@@ -194,6 +200,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_fr.add_argument("--workers", type=int, default=6)
     p_fr.add_argument("--purpose", choices=["router", "mining"], default=None)
     p_fr.set_defaults(func=_cmd_frontier)
+
+    p_rg = sub.add_parser("regress", help="on-demand regression run, both splits (F18)")
+    p_rg.add_argument("--base-url", default="http://localhost:8000")
+    p_rg.add_argument("--name", required=True, help="names runs/regression__<name>.json")
+    p_rg.add_argument("--baseline", default=None,
+                      help="a previous regression run to compare against")
+    p_rg.set_defaults(func=_cmd_regress)
 
     p_hc = sub.add_parser("hard-cases",
                           help="adjudicate mined failures and freeze the hard split (F30/F31)")
