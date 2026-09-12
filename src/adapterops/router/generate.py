@@ -46,10 +46,21 @@ POOL_FILE = REPO_ROOT / "data" / "router" / "pool.parquet"
 SCORED_FILE = REPO_ROOT / "data" / "router" / "scored.parquet"
 SERVING_RUN = REPO_ROOT / "runs" / "m1_serving.json"
 
-MAX_TOKENS = {"intent": 12, "urgency": 6, "pii": 192, "drafting": 400}
-"""Sized from the pool's own gold lengths: PII targets reach 742 characters and drafting
-references 2,147, so a shared cap would truncate drafting mid-reply and score the
-truncation as a quality failure."""
+MAX_TOKENS = {"intent": 12, "urgency": 6, "pii": 384, "drafting": 448}
+"""Sized by tokenising the pool's own gold, not by estimating from characters.
+
+The first values (PII 192, drafting 400) were estimated from character counts and the smoke
+test caught the error: 1 of 25 PII documents truncated. Measured against the Qwen tokenizer,
+PII gold runs p50 67 / p90 149 / p99 235 / max 374 tokens, so a 192 cap truncates **4.0%**
+of documents — about 58 of the 1,450 PII pairs.
+
+That is not a small quality effect, it is a *wrong label*. A truncated span list loses real
+spans, scores as a recall failure, and is indistinguishable from an adapter that missed
+them — so the pair would be labelled a failure for the router and then mined into the
+hard-cases split as a `missed` bucket item that is actually a harness artifact.
+
+384 and 448 both truncate 0.00% of their task's gold. The cost is a slightly longer
+generation on the few documents that need it."""
 
 PROBE_PROMPT = "My card payment was declined at the supermarket this morning."
 
