@@ -76,6 +76,13 @@ class RouterConfig:
     set. The first trained router scored 0.7064 ROC-AUC and correlated **0.996** with a
     pure task-prior lookup scoring 0.6883 — it took the shortcut. This flag is how that is
     demonstrated rather than asserted."""
+    tag: str = ""
+    """Names this variant's outputs. Empty is the default run.
+
+    An ablation once wrote its predictions over the default run's, because the experiment
+    redirected the run file but not the data directory — the two variants shared
+    `router_eval_scored.parquet` and the second silently won. Tagging makes collisions
+    impossible rather than careful."""
     use_cpu: bool | None = None
     """None selects: CUDA when present, otherwise CPU. **MPS is skipped deliberately.**
 
@@ -123,6 +130,28 @@ def ranking_report(y_true: np.ndarray, p_fail: np.ndarray, tasks: np.ndarray) ->
     report = {"overall": one(np.ones(len(y_true), dtype=bool))}
     report["per_task"] = {t: one(tasks == t) for t in sorted(set(tasks))}
     return report
+
+
+def shortcut_check(train_frame: pd.DataFrame, eval_frame: pd.DataFrame,
+                   summary: dict) -> dict:
+    """How much of the router's ranking is explained by the task name alone.
+
+    The first trained router scored 0.7064 ROC-AUC and looked like a working component.
+    A lookup table holding nothing but each task's failure rate scored 0.6883, and the
+    router's predictions correlated 0.996 with it. Reported on every run from now on,
+    because the pooled AUC cannot distinguish the two on its own.
+    """
+    from sklearn.metrics import roc_auc_score
+
+    prior = 1 - train_frame.groupby("task").success.mean()
+    y = (~eval_frame.success.astype(bool)).astype(int)
+    task_only = eval_frame.task.map(prior).to_numpy()
+    return {
+        "task_prior_only_roc_auc": round(float(roc_auc_score(y, task_only)), 4),
+        "router_roc_auc": summary["splits"]["eval"]["overall"]["roc_auc"],
+        "per_task_failure_rates": {k: round(float(v), 4) for k, v in prior.items()},
+        "note": "if these two are close, the pooled AUC is the task prior, not the text",
+    }
 
 
 def train(cfg: RouterConfig | None = None) -> dict:
@@ -212,14 +241,18 @@ def train(cfg: RouterConfig | None = None) -> dict:
                    "completes")
             raise ValueError(msg)
         frame = frame.assign(router_p_fail=p_fail)
-        frame.to_parquet(DATA_DIR / f"router_{name}_scored.parquet")
+        suffix = f"__{cfg.tag}" if cfg.tag else ""
+        frame.to_parquet(DATA_DIR / f"router_{name}_scored{suffix}.parquet")
         summary["splits"][name] = ranking_report(
             (~frame.success.astype(bool)).to_numpy(), p_fail, frame.task.to_numpy())
 
+    summary["shortcut_check"] = shortcut_check(splits["train"], splits["eval"], summary)
     trainer.save_model(cfg.output_dir)
     tok.save_pretrained(cfg.output_dir)
-    RUN_FILE.parent.mkdir(exist_ok=True)
-    RUN_FILE.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    run_file = (RUN_FILE if not cfg.tag
+                else RUN_FILE.with_name(f"router__train__{cfg.tag}.json"))
+    run_file.parent.mkdir(exist_ok=True)
+    run_file.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return summary
 
 
