@@ -32,3 +32,9 @@ _adapters/
 
 # Frontier run lock (adapterops.router.frontier) — process-local, never committed.
 data/router/frontier.lock
+
+# Per-seed outputs from router seed studies. The committed record is
+# runs/router__seed_study.json, which holds every seed's metrics; these are
+# reproducible in minutes and would add a dozen parquets per study.
+data/router/*__s[0-9]*.parquet
+runs/router__train__*__s[0-9]*.json

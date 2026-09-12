@@ -20,14 +20,14 @@ and in the phase column of §4.
 
 | | |
 |---|---|
-| **Phase** | **Phase 1 complete on the free path.** Four adapters trained, published and scored. Phase 2 (router) is next; its two remaining Phase 1 items (M1, latency) need a paid GPU session. |
+| **Phase** | **Phase 2 complete, and its results are negative and recorded.** M1 passed on real hardware; the router was trained and the operating curve measured. The Phase 4 manifest, promotion blocking and rollback were built ahead while waiting on paid runs. Phase 3 (judge) is next. |
 | **Spec** | PRD v2.6, published + in repo |
 | **Hours logged** | 0 / 180 |
 | **Spend** | **$2.16** / $50.00 |
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
-| **Blocking** | Nothing on the free path. M1 (four adapters served concurrently) and the per-adapter latency benchmark both need rented GPU — queued, not blocked. |
-| **Done so far** | All 8 day-1 checks, 4 of 4 datasets mirrored with provenance, all four eval splits frozen, eval harness + span scorer + majority floor, **four adapters trained and published**, intent **0.9312** (+0.4091 over prompted), PII **0.9190 strict** (+0.418 over regex+NER), urgency **0.470 — loses to TF-IDF, kept as a finding**, Gate 0.5 passed on real hardware |
-| **Next action** | Two runs, both prepared and both blocked on something other than code: the Phase 2 GPU session (`PHASE-2-RUN.md`, $1.00 approved) and the frontier arm's remaining 2,180 calls (waiting on the daily request quota) |
+| **Blocking** | Nothing. Two open inputs, neither blocking: the **actual GPU charge** for the Phase 2 session (the cost log is missing it), and the frontier arm's last mining-slice pairs, running unattended against the daily request quota. |
+| **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · intent **0.9312** (+0.4091 over prompted) · PII **0.9190** strict · urgency **loses to TF-IDF** · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · router pool scored · **525 hard cases mined** · router measured as **0.02–0.03 over a task-name lookup, across six runs** · escalation measured as a **quality loss** on every task · system manifest v1 with blocking and rollback |
+| **Next action** | **Phase 3 judge.** It replaces drafting's proxy label, now the weakest label in the project, and it is one of the two fairer frontier comparisons the escalation finding calls for. It needs ~1,200 GPT-4o judgments — paid, and subject to the 10,000 requests/day cap — so it is approved before it runs. |
 
 ### Milestone tracker
 
