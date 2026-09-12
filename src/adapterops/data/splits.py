@@ -237,7 +237,8 @@ def main(force: bool = False) -> int:
     MANIFEST.write_text(json.dumps({
         "purpose": "Frozen evaluation splits (F35). Golden sets must never move.",
         "regenerate": "uv run adapterops splits --force  (this invalidates prior comparisons)",
-        "pending": ["urgency — awaiting Kaggle mirror", "pii — blocked, see STATUS.md"],
+        "pending": [spec.task for spec in SPECS
+                    if not (REPO_ROOT / spec.golden_from).exists()],
         "tasks": entries,
     }, indent=2) + "\n", encoding="utf-8")
     print(f"\n  froze {MANIFEST.relative_to(REPO_ROOT)}")

@@ -1,10 +1,7 @@
 {
   "purpose": "Frozen evaluation splits (F35). Golden sets must never move.",
   "regenerate": "uv run adapterops splits --force  (this invalidates prior comparisons)",
-  "pending": [
-    "urgency \u2014 awaiting Kaggle mirror",
-    "pii \u2014 blocked, see STATUS.md"
-  ],
+  "pending": [],
   "tasks": [
     {
       "task": "intent",
@@ -136,5 +133,6 @@
         }
       }
     }
-  ]
+  ],
+  "frozen": "all four tasks \u2014 intent 770, urgency 300, pii 300, drafting 300"
 }
