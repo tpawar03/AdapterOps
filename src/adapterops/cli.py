@@ -78,7 +78,8 @@ def _cmd_prompted(args: argparse.Namespace) -> int:
 def _cmd_regress(args: argparse.Namespace) -> int:
     from adapterops.eval.regression import main as regress_main
 
-    return regress_main(base_url=args.base_url, name=args.name, baseline=args.baseline)
+    return regress_main(base_url=args.base_url, name=args.name, baseline=args.baseline,
+                        save_predictions=args.save_predictions)
 
 
 def _cmd_hard_cases(args: argparse.Namespace) -> int:
@@ -230,6 +231,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_rg.add_argument("--name", required=True, help="names runs/regression__<name>.json")
     p_rg.add_argument("--baseline", default=None,
                       help="a previous regression run to compare against")
+    p_rg.add_argument("--save-predictions", action="store_true",
+                      help="keep every prediction, so drafting can be judged after the GPU is gone")
     p_rg.set_defaults(func=_cmd_regress)
 
     p_hc = sub.add_parser("hard-cases",

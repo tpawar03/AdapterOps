@@ -92,7 +92,13 @@ def score(task: str, texts: Sequence[str], gold: Sequence[str], predictions: Seq
 
 
 def run(predictor: Predictor, judge: Judge | None = None,
-        tasks: Sequence[str] = TASKS) -> dict:
+        tasks: Sequence[str] = TASKS, collect: list[dict] | None = None) -> dict:
+    """Score every task on both splits. Pass `collect` to keep each prediction as a row.
+
+    Drafting is the reason to keep them: its gated metric is the distilled judge's score, and
+    the judge runs on CPU after the GPU session ends. Without the replies, scoring drafting on
+    the golden set would mean renting the GPU again to regenerate them.
+    """
     per_split: dict = {}
     for task in tasks:
         per_split[task] = {}
@@ -107,6 +113,10 @@ def run(predictor: Predictor, judge: Judge | None = None,
                        f"for {len(texts)} inputs")
                 raise ValueError(msg)
             per_split[task][which] = score(task, texts, gold, predictions, judge)
+            if collect is not None:
+                collect.extend({"task": task, "split": which, "text": t, "gold": g,
+                                "prediction": p}
+                               for t, g, p in zip(texts, gold, predictions, strict=True))
     return {"gated_metric": GATED, "per_split": per_split}
 
 
@@ -146,12 +156,18 @@ def http_predictor(base_url: str, concurrency: int = 16) -> Predictor:
     return predict
 
 
-def main(base_url: str, name: str, baseline: str | None = None) -> int:
-    result = {"name": name, **run(http_predictor(base_url))}
+def main(base_url: str, name: str, baseline: str | None = None,
+         save_predictions: bool = False) -> int:
+    rows: list[dict] | None = [] if save_predictions else None
+    result = {"name": name, **run(http_predictor(base_url), collect=rows)}
     if baseline:
         result["comparison"] = compare(result, json.loads(Path(baseline).read_text()))
     RUNS_DIR.mkdir(exist_ok=True)
     out = RUNS_DIR / f"regression__{name}.json"
+    if rows is not None:
+        predictions = RUNS_DIR / f"regression__{name}__predictions.parquet"
+        pd.DataFrame(rows).to_parquet(predictions)
+        result["predictions_file"] = str(predictions.relative_to(REPO_ROOT))
     out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
 
     for task, splits in result["per_split"].items():

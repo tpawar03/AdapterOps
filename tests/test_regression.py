@@ -99,3 +99,16 @@ def test_detect_then_block_end_to_end(oracle_run, broken_run, monkeypatch):
 
     unchanged = reg.compare(oracle_run, oracle_run)
     assert not system.blocking_reasons(candidate, unchanged)
+
+
+def test_predictions_can_be_kept_for_judging_after_the_gpu_is_gone(table):
+    """Drafting is judge-scored on CPU after the session. Without the replies kept, scoring it
+    on the golden set would mean renting the GPU again just to regenerate them."""
+    rows = []
+    reg.run(lambda task, texts: [table[(task, t)] for t in texts], tasks=("drafting",),
+            collect=rows)
+    random_texts, _ = reg.load_split("drafting", "random")
+    hard_texts, _ = reg.load_split("drafting", "hard")
+    assert len(rows) == len(random_texts) + len(hard_texts)
+    assert {r["split"] for r in rows} == {"random", "hard"}
+    assert all(r["prediction"] == r["gold"] for r in rows)
