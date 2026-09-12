@@ -97,6 +97,10 @@ class TrainConfig:
     too few to have converged — that is the point."""
     output_dir: str = "checkpoints/intent"
     hub_repo: str | None = None          # e.g. "tpawar03/adapterops-intent"
+    train_split: str = "train"
+    """Which frozen training split to read. `train_shuffled` is F21's deliberately broken
+    variant — intent labels permuted across rows, texts untouched. Validation always uses
+    the real `val` split, so checkpoint selection still sees true labels."""
 
 
 def label_column(task: str) -> str:
@@ -216,7 +220,7 @@ def train(cfg: TrainConfig) -> dict:
         return {"input_ids": input_ids, "labels": labels, "attention_mask": attention}
 
     train_ds = Dataset.from_list(
-        format_examples(load_split(cfg.task, "train", cfg.train_subsample), cfg.task))
+        format_examples(load_split(cfg.task, cfg.train_split, cfg.train_subsample), cfg.task))
     val_ds = Dataset.from_list(format_examples(load_split(cfg.task, "val"), cfg.task))
     train_ds = train_ds.map(encode, batched=True, remove_columns=["prompt", "completion"])
     val_ds = val_ds.map(encode, batched=True, remove_columns=["prompt", "completion"])

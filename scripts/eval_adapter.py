@@ -33,10 +33,15 @@ from adapterops.eval.spans import (
     score_spans,
     spans_from_values,
 )
+from adapterops.router.generate import MAX_TOKENS
 from adapterops.train.qlora import COLUMNS, PROMPTS
 
 BASE = "Qwen/Qwen2.5-1.5B-Instruct"
-MAX_NEW = {"intent": 12, "urgency": 6, "pii": 160}
+# One cap, shared with the router pool run. This script used to keep its own copy with PII at
+# 160 tokens — 23 of 300 golden documents are longer, holding 18.3% of golden spans, and the
+# committed 0.9190 was generated under it. The Phase 2 fix raised router.generate's copy and
+# never reached this one.
+MAX_NEW = MAX_TOKENS
 PII_CEILING = 0.9942
 
 

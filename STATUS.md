@@ -786,6 +786,37 @@ urgency, where its output would have looked identical and meant nothing.
 
 ---
 
+### D37 · F33's baseline runs measure serving noise, so the gate floor also carries training variance
+**Rejected:** deriving the gating threshold only from two regression runs against an unchanged
+manifest, as F33 specifies.
+**Why:** two runs of an unchanged manifest can differ only through inference nondeterminism,
+and the project has already measured both noise sources — they are not the same size.
+
+- **Inference.** A fixed adapter scored twice under greedy decoding was **bit-identical**
+  (Phase 0, reproduced to 15 decimal places across machines). Under vLLM's continuous
+  batching it is not quite: two identical 25-item smoke runs differed by one truncation. But
+  that noise is small, and it belongs to the serving stack, not the model.
+- **Training.** Two training runs of the same configuration differed by **±0.0039** intent
+  micro-accuracy — 3 of 770 — and the run record attributes *all* of it to training: GPU kernel
+  selection and fp16 reduction order.
+
+A threshold set as a multiple of inference noise alone would sit near zero. It would then block a
+retrained adapter that is statistically indistinguishable from the one it replaces — the
+unfalsifiable gate §11 removed, reintroduced through the back door.
+
+So the threshold takes the **larger** of the two measured floors per task and records which one
+bound. Where training variance has not been measured — urgency, PII and drafting, and every task
+on the hard split — it is recorded as unmeasured rather than borrowed from intent. Measuring it
+means retraining, which costs GPU time, so it is a line in the next session's plan, not an
+assumption.
+
+**Interview angle:** "derive the threshold from observed variance" is right and incomplete — the
+question is *which* variance. Two runs of the same model answer "is my harness noisy?". A release
+gate needs "would retraining this model move the number?". Those are different experiments with
+very different magnitudes, and the spec named the one that is nearly zero.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -823,7 +854,10 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Serving latency, A10 | **P50 81ms · P95 155ms** @ concurrency 16 | Phase 0 |
 | PII span scorer ceiling | **0.9942** on the frozen golden set (vs 0.8973 for masked text) | Phase 1 |
 | PII splits frozen | golden 300 docs / **2,394 spans**, train 17,000 | Phase 1 |
-| **PII adapter (8K rows, 3 epochs)** | **0.9190 strict** / 0.9477 relaxed — 92.4% of ceiling, rev `5405e954` | Phase 1 |
+| **PII adapter (8K rows, 3 epochs)** | **0.9190 strict** / 0.9477 relaxed — 92.4% of ceiling, rev `5405e954` · **generated at a 160-token cap — likely depressed, re-measure at 384** | Phase 1 |
+| PII adapter on the pool at 384 tokens (indicator) | micro strict F1 **0.9444** (P 0.9470, R 0.9418) over 1,450 val docs, 0 truncated · not the golden number | Phase 4 |
+| M2 prompt context vs the 1,536-token Phase 2 server | fit: intent few-shot 704, drafting 948 · **do not fit: urgency 1,639, PII 1,850, intent per-class 2,195** | Phase 4 |
+| F21 shuffled-label intent split | 8,495 rows · **1.54%** keep their label (chance 1.38%) · distribution unchanged | Phase 4 |
 | PII baseline (regex+spaCy) | **0.5006 strict** — adapter wins by **+0.418** | Phase 1 |
 | **Urgency adapter** | **0.470 micro / 0.421 macro — LOSES to TF-IDF (0.547/0.547)** | Phase 1 |
 | Drafting adapter | trained, published; judge-scored in Phase 3 | Phase 1 |
@@ -866,6 +900,29 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 4 · The committed PII adapter score was generated under a cap that cuts off 18% of the
+golden spans.** `scripts/eval_adapter.py` generated PII answers with `max_new_tokens=160`.
+Tokenising the golden targets: **23 of 300** documents (7.7%) are longer than 160 tokens, and
+those documents hold **437 of the 2,394** golden spans (18.3%). The committed **0.9190** strict
+span F1 was measured under that cap.
+
+*The evidence it is depressed, and where that evidence stops.* The router pool's PII outputs were
+generated at 384 tokens with nothing truncated, and score **0.9444** micro strict F1 over 1,450
+documents. Split by gold length, long documents are not harder: **0.9468** above 160 tokens
+against 0.9438 below. And the gap has truncation's signature — **recall** falls (golden 0.8985
+against pool 0.9418) while precision barely moves (0.9405 against 0.9470), because a cut-off list
+loses spans rather than inventing them. The limit: the pool comes from a different split than
+the golden set, so 0.9444 is an indicator and not a replacement.
+
+*Why it happened:* the output cap existed in two places. Phase 2 found PII truncation in the
+router pool run and raised `router.generate.MAX_TOKENS` from tokenised gold — and
+`eval_adapter.py` kept its own copy at 160. The fix reached one of two copies of a constant.
+`eval_adapter.py` now imports the single cap.
+
+*Means:* 0.9190 stays in §4 as measured, and the golden set is re-scored at 384 tokens in the next
+GPU session. If it rises to the pool's level, the adapter sits at about 95% of the 0.9942 ceiling
+rather than 92.4%, and its margin over the regex+NER baseline grows past +0.418.
 
 **Phase 4 · The PRD's adjudication rule would have quarantined two thirds of the hard split.**
 §9 quarantines a mined item when the frontier model also disagrees with the gold label. On the

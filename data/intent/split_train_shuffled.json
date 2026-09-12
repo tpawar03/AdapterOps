@@ -1,0 +1,16 @@
+{
+  "purpose": "F21 \u2014 intent training split with labels permuted, for the M7 regression",
+  "seed": 20260909,
+  "source": "data/intent/split_train.parquet",
+  "file": "data/intent/split_train_shuffled.parquet",
+  "sha256": "d5ea50528f1b8c6714dc89032f4774a3fdd63ff25e4689ef7a41072ea12f7bed",
+  "evidence": {
+    "rows": 8495,
+    "classes": 77,
+    "rows_keeping_their_label": 0.0154,
+    "chance_of_keeping": 0.0138,
+    "label_distribution_unchanged": true,
+    "texts_untouched": true
+  },
+  "train_with": "python -m adapterops.train.cli_train --task intent --train-split train_shuffled --variant shuffled"
+}
