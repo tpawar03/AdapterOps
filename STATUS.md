@@ -512,6 +512,29 @@ the exclusions by recomputing them from the source files rather than trusting th
 
 ---
 
+### D26 · The shift split reports evidence that it shifts, not just that it was built
+**Rejected:** freezing the F36 split on the strength of "cluster holdout plus length
+deciles" and reporting median length per side as the sanity check.
+**Why:** the median is the wrong statistic here and would have passed a broken split. The
+shift side is the union of the *top and bottom* length deciles, so its two tails nearly
+cancel: drafting's median moves 48 → 49 characters and intent's moves 48 → 45. Read alone,
+those numbers say the split does nothing.
+
+What the manifest records instead is the length spread on each side — intent's p10/p90
+goes 35/73 → 25/157, so the tails widen as designed — and the share of the shift side's
+vocabulary that never appears in-distribution: **25.1% drafting, 29.8% urgency, 41.4%
+intent, 56.0% PII**. The vocabulary count is deliberately computed with a crude regex
+rather than the TF-IDF analyzer that produced the clusters, so the evidence does not come
+from the same code as the thing it is evidence for.
+
+**Interview angle:** the M4 number is only interpretable if the split is known to shift
+something. Without this, a router that holds up under "shift" has two explanations —
+it generalises, or the split was inert — and no way to tell them apart. Measuring the
+split itself costs nothing and removes one of them *before* the result arrives, which is
+the only time that removal is credible.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -564,6 +587,8 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Within-task shift degradation | — | Phase 2 |
 | Judge correlation + ±1 agreement | — | Phase 3 |
 | **Router pool frozen (F7)** | **3,000 pairs**, 750/task · exclusions verified zero | Phase 2 |
+| **Within-task shift split frozen (F36)** | shift side **32-40%** per task · every task both sides | Phase 2 |
+| Shift-side vocabulary unseen in-distribution | **25.1% / 29.8% / 41.4% / 56.0%** (drafting / urgency / intent / PII) | Phase 2 |
 | Drafting val rows sharing an instruction with train | **467 of 3,982 (11.7%)** — D24 | Phase 1 |
 | **Label-noise quarantine rate, per task** | — | Phase 4 |
 | Hard-split run-to-run variance | — | Phase 4 |

@@ -1,0 +1,150 @@
+{
+  "purpose": "Frozen within-task shift split (F36). Task held constant; phrasing and length distribution moved. Degradation is reported per task (M4), never blended.",
+  "regenerate": "uv run adapterops router-shift --force",
+  "seed": 20260909,
+  "k": 5,
+  "decile": 0.1,
+  "cluster_rule": "the cluster whose size is closest to an even share of the pool; lowest index breaks a tie. Fixed before any router exists.",
+  "shift_side": "union of the held cluster and the top and bottom length deciles",
+  "file": "data/router/shift.parquet",
+  "sha256": "ef71675f0a8afcbe5d0b6fea19d98feed7ee8c9fbbe40ad35191011ea7baa2b4",
+  "pool_sha256": "615de230594d3df13c426711712b27d8eebff87e8fa709373ce26d6ff6c269ba",
+  "tasks": {
+    "drafting": {
+      "cluster_sizes": {
+        "0": 96,
+        "1": 71,
+        "2": 89,
+        "3": 432,
+        "4": 62
+      },
+      "held_cluster": 0,
+      "held_cluster_rows": 96,
+      "short_decile_max_chars": 32.0,
+      "long_decile_min_chars": 58.0,
+      "short_decile_rows": 83,
+      "long_decile_rows": 96,
+      "overlap_rows": 32,
+      "shift_rows": 243,
+      "in_distribution_rows": 507,
+      "shift_fraction": 0.324,
+      "evidence_the_split_is_shifted": {
+        "unseen_token_rate": 0.2515,
+        "unseen_tokens": 82,
+        "shift_vocabulary": 326,
+        "chars_in_distribution_p10_p50_p90": [
+          37.0,
+          48.0,
+          56.0
+        ],
+        "chars_shift_p10_p50_p90": [
+          24.0,
+          49.0,
+          63.0
+        ]
+      }
+    },
+    "intent": {
+      "cluster_sizes": {
+        "0": 171,
+        "1": 62,
+        "2": 50,
+        "3": 340,
+        "4": 127
+      },
+      "held_cluster": 0,
+      "held_cluster_rows": 171,
+      "short_decile_max_chars": 30.0,
+      "long_decile_min_chars": 108.10000000000002,
+      "short_decile_rows": 82,
+      "long_decile_rows": 75,
+      "overlap_rows": 29,
+      "shift_rows": 299,
+      "in_distribution_rows": 451,
+      "shift_fraction": 0.3987,
+      "evidence_the_split_is_shifted": {
+        "unseen_token_rate": 0.4137,
+        "unseen_tokens": 266,
+        "shift_vocabulary": 643,
+        "chars_in_distribution_p10_p50_p90": [
+          35.0,
+          48.0,
+          73.0
+        ],
+        "chars_shift_p10_p50_p90": [
+          25.0,
+          45.0,
+          157.39999999999998
+        ]
+      }
+    },
+    "pii": {
+      "cluster_sizes": {
+        "0": 62,
+        "1": 180,
+        "2": 119,
+        "3": 131,
+        "4": 258
+      },
+      "held_cluster": 3,
+      "held_cluster_rows": 131,
+      "short_decile_max_chars": 136.0,
+      "long_decile_min_chars": 704.1,
+      "short_decile_rows": 77,
+      "long_decile_rows": 75,
+      "overlap_rows": 30,
+      "shift_rows": 253,
+      "in_distribution_rows": 497,
+      "shift_fraction": 0.3373,
+      "evidence_the_split_is_shifted": {
+        "unseen_token_rate": 0.5604,
+        "unseen_tokens": 2320,
+        "shift_vocabulary": 4140,
+        "chars_in_distribution_p10_p50_p90": [
+          159.0,
+          259.0,
+          542.4000000000001
+        ],
+        "chars_shift_p10_p50_p90": [
+          106.0,
+          304.0,
+          1017.6000000000003
+        ]
+      }
+    },
+    "urgency": {
+      "cluster_sizes": {
+        "0": 126,
+        "1": 123,
+        "2": 95,
+        "3": 279,
+        "4": 127
+      },
+      "held_cluster": 4,
+      "held_cluster_rows": 127,
+      "short_decile_max_chars": 130.0,
+      "long_decile_min_chars": 669.0,
+      "short_decile_rows": 77,
+      "long_decile_rows": 77,
+      "overlap_rows": 29,
+      "shift_rows": 252,
+      "in_distribution_rows": 498,
+      "shift_fraction": 0.336,
+      "evidence_the_split_is_shifted": {
+        "unseen_token_rate": 0.2981,
+        "unseen_tokens": 485,
+        "shift_vocabulary": 1627,
+        "chars_in_distribution_p10_p50_p90": [
+          182.0,
+          370.5,
+          599.0
+        ],
+        "chars_shift_p10_p50_p90": [
+          96.0,
+          391.0,
+          843.6000000000001
+        ]
+      }
+    }
+  }
+}

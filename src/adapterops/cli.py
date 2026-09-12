@@ -33,6 +33,12 @@ def _cmd_router_pool(args: argparse.Namespace) -> int:
     return pool_main(force=args.force)
 
 
+def _cmd_router_shift(args: argparse.Namespace) -> int:
+    from adapterops.router.shift import main as shift_main
+
+    return shift_main(force=args.force)
+
+
 def _cmd_train(args: argparse.Namespace) -> int:
     from adapterops.train.qlora import config_for, train
 
@@ -86,6 +92,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_pool.add_argument("--force", action="store_true",
                         help="re-draw the pool — moves the router's training data")
     p_pool.set_defaults(func=_cmd_router_pool)
+
+    p_shift = sub.add_parser("router-shift", help="freeze the within-task shift split (F36)")
+    p_shift.add_argument("--force", action="store_true",
+                         help="re-draw the shift split — moves the bar M4 is reported against")
+    p_shift.set_defaults(func=_cmd_router_shift)
 
     p_train = sub.add_parser("train", help="QLoRA-train a task adapter (needs CUDA)")
     p_train.add_argument("--task", required=True, choices=["intent", "urgency", "pii", "drafting"])
