@@ -670,6 +670,33 @@ frontier always won.
 
 ---
 
+### D33 · The task feature stays — one ablation said drop it, three seeds said it does nothing
+**Rejected:** removing `task` from the router input on the strength of a single ablation run.
+**Why:** the first no-task run scored higher than the first with-task run on all four tasks,
+and I reported that as "removing the task name made the router better at every task." A
+second seed of the *identical* configuration reversed intent and urgency. Intent's eval
+slice is 90 rows, and its ROC-AUC has a **standard deviation of 0.119 across seeds** — so a
+per-task comparison between two single runs there is closer to a coin flip than a finding.
+
+Three seeds per variant (`runs/router__seed_study.json`):
+
+| | with task (mean ± sd) | no task (mean ± sd) | verdict |
+|---|---|---|---|
+| eval, overall | 0.7197 ± 0.007 | 0.7081 ± 0.013 | within noise |
+| eval, intent | 0.5414 ± 0.119 | 0.4102 ± 0.041 | within noise |
+| shift, overall | 0.7202 ± 0.004 | 0.7117 ± 0.002 | small, favours task |
+| shift, intent | 0.5302 ± 0.020 | 0.4741 ± 0.010 | small, favours task |
+
+F10 stands as specified. What held in **all six runs** is the finding that matters: the
+router scores 0.708–0.720 against a task-name lookup table's **0.6883**.
+
+**Interview angle:** I made a claim from one pair of runs and retracted it within the hour —
+which is D9's rule (thresholds from measured variance) applied to my own conclusion rather
+than to a gate. The consequence reaches past the router: any *per-task* gate on slices this
+size would be dominated by seed noise, which is worth knowing before F33 derives thresholds.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -731,6 +758,7 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Hard-cases mined (F31) | **525** · 150 each for urgency/PII/drafting, **75 intent** (`cap_bound: false`) | Phase 2 |
 | **Router (F10), ranking quality** | ROC-AUC **0.7064** eval / **0.7129** shift — but **0.996 correlated with a task-name lookup** | Phase 2 |
 | Task-prior-only baseline | ROC-AUC **0.6883** — the router adds **+0.018** over knowing only the task | Phase 2 |
+| Router seed study, 3 seeds × 2 variants | task feature: **no reliable effect** · router beats the task prior by **0.02–0.03 in all six runs** · intent eval AUC sd **0.119** | Phase 2 |
 | **Frontier arm quality (F8)** | **0.304** vs local **0.653** — escalation *lowers* quality on every task | Phase 2 |
 | Router training path verified end to end | **works**, on synthetic labels · ~14 s / 25 steps on laptop MPS — **F10 needs no GPU** | Phase 2 |
 | System manifest v1 promoted (F16) | 4 adapters + base + 6 splits pinned · gate `report_only` | Phase 4 |
@@ -766,9 +794,12 @@ let it learn a per-task prior instead of reading the text", and the pool *is* ba
 750 per task — but balancing the **rows** does not balance the **failure rates**, and the
 shortcut lives in the latter. Balance was necessary and not sufficient.
 
-*Changes the plan:* the task-feature ablation (`include_task=False`) is the diagnostic that
-separates "cannot read this text" from "did not need to", and is the number that decides
-whether F10 is fixable or the signal is absent.
+*Resolved by a seed study, not by the first ablation run* (D33). Removing the task name has
+no reliable effect: across three seeds per variant every eval difference sits inside the
+noise, and the only shift differences beyond two standard deviations are small and favour
+*keeping* the task feature. The shortcut is not an artifact of the task token — the text
+itself carries task identity (PII documents are long, intent queries are short banking
+phrases), so the model can recover the prior either way.
 
 **Phase 2 · Escalating to the frontier makes quality *worse*, on every task.** The operating
 curve's whole premise is that escalation buys quality at a cost. Measured, it does not: the
