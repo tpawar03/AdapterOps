@@ -3,7 +3,7 @@
 F24 (P0). Every session, every charge. Hard ceiling **$50** (M9); stop and reassess
 at **$25** (§14). Update this and STATUS.md §1 together.
 
-**Running total: $1.95 / $50.00**
+**Running total: $2.11 / $50.00**
 
 | Phase | Provider | What | Duration | Charge | Total |
 |---|---|---|---|---|---|
@@ -13,6 +13,7 @@ at **$25** (§14). Update this and STATUS.md §1 together.
 | 0 | Lambda | **Gate 0.5** — A10 24GB, vLLM multi-LoRA | ~35 min | ~$0.44 | ~$0.44 |
 | 1 | Lambda | Train PII + drafting adapters, A10 | ~50 min | ~$0.63 | ~$1.07 |
 | 1 | Lambda | Retrain PII, 8K rows / 3 epochs + eval | ~70 min | ~$0.88 | ~$1.95 |
+| 2 | OpenAI | Frontier escalation arm (F8), `gpt-4o-mini` — 3,499 of 5,800 pairs | ~20 min | $0.16 | $2.11 |
 
 ## Budget envelope (PRD §12)
 
@@ -26,6 +27,9 @@ at **$25** (§14). Update this and STATUS.md §1 together.
 
 ## Rules
 
+- **Dollars are not the only exhaustible resource.** The frontier run stopped at 3,499 of
+  5,800 pairs on a *requests-per-day* ceiling (10,000/day), having spent $0.16. A spend cap
+  cannot see that coming; the run now counts requests as well as tokens.
 - Log **before** the money is spent where possible; a forgotten session is how the
   ceiling gets breached.
 - **Kill the GPU when you stop.** Spot billing is per second and an idle box is the

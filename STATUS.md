@@ -23,7 +23,7 @@ and in the phase column of §4.
 | **Phase** | **Phase 1 complete on the free path.** Four adapters trained, published and scored. Phase 2 (router) is next; its two remaining Phase 1 items (M1, latency) need a paid GPU session. |
 | **Spec** | PRD v2.6, published + in repo |
 | **Hours logged** | 0 / 180 |
-| **Spend** | **$1.95** / $50.00 |
+| **Spend** | **$2.11** / $50.00 |
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
 | **Blocking** | Nothing on the free path. M1 (four adapters served concurrently) and the per-adapter latency benchmark both need rented GPU — queued, not blocked. |
 | **Done so far** | All 8 day-1 checks, 4 of 4 datasets mirrored with provenance, all four eval splits frozen, eval harness + span scorer + majority floor, **four adapters trained and published**, intent **0.9312** (+0.4091 over prompted), PII **0.9190 strict** (+0.418 over regex+NER), urgency **0.470 — loses to TF-IDF, kept as a finding**, Gate 0.5 passed on real hardware |
@@ -41,7 +41,7 @@ and in the phase column of §4.
 | M6 | Manifest drives serving | not started |
 | M7 | **detect → block → rollback proven** | not started |
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
-| M9 | Spend ≤ $50 | on track ($1.95) |
+| M9 | Spend ≤ $50 | on track ($2.11) |
 | M10 | Hard-cases split mined + adjudicated | not started |
 | M11 | **Gate sensitivity measured** | checkpoint captured · scoring in Phase 5 |
 
@@ -673,6 +673,7 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Shift-side vocabulary unseen in-distribution | **25.1% / 29.8% / 41.4% / 56.0%** (drafting / urgency / intent / PII) | Phase 2 |
 | Adapter revisions pinned (F16) | **4 + base**, PII restore verified byte-identical to the scored revision | Phase 2 |
 | Router pool scored through the adapters | — needs a GPU session | Phase 2 |
+| Frontier escalation arm measured (F8) | **3,499 of 5,800 pairs** · $0.16 · stopped on a daily request quota | Phase 2 |
 | Drafting val rows sharing an instruction with train | **467 of 3,982 (11.7%)** — D24 | Phase 1 |
 | **Label-noise quarantine rate, per task** | — | Phase 4 |
 | Hard-split run-to-run variance | — | Phase 4 |
@@ -682,6 +683,27 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 2 · $0.16 of tokens consumed a whole day's request quota, and the spend cap could
+not have seen it.** The frontier escalation arm stopped at 3,499 of 5,800 pairs on a
+**requests-per-day** ceiling — 10,000/day, exhausted — having spent **$0.16** against a
+$1.50 guard that never came close to firing.
+
+*Cause, and it is mine rather than the provider's.* The client was constructed with the
+SDK's default internal retries still enabled *and* wrapped in a retry loop of its own. Each
+failure therefore cost up to twelve requests instead of one, so a burst of rate-limiting
+fed itself: more retries, more quota consumed, more rate-limiting. The visible symptom was
+a process that looked alive and wrote nothing for five minutes.
+
+*Means:* a cost guard measured in dollars is guarding one of at least three exhaustible
+resources — dollars, requests, and tokens-per-minute — and it is not the one that binds
+first on a small account. The run now counts every *attempt*, retries in exactly one place,
+and treats a daily quota as a stop rather than something to retry, because retrying a daily
+cap can only spend more of tomorrow's.
+
+*Cheap by accident:* the per-pair cache meant nothing was lost and nothing will be paid for
+twice. That was written for crash-resumption and turned out to matter for a reason it was
+not written for.
 
 **Phase 2 · A median threshold labelled total failure as total success.** The drafting
 router label cuts at the pool median token-F1. A test that fed *empty* predictions through

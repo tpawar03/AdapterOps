@@ -104,11 +104,16 @@ def score_pair(task: str, text: str, gold: str, prediction: str) -> dict:
     raise ValueError(msg)
 
 
-def label(scored: pd.DataFrame) -> pd.DataFrame:
+def label(scored: pd.DataFrame, drafting_cut: float | None = None) -> pd.DataFrame:
     """Derive the binary `success` column, plus `label_is_proxy` marking the weak rule.
 
     Runs on the whole table at once because the drafting cut is defined relative to that
     task's own distribution — a per-row function could not see it.
+
+    `drafting_cut` overrides the median. It exists for the frontier arm: letting each side
+    cut at *its own* median would hand the frontier a 50% drafting success rate by
+    construction, and the operating curve would then be comparing two different bars.
+    `drafting_cut_from` computes the shared one.
     """
     out = scored.copy()
     out["success"] = pd.NA
@@ -124,21 +129,32 @@ def label(scored: pd.DataFrame) -> pd.DataFrame:
             out.loc[rows, "label_rule"] = "per-document strict span F1 = 1.0"
         elif task == "drafting":
             proxy = out.loc[rows, "proxy_token_f1"]
-            cut = proxy.median()
+            cut = proxy.median() if drafting_cut is None else float(drafting_cut)
             # A median cut is degenerate when the distribution is: if every reply scores
             # zero, the median is zero and `>= cut` marks total failure as total success.
             # Found by a test that fed empty predictions in. Sharing no tokens at all with
             # the reference is not a success at any cut, so that is a precondition rather
             # than a second threshold to tune.
             out.loc[rows, "success"] = (proxy > 0) & (proxy >= cut)
-            degenerate = "" if cut > 0 else "  DEGENERATE: median is zero, "
+            degenerate = "" if cut > 0 else "  DEGENERATE: cut is zero, "
+            source = "pool median" if drafting_cut is None else "shared cut from the local run"
             out.loc[rows, "label_rule"] = (
-                f"PROXY: token-F1 vs reference > 0 and >= pool median ({cut:.4f}) — "
+                f"PROXY: token-F1 vs reference > 0 and >= {source} ({cut:.4f}) — "
                 f"arbitrary cut, replaced by the judge in Phase 3.{degenerate}")
 
     out["success"] = out["success"].astype(bool)
     out["label_is_proxy"] = out.task.isin(PROXY_LABELLED_TASKS)
     return out
+
+
+def drafting_cut_from(local: pd.DataFrame) -> float:
+    """The one cut both arms are scored against — always taken from the local run.
+
+    Taken from local rather than from the pooled outputs of both because the local run is
+    the thing being routed; the frontier is the alternative it is measured against, and an
+    alternative should not be able to move the bar by being better or worse.
+    """
+    return float(local.loc[local.task == "drafting", "proxy_token_f1"].median())
 
 
 def success_rates(labelled: pd.DataFrame) -> pd.DataFrame:

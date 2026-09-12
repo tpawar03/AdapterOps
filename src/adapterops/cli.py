@@ -39,6 +39,24 @@ def _cmd_router_shift(args: argparse.Namespace) -> int:
     return shift_main(force=args.force)
 
 
+def _cmd_router_train(_: argparse.Namespace) -> int:
+    from adapterops.router.train import main as rtrain_main
+
+    return rtrain_main()
+
+
+def _cmd_router_report(_: argparse.Namespace) -> int:
+    from adapterops.router.report import main as report_main
+
+    return report_main()
+
+
+def _cmd_frontier(args: argparse.Namespace) -> int:
+    from adapterops.router.frontier import main as frontier_main
+
+    return frontier_main(limit=args.limit, workers=args.workers, purpose=args.purpose)
+
+
 def _cmd_router_dataset(args: argparse.Namespace) -> int:
     from adapterops.router.dataset import main as dataset_main
 
@@ -120,6 +138,19 @@ def build_parser() -> argparse.ArgumentParser:
                            help="assemble router train/eval with the F31 exclusion")
     p_rds.add_argument("--force", action="store_true", help="rebuild a frozen dataset")
     p_rds.set_defaults(func=_cmd_router_dataset)
+
+    p_rt = sub.add_parser("router-train", help="train the DeBERTa router (F10)")
+    p_rt.set_defaults(func=_cmd_router_train)
+
+    p_rr = sub.add_parser("router-report", help="operating curve vs all baselines (F11/M3)")
+    p_rr.set_defaults(func=_cmd_router_report)
+
+    p_fr = sub.add_parser("frontier", help="measure frontier success on the pool (F8/F11)")
+    p_fr.add_argument("--limit", type=int, default=None,
+                      help="pairs per task — project the full cost before paying it")
+    p_fr.add_argument("--workers", type=int, default=6)
+    p_fr.add_argument("--purpose", choices=["router", "mining"], default=None)
+    p_fr.set_defaults(func=_cmd_frontier)
 
     p_pin = sub.add_parser("pin-adapters", help="pin adapter revisions in manifests/ (F16)")
     p_pin.add_argument("--force", action="store_true",
