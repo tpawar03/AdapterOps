@@ -19,9 +19,17 @@ picks the best fifth? Each point still records the threshold it corresponds to.
 - `confidence` (F9) is the one that matters. The adapter's own sequence log-probability is
   free at inference time and is the strongest realistic alternative to a learned router.
   D3 committed in advance to reporting the case where it wins.
-- `oracle` escalates exactly the pairs the adapter got wrong. Unreachable, and the point:
-  it bounds the headroom any router could capture, so "the router recovered 0.4 of the
-  available gap" is sayable instead of a bare delta.
+- `oracle` escalates exactly the pairs escalation *helps* — where the adapter fails and
+  the frontier succeeds. Unreachable, and the point: it bounds the headroom any router
+  could capture, so "the router recovered 0.4 of the available gap" is sayable instead of a
+  bare delta.
+
+  It ranks by gain, not by local failure, and the difference is not academic. A first
+  version escalated wherever the adapter was wrong, which is only an upper bound if the
+  frontier always succeeds. It does not: on a rehearsal the confidence policy *beat* the
+  "oracle" and reported capturing 1.39 of the available headroom. Escalating a pair the
+  frontier also fails costs quality and buys nothing, and a bound that does not know that
+  is not a bound.
 
 **Escalation is not assumed to succeed.** `frontier_success` is a per-pair column measured
 by actually running the frontier model. Where it is missing, the curve can be computed
@@ -65,7 +73,15 @@ def escalation_scores(scored: pd.DataFrame, policy: str, seed: int = 20260909) -
     if policy == "random":
         return pd.Series(np.random.default_rng(seed).random(len(scored)), index=scored.index)
     if policy == "oracle":
-        return (~scored.success.astype(bool)).astype(float)
+        # Gain from escalating: +1 where the frontier rescues a local failure, -1 where it
+        # breaks a local success, 0 where it changes nothing. Ranking by local failure
+        # instead makes this a bound only if the frontier never fails.
+        if "frontier_success" not in scored:
+            msg = ("the oracle needs frontier_success to know which escalations help; "
+                   "without it, 'escalate every local failure' is not an upper bound")
+            raise KeyError(msg)
+        return (scored.frontier_success.astype(float)
+                - scored.success.astype(float))
     if policy in scored.columns:             # a learned router's P(failure) column
         return scored[policy]
     msg = f"unknown policy {policy!r} and no column of that name to rank on"

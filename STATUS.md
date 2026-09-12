@@ -649,6 +649,27 @@ same lesson about gates that are theoretically correct and practically unusable.
 
 ---
 
+### D32 · The oracle ranks by gain from escalating, not by whether the adapter failed
+**Rejected:** the first implementation, which escalated every pair the adapter got wrong.
+**Why:** that is an upper bound only if the frontier always succeeds, and it does not.
+Escalating a pair the frontier also fails costs quality and buys nothing. A full rehearsal
+of the post-GPU chain caught it in the clearest possible way: the **confidence policy beat
+the oracle** at two budgets, and reported capturing **1.39** of the available headroom — a
+share above 1.0, which is not a number that can exist.
+
+The oracle now ranks by `frontier_success - success`: +1 where escalation rescues a
+failure, −1 where it breaks a success, 0 where it changes nothing. It also refuses to run
+without a measured `frontier_success` column, because without one "escalate every failure"
+cannot be known to be a bound.
+
+**Interview angle:** the bug is interesting because the broken version is the intuitive one
+— "the oracle knows which ones you got wrong" — and it only misbehaves once the escalation
+target is fallible, which is exactly the realistic case. The test that now covers it is
+parameterised on a frontier that sometimes fails; the original passed because the synthetic
+frontier always won.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -717,6 +738,30 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 2 · The post-GPU chain was rehearsed end to end on a synthetic scored pool, and it
+found three things.** `router-dataset` → `router-train` → `router-report` had never run in
+sequence, and all three were due to run for the first time on the far side of a paid GPU
+session. The rehearsal synthesises a scored pool at the *measured* per-task failure rates —
+intent 0.07, urgency 0.53, PII 0.45, drafting 0.50 — and runs the real chain against it in
+a temp directory.
+
+*First, the oracle was not an upper bound* (D32). Confidence beat it, and headroom read 1.39.
+
+*Second, the router cannot train on this machine's MPS.* It OOM'd at micro-batch 16 and
+again at 8, with ~12 GB of the 24 GB free — MPS shares unified memory and reports the
+machine's total commitments, and DeBERTa's disentangled attention carries two extra
+attention matrices per layer. The router now selects CUDA when present and **CPU
+otherwise, skipping MPS deliberately**; a 141M model over ~200 steps costs minutes there,
+and CPU is the deployment target anyway (PRD §7 budgets the router at <50 ms on CPU).
+
+*Third, D29's prediction held numerically.* The hard-cases mine reserved the full 150 for
+urgency, PII and drafting, and **51 for intent, with `cap_bound: false`** at a 7.3% failure
+rate. D29 predicted "roughly 50" from the adapter's 0.9312 accuracy before any of this ran.
+
+*Means:* the chain works, and three bugs that would each have cost a rented-GPU cycle were
+paid for in laptop minutes instead. The rehearsal is the cheapest thing in the project per
+defect found.
 
 **Phase 2 · The operating curve would have compared two policies on two different
 populations.** `report.py` runs for the first time *after* a paid GPU session, so it was

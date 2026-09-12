@@ -55,7 +55,12 @@ class RouterConfig:
     base_model: str = "microsoft/deberta-v3-small"
     max_length: int = 256
     epochs: float = 3.0
-    batch_size: int = 16
+    batch_size: int = 8
+    """Micro-batch. 16 at `max_length` 256 OOM'd the laptop's MPS allocator during a full
+    rehearsal — DeBERTa's disentangled attention holds two extra attention matrices per
+    layer, so its activation memory is well above a same-sized BERT. Effective batch stays
+    16 via accumulation."""
+    grad_accum: int = 2
     learning_rate: float = 2e-5
     weight_decay: float = 0.01
     warmup_fraction: float = 0.1
@@ -63,7 +68,18 @@ class RouterConfig:
     TrainingArguments in transformers 5 — qlora.py already hit this and the guard it
     added is reused here, because the failure mode is a TypeError partway into a run."""
     seed: int = SEED
-    use_cpu: bool = False
+    use_cpu: bool | None = None
+    """None selects: CUDA when present, otherwise CPU. **MPS is skipped deliberately.**
+
+    A full rehearsal OOM'd the MPS allocator twice on this 24 GB machine — at micro-batch
+    16 and again at 8 — with ~12 GB of system memory free. MPS shares unified memory and
+    its watermark is above physical RAM, so "other allocations: 23.99 GiB" is the machine,
+    not this process. DeBERTa's disentangled attention carries two extra attention matrices
+    per layer, which makes it a bad fit for a memory-constrained shared allocator.
+
+    CPU costs minutes for a 141M model over ~200 steps, is deterministic, and matches the
+    deployment target: PRD §7 budgets the router at <50 ms on CPU. Set explicitly to
+    override."""
     output_dir: str = str(OUT_DIR)
 
 
@@ -111,6 +127,7 @@ def train(cfg: RouterConfig | None = None) -> dict:
     )
 
     cfg = cfg or RouterConfig()
+    use_cpu = (not torch.cuda.is_available()) if cfg.use_cpu is None else cfg.use_cpu
     splits = {name: pd.read_parquet(DATA_DIR / f"router_{name}.parquet")
               for name in ("train", "eval", "shift_eval")}
 
@@ -136,12 +153,14 @@ def train(cfg: RouterConfig | None = None) -> dict:
                f"run completes reporting nan.")
         raise TypeError(msg)
 
-    total_steps = math.ceil(len(splits["train"]) / cfg.batch_size) * cfg.epochs
+    total_steps = math.ceil(
+        len(splits["train"]) / (cfg.batch_size * cfg.grad_accum)) * cfg.epochs
     ta_kwargs = {
         "output_dir": cfg.output_dir,
         "num_train_epochs": cfg.epochs,
         "per_device_train_batch_size": cfg.batch_size,
-        "per_device_eval_batch_size": cfg.batch_size * 2,
+        "per_device_eval_batch_size": cfg.batch_size,
+        "gradient_accumulation_steps": cfg.grad_accum,
         "learning_rate": cfg.learning_rate,
         "weight_decay": cfg.weight_decay,
         "warmup_steps": max(10, int(cfg.warmup_fraction * total_steps)),
@@ -154,7 +173,7 @@ def train(cfg: RouterConfig | None = None) -> dict:
         "seed": cfg.seed,
         "report_to": [],
         "logging_steps": 25,
-        "use_cpu": cfg.use_cpu,
+        "use_cpu": use_cpu,
     }
     # Same guard as qlora.py, for the same reason: surface an unsupported argument as a
     # readable error rather than a TypeError partway into training.
@@ -171,11 +190,17 @@ def train(cfg: RouterConfig | None = None) -> dict:
                       processing_class=tok)
     trainer.train()
 
-    summary: dict = {"config": asdict(cfg), "splits": {}}
+    summary: dict = {"config": asdict(cfg), "device": "cpu" if use_cpu else "cuda",
+                     "splits": {}}
     for name in ("eval", "shift_eval"):
         frame = splits[name]
         logits = trainer.predict(encode(frame)).predictions
         p_fail = torch.softmax(torch.tensor(logits), dim=-1)[:, 1].numpy()
+        if not np.isfinite(p_fail).all():
+            msg = ("router produced non-finite probabilities — check the fp32 guard above; "
+                   "in fp16 AdamW returns NaN from the first step and the run still "
+                   "completes")
+            raise ValueError(msg)
         frame = frame.assign(router_p_fail=p_fail)
         frame.to_parquet(DATA_DIR / f"router_{name}_scored.parquet")
         summary["splits"][name] = ranking_report(

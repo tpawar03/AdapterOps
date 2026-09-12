@@ -14,8 +14,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from adapterops.router import baselines, scoring  # noqa: E402
-
+from adapterops.router import baselines, scoring
 
 # --- the success rule -------------------------------------------------------------
 
@@ -81,16 +80,25 @@ def test_only_drafting_carries_a_proxy_label():
 
 # --- the operating curve ----------------------------------------------------------
 
-def synthetic(n: int = 100, failures: int = 30) -> pd.DataFrame:
+def synthetic(n: int = 100, failures: int = 30,
+              frontier_always_wins: bool = True) -> pd.DataFrame:
     """Adapter fails on `failures` pairs, and is least confident on exactly those —
-    a confidence signal that is perfect, so a broken curve cannot hide behind noise."""
+    a confidence signal that is perfect, so a broken curve cannot hide behind noise.
+
+    `frontier_always_wins=False` is the realistic case and the one that matters: a frontier
+    that itself fails on some pairs. An earlier oracle ranked by local failure alone, which
+    is an upper bound only when escalation always works — and with a fallible frontier the
+    confidence policy beat it.
+    """
     success = [False] * failures + [True] * (n - failures)
+    frontier = ([True] * n if frontier_always_wins
+                else [i % 3 != 0 for i in range(n)])
     return pd.DataFrame({
         "pair_id": [f"p-{i:03d}" for i in range(n)],
         "task": ["intent"] * (n // 2) + ["pii"] * (n - n // 2),
         "success": success,
         "mean_logprob": [-5.0] * failures + [-0.1] * (n - failures),
-        "frontier_success": [True] * n,
+        "frontier_success": frontier,
     })
 
 
@@ -101,12 +109,32 @@ def test_budget_zero_and_one_are_the_two_F8_baselines():
     assert curve.loc[curve.budget == 1.0, "quality"].iloc[0] == pytest.approx(1.00)
 
 
-def test_oracle_bounds_every_other_policy_at_every_budget():
-    df = synthetic()
+@pytest.mark.parametrize("frontier_always_wins", [True, False])
+def test_oracle_bounds_every_other_policy_at_every_budget(frontier_always_wins):
+    """The False case is the one that caught the bug: with a fallible frontier, an oracle
+    that escalates every local failure is not an upper bound, because escalating a pair the
+    frontier also fails costs quality and buys nothing."""
+    df = synthetic(frontier_always_wins=frontier_always_wins)
     oracle = baselines.operating_curve(df, "oracle").set_index("budget").quality
     for policy in ("random", "confidence"):
         other = baselines.operating_curve(df, policy).set_index("budget").quality
         assert (other <= oracle + 1e-9).all(), f"{policy} beat the oracle — the curve is wrong"
+
+
+def test_headroom_captured_never_exceeds_one():
+    """1.39 was the symptom the broken oracle produced before the ranking was fixed."""
+    df = synthetic(frontier_always_wins=False)
+    oracle = baselines.operating_curve(df, "oracle")
+    for policy in ("random", "confidence"):
+        got = baselines.headroom_captured(
+            baselines.operating_curve(df, policy), oracle, 0.20)
+        assert got is None or got <= 1.0 + 1e-9, f"{policy} captured {got} of the headroom"
+
+
+def test_the_oracle_refuses_to_guess_whether_escalation_helps():
+    df = synthetic().drop(columns=["frontier_success"])
+    with pytest.raises(KeyError, match="not an upper bound"):
+        baselines.escalation_scores(df, "oracle")
 
 
 def test_a_perfect_confidence_signal_matches_the_oracle():
