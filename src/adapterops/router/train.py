@@ -15,6 +15,14 @@ evaluated on drafting under shift.
 The task is prepended as text rather than encoded as an embedding, so the encoder sees it
 the same way it sees everything else and no new parameters are introduced for four values.
 
+**Loaded in fp32, explicitly.** `microsoft/deberta-v3-small` ships fp16 weights, and
+transformers 5 honours a checkpoint's dtype instead of upcasting the way earlier versions
+did. Training the result with AdamW diverges on the *first* optimizer step: gradients are
+finite, but `exp_avg_sq = (1-β₂)·g²` underflows fp16 and the resulting division overflows
+it, so 105 of ~200 parameters come back non-finite and every subsequent loss is NaN. The
+symptom is a run that completes normally and reports `nan`. Asserted below rather than
+trusted, because the next transformers release could flip the default back.
+
 **The floor to beat is not 50%.** Predicting "always succeeds" scores whatever the base
 success rate is — around 0.93 on intent — so accuracy is close to useless here. What is
 reported is the ranking quality (ROC-AUC and average precision on the failure class),
@@ -118,7 +126,15 @@ def train(cfg: RouterConfig | None = None) -> dict:
         return ds.map(lambda b: tok(b["text"], truncation=True, max_length=cfg.max_length),
                       batched=True, remove_columns=["text"])
 
-    model = AutoModelForSequenceClassification.from_pretrained(cfg.base_model, num_labels=2)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        cfg.base_model, num_labels=2, dtype=torch.float32)
+    non_fp32 = {n: str(p.dtype) for n, p in model.named_parameters()
+                if p.dtype != torch.float32}
+    if non_fp32:
+        msg = (f"router weights must be fp32 to train with AdamW — got {set(non_fp32.values())}. "
+               f"In fp16 the first optimizer step returns NaN for most parameters and the "
+               f"run completes reporting nan.")
+        raise TypeError(msg)
 
     total_steps = math.ceil(len(splits["train"]) / cfg.batch_size) * cfg.epochs
     ta_kwargs = {

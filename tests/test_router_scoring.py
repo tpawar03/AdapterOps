@@ -196,3 +196,25 @@ def test_requests_are_interleaved_across_adapters_not_batched_by_task():
     pool = pool_sample(3)
     order = pool.sort_values("pair_id", key=lambda s: s.str.slice(-4)).task.tolist()
     assert len(set(order[:4])) == 4, f"first four requests hit {set(order[:4])}"
+
+
+def test_router_weights_load_in_fp32_because_fp16_adamw_returns_nan():
+    """deberta-v3-small ships fp16 weights and transformers 5 keeps a checkpoint's dtype.
+
+    Training that with AdamW diverges on the first step — finite gradients, but
+    `exp_avg_sq = (1-b2)*g**2` underflows fp16 and the division back out overflows it, so
+    most parameters come back non-finite and the run completes reporting `nan`. This
+    asserts the upstream default rather than the workaround: if a future release upcasts
+    again, the guard in train.py becomes unnecessary and this test says so.
+    """
+    import torch
+    from transformers import AutoModelForSequenceClassification
+
+    from adapterops.router.train import RouterConfig
+
+    shipped = AutoModelForSequenceClassification.from_pretrained(
+        RouterConfig.base_model, num_labels=2)
+    dtypes = {p.dtype for p in shipped.parameters()}
+    assert dtypes == {torch.float16}, (
+        f"deberta-v3-small no longer loads as fp16 ({dtypes}) — re-check whether the "
+        f"explicit dtype=float32 in router/train.py is still needed")

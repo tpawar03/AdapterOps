@@ -673,6 +673,7 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Shift-side vocabulary unseen in-distribution | **25.1% / 29.8% / 41.4% / 56.0%** (drafting / urgency / intent / PII) | Phase 2 |
 | Adapter revisions pinned (F16) | **4 + base**, PII restore verified byte-identical to the scored revision | Phase 2 |
 | Router pool scored through the adapters | — needs a GPU session | Phase 2 |
+| Router training path verified end to end | **works**, on synthetic labels · ~14 s / 25 steps on laptop MPS — **F10 needs no GPU** | Phase 2 |
 | Frontier escalation arm measured (F8) | **3,620 of 5,800 pairs** · $0.17 · blocked on a daily request quota, resumes free | Phase 2 |
 | Drafting val rows sharing an instruction with train | **467 of 3,982 (11.7%)** — D24 | Phase 1 |
 | **Label-noise quarantine rate, per task** | — | Phase 4 |
@@ -683,6 +684,37 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 2 · The router trained to `nan`, and neither the device nor the data was at
+fault.** A smoke run of the DeBERTa router on synthetic labels completed normally and
+reported a train loss of **753.5**, `grad_norm: nan`, and `eval_loss: nan`. A run that
+finishes and reports nan is worse than one that crashes: on a rented box it would have been
+read as a bad hyper-parameter and retried.
+
+*The bisection, in order.* Not MPS — CPU produced identical NaNs. Not the data — a single
+forward pass gave a loss of 0.71 and a gradient norm of 2.09. Not the gradients — every one
+was finite after backward. What was non-finite was **105 of ~200 parameters, after a single
+AdamW step**. SGD on the same gradients was clean.
+
+*The cause.* `microsoft/deberta-v3-small` ships **fp16** weights, and transformers 5 honours
+a checkpoint's dtype rather than upcasting the way earlier versions did. AdamW's second
+moment is `(1-β₂)·g²`; at g ≈ 10⁻², that is ≈ 10⁻⁷, which is subnormal in fp16, and dividing
+back out overflows the format's 65,504 ceiling. One step, and most of the model is inf.
+Loading with an explicit `dtype=torch.float32` fixes it — the same five steps then run
+0.688 → 0.666.
+
+*Means:* "the library picks a sensible dtype" stopped being true between major versions, and
+the failure it produces is silent. The guard in `router/train.py` now raises if any
+parameter arrives as anything but fp32, and a **test asserts the upstream default is still
+fp16** rather than asserting the workaround — so if a future release upcasts again, the test
+says the guard is redundant instead of quietly protecting nothing.
+
+*Cost avoided:* this would have surfaced on the rented box, after the GPU session, as a
+router that trained to nan.
+
+*Also measured while there:* 25 training steps took **14 seconds** on the laptop's MPS. The
+real router — ~1,200 rows, 3 epochs, ~225 steps — is roughly two minutes. **F10 costs $0**
+and does not need the rented box at all.
 
 **Phase 2 · $0.16 of tokens consumed a whole day's request quota, and the spend cap could
 not have seen it.** The frontier escalation arm stopped at 3,499 of 5,800 pairs on a
