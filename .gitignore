@@ -29,3 +29,6 @@ checkpoints/
 # Pinned adapters materialised on the rented box (adapterops.serve.launch).
 # No leading dot, deliberately (D20).
 _adapters/
+
+# Frontier run lock (adapterops.router.frontier) — process-local, never committed.
+data/router/frontier.lock

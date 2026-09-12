@@ -3,7 +3,7 @@
 F24 (P0). Every session, every charge. Hard ceiling **$50** (M9); stop and reassess
 at **$25** (§14). Update this and STATUS.md §1 together.
 
-**Running total: $2.12 / $50.00**
+**Running total: $2.16 / $50.00**
 
 | Phase | Provider | What | Duration | Charge | Total |
 |---|---|---|---|---|---|
@@ -13,7 +13,7 @@ at **$25** (§14). Update this and STATUS.md §1 together.
 | 0 | Lambda | **Gate 0.5** — A10 24GB, vLLM multi-LoRA | ~35 min | ~$0.44 | ~$0.44 |
 | 1 | Lambda | Train PII + drafting adapters, A10 | ~50 min | ~$0.63 | ~$1.07 |
 | 1 | Lambda | Retrain PII, 8K rows / 3 epochs + eval | ~70 min | ~$0.88 | ~$1.95 |
-| 2 | OpenAI | Frontier escalation arm (F8), `gpt-4o-mini` — 3,620 of 5,800 pairs | ~25 min | $0.17 | $2.12 |
+| 2 | OpenAI | Frontier escalation arm (F8), `gpt-4o-mini` — 3,954 of 5,800 pairs | ~35 min | $0.21 | $2.16 |
 
 ## Budget envelope (PRD §12)
 
@@ -27,6 +27,9 @@ at **$25** (§14). Update this and STATUS.md §1 together.
 
 ## Rules
 
+- **One run at a time.** Two frontier runs were once started concurrently, in two shells.
+  Nothing corrupted, but both drew on the same daily request quota and 199 pairs were
+  called — and billed — twice, for $0.017. The run now takes a lock file.
 - **Dollars are not the only exhaustible resource.** The frontier run stopped at 3,499 of
   5,800 pairs on a *requests-per-day* ceiling (10,000/day), having spent $0.16. A spend cap
   cannot see that coming; the run now counts requests as well as tokens.

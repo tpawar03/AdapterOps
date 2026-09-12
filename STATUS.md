@@ -23,7 +23,7 @@ and in the phase column of §4.
 | **Phase** | **Phase 1 complete on the free path.** Four adapters trained, published and scored. Phase 2 (router) is next; its two remaining Phase 1 items (M1, latency) need a paid GPU session. |
 | **Spec** | PRD v2.6, published + in repo |
 | **Hours logged** | 0 / 180 |
-| **Spend** | **$2.12** / $50.00 |
+| **Spend** | **$2.16** / $50.00 |
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
 | **Blocking** | Nothing on the free path. M1 (four adapters served concurrently) and the per-adapter latency benchmark both need rented GPU — queued, not blocked. |
 | **Done so far** | All 8 day-1 checks, 4 of 4 datasets mirrored with provenance, all four eval splits frozen, eval harness + span scorer + majority floor, **four adapters trained and published**, intent **0.9312** (+0.4091 over prompted), PII **0.9190 strict** (+0.418 over regex+NER), urgency **0.470 — loses to TF-IDF, kept as a finding**, Gate 0.5 passed on real hardware |
@@ -41,7 +41,7 @@ and in the phase column of §4.
 | M6 | Manifest drives serving | not started |
 | M7 | **detect → block → rollback proven** | not started |
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
-| M9 | Spend ≤ $50 | on track ($2.12) |
+| M9 | Spend ≤ $50 | on track ($2.16) |
 | M10 | Hard-cases split mined + adjudicated | not started |
 | M11 | **Gate sensitivity measured** | checkpoint captured · scoring in Phase 5 |
 
@@ -674,7 +674,7 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Adapter revisions pinned (F16) | **4 + base**, PII restore verified byte-identical to the scored revision | Phase 2 |
 | Router pool scored through the adapters | — needs a GPU session | Phase 2 |
 | Router training path verified end to end | **works**, on synthetic labels · ~14 s / 25 steps on laptop MPS — **F10 needs no GPU** | Phase 2 |
-| Frontier escalation arm measured (F8) | **3,620 of 5,800 pairs** · $0.17 · blocked on a daily request quota, resumes free | Phase 2 |
+| Frontier escalation arm measured (F8) | **3,954 of 5,800 pairs** · $0.21 · blocked on a daily request quota, resumes free | Phase 2 |
 | Drafting val rows sharing an instruction with train | **467 of 3,982 (11.7%)** — D24 | Phase 1 |
 | **Label-noise quarantine rate, per task** | — | Phase 4 |
 | Hard-split run-to-run variance | — | Phase 4 |

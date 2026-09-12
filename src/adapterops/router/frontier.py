@@ -29,11 +29,12 @@ it from each side's own median would hand the frontier a 50% success rate by con
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import threading
 import time
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -45,6 +46,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 POOL_FILE = REPO_ROOT / "data" / "router" / "pool.parquet"
 OUT_FILE = REPO_ROOT / "data" / "router" / "frontier.parquet"
 CACHE_FILE = REPO_ROOT / "data" / "router" / "frontier_cache.jsonl"
+LOCK_FILE = REPO_ROOT / "data" / "router" / "frontier.lock"
 
 MODEL = "gpt-4o-mini"
 PRICE_PER_1M = {"input": 0.15, "output": 0.60}
@@ -130,6 +132,51 @@ class Ledger:
     def usd(self) -> float:
         return (self.input_tokens / 1e6 * PRICE_PER_1M["input"]
                 + self.output_tokens / 1e6 * PRICE_PER_1M["output"])
+
+
+@contextlib.contextmanager
+def single_run() -> Iterator[None]:
+    """Refuse to start while another frontier run is going.
+
+    Two runs were once started at once — one here, one in another shell. Nothing corrupted,
+    because each line is written under a lock and flushed whole, but both drew from the
+    same daily request quota and 199 pairs were called, and billed, twice. The cache is
+    keyed by pair, so the duplicates collapsed harmlessly on read; the money did not.
+    """
+    import os
+
+    try:
+        fd = os.open(LOCK_FILE, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        msg = (f"another frontier run holds {LOCK_FILE.name}. Two runs share one daily "
+               f"request quota and pay twice for whatever they both reach. If no run is "
+               f"active, delete the file.")
+        raise RuntimeError(msg) from None
+    try:
+        os.write(fd, str(os.getpid()).encode())
+        os.close(fd)
+        yield
+    finally:
+        LOCK_FILE.unlink(missing_ok=True)
+
+
+def dedupe_cache() -> int:
+    """Collapse repeated pair_ids, keeping the first response for each. Returns removed."""
+    if not CACHE_FILE.exists():
+        return 0
+    seen, kept = set(), []
+    for line in CACHE_FILE.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        pair_id = json.loads(line)["pair_id"]
+        if pair_id in seen:
+            continue
+        seen.add(pair_id)
+        kept.append(line)
+    removed = sum(1 for line in CACHE_FILE.read_text(encoding="utf-8").splitlines()
+                  if line.strip()) - len(kept)
+    CACHE_FILE.write_text("\n".join(kept) + "\n", encoding="utf-8")
+    return removed
 
 
 def load_cache() -> dict[str, dict]:
@@ -245,6 +292,11 @@ def main(limit: int | None = None, workers: int = 6, purpose: str | None = None)
         print("  no OPENAI_API_KEY in the environment or .env")
         return 2
 
+    with single_run():
+        return _run(limit, workers, purpose)
+
+
+def _run(limit: int | None, workers: int, purpose: str | None) -> int:
     full_pool = pd.read_parquet(POOL_FILE)
     pool = full_pool[full_pool.purpose == purpose] if purpose else full_pool
 
