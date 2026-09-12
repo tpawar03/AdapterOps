@@ -39,6 +39,18 @@ def _cmd_router_shift(args: argparse.Namespace) -> int:
     return shift_main(force=args.force)
 
 
+def _cmd_pin_adapters(args: argparse.Namespace) -> int:
+    from adapterops.manifest.registry import pin
+
+    return pin(force=args.force)
+
+
+def _cmd_verify_pins(_: argparse.Namespace) -> int:
+    from adapterops.manifest.registry import verify
+
+    return verify()[0]
+
+
 def _cmd_train(args: argparse.Namespace) -> int:
     from adapterops.train.qlora import config_for, train
 
@@ -97,6 +109,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_shift.add_argument("--force", action="store_true",
                          help="re-draw the shift split — moves the bar M4 is reported against")
     p_shift.set_defaults(func=_cmd_router_shift)
+
+    p_pin = sub.add_parser("pin-adapters", help="pin adapter revisions in manifests/ (F16)")
+    p_pin.add_argument("--force", action="store_true",
+                       help="re-pin to whatever `main` points at now")
+    p_pin.set_defaults(func=_cmd_pin_adapters)
+
+    p_verify = sub.add_parser("verify-pins", help="has a pinned adapter moved on the Hub?")
+    p_verify.set_defaults(func=_cmd_verify_pins)
 
     p_train = sub.add_parser("train", help="QLoRA-train a task adapter (needs CUDA)")
     p_train.add_argument("--task", required=True, choices=["intent", "urgency", "pii", "drafting"])

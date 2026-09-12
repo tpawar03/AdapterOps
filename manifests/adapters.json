@@ -1,0 +1,43 @@
+{
+  "purpose": "Pinned component revisions (F16). Serving and evaluation resolve adapters through this file, never through `main`.",
+  "why": "changelog 29 \u2014 a stale clone force-pushed over a published adapter's main, and the recorded score then described weights nobody was serving.",
+  "verify": "uv run adapterops verify-pins",
+  "components": {
+    "base_model": {
+      "repo": "Qwen/Qwen2.5-1.5B-Instruct",
+      "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+      "weight_file": "adapter_model.safetensors",
+      "weight_sha256": null,
+      "last_modified": "2024-09-25 12:32:50+00:00"
+    },
+    "intent": {
+      "repo": "Tanny03/adapterops-intent",
+      "revision": "a7eb75ec67386805b1026aeacffa4f6c27d2de7e",
+      "weight_file": "adapter_model.safetensors",
+      "weight_sha256": "6d1a57e9aa23e560e2276e0aa0af5260077e945ac721c19b7dc0508e0ba2004b",
+      "last_modified": "2026-09-11 05:06:43+00:00"
+    },
+    "urgency": {
+      "repo": "Tanny03/adapterops-urgency",
+      "revision": "53d1006e1c4cc863ab1d5db56cb5049938c14888",
+      "weight_file": "adapter_model.safetensors",
+      "weight_sha256": "c821ef1dd3ccedaad2a47c9fbfd15468151331fde1da27a246a2f4557a84640d",
+      "last_modified": "2026-09-11 17:22:46+00:00"
+    },
+    "pii": {
+      "repo": "Tanny03/adapterops-pii",
+      "revision": "3b38a28479215897ab927f00b78da99a57813469",
+      "weight_file": "adapter_model.safetensors",
+      "weight_sha256": "8bf54f7d6bd24ea831d80bf527399f681d9e8ddb5647ed95a0eeb71602f86e9c",
+      "last_modified": "2026-09-11 16:47:17+00:00",
+      "note": "These weights (sha256 8bf54f7d...) are byte-identical to revision 5405e954, the revision that scored 0.9190 strict span F1. dbb236a9 briefly overwrote main with different tensors (4ef039e9...) \u2014 the changelog-29 incident \u2014 and 3b38a284 restored them. Verified by comparing the LFS digest at all three revisions, not by trusting the restore commit's message."
+    },
+    "drafting": {
+      "repo": "Tanny03/adapterops-drafting",
+      "revision": "3778c895d3501f4e8d513252e8e217da4287e720",
+      "weight_file": "adapter_model.safetensors",
+      "weight_sha256": "2e3eeb7e0aac60874e34ff7067681f80955a6b83f8a15e8dc86e65674207aeda",
+      "last_modified": "2026-09-11 07:14:42+00:00"
+    }
+  }
+}
