@@ -36,6 +36,7 @@ from __future__ import annotations
 import inspect
 import json
 import math
+import shutil
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -209,6 +210,11 @@ def train(cfg: RouterConfig | None = None) -> dict:
         "metric_for_best_model": "eval_loss",
         "greater_is_better": False,
         "save_total_limit": 2,   # >=2 so the best checkpoint survives pruning
+        # Weights only. Each run was writing ~3.7 GB — two intermediate checkpoints, each
+        # carrying AdamW's two moment tensors (2x the 142M parameters) beside the model.
+        # The six-run seed study left 22 GB in /tmp before anyone noticed. Optimizer state
+        # is only needed to *resume* a run, and these runs take minutes to redo.
+        "save_only_model": True,
         "seed": cfg.seed,
         "report_to": [],
         "logging_steps": 25,
@@ -249,6 +255,10 @@ def train(cfg: RouterConfig | None = None) -> dict:
     summary["shortcut_check"] = shortcut_check(splits["train"], splits["eval"], summary)
     trainer.save_model(cfg.output_dir)
     tok.save_pretrained(cfg.output_dir)
+    # load_best_model_at_end has already put the best weights at the root of output_dir,
+    # so the intermediate checkpoints are duplicates of weights that now exist twice.
+    for intermediate in Path(cfg.output_dir).glob("checkpoint-*"):
+        shutil.rmtree(intermediate, ignore_errors=True)
     run_file = (RUN_FILE if not cfg.tag
                 else RUN_FILE.with_name(f"router__train__{cfg.tag}.json"))
     run_file.parent.mkdir(exist_ok=True)
