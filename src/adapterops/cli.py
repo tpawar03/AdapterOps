@@ -39,6 +39,16 @@ def _cmd_router_shift(args: argparse.Namespace) -> int:
     return shift_main(force=args.force)
 
 
+def _cmd_manifest(args: argparse.Namespace) -> int:
+    from adapterops.manifest import system
+
+    if args.action == "show":
+        return system.show()
+    if args.action == "promote":
+        return system.promote(note=args.note, force=args.force)
+    return system.rollback(to=args.to)
+
+
 def _cmd_router_train(_: argparse.Namespace) -> int:
     from adapterops.router.train import main as rtrain_main
 
@@ -138,6 +148,14 @@ def build_parser() -> argparse.ArgumentParser:
                            help="assemble router train/eval with the F31 exclusion")
     p_rds.add_argument("--force", action="store_true", help="rebuild a frozen dataset")
     p_rds.set_defaults(func=_cmd_router_dataset)
+
+    p_man = sub.add_parser("manifest", help="system manifest: pin, promote, roll back (F16)")
+    p_man.add_argument("action", choices=["show", "promote", "rollback"])
+    p_man.add_argument("--note", default="", help="what this version changes")
+    p_man.add_argument("--force", action="store_true",
+                       help="promote despite blocking reasons — recorded in the manifest")
+    p_man.add_argument("--to", type=int, default=None, help="roll back to this version")
+    p_man.set_defaults(func=_cmd_manifest)
 
     p_rt = sub.add_parser("router-train", help="train the DeBERTa router (F10)")
     p_rt.set_defaults(func=_cmd_router_train)

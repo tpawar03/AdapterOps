@@ -38,8 +38,8 @@ and in the phase column of §4.
 | M3 | Router operating curve vs 3 baselines | not started |
 | M4 | Within-task distribution shift | not started |
 | M5 | Judge calibration reported | not started |
-| M6 | Manifest drives serving | not started |
-| M7 | **detect → block → rollback proven** | not started |
+| M6 | Manifest drives serving | manifest format + promote/rollback built · serving reads it after the GPU run |
+| M7 | **detect → block → rollback proven** | block + rollback built and tested · detect needs the regression run |
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
 | M9 | Spend ≤ $50 | on track ($2.16) |
 | M10 | Hard-cases split mined + adjudicated | not started |
@@ -617,6 +617,38 @@ caught either.
 
 ---
 
+### D30 · Eval splits are pinned in the manifest beside the models, and moving one blocks promotion
+**Rejected:** pinning models only, and treating the splits as a fixed property of the repo.
+**Why:** a score is a statement about a model *measured against a bar*. Pin the model and
+let the bar move, and a changed number has two explanations with no way to separate them —
+which is the failure the whole two-split design exists to prevent. So `manifests/system.json`
+pins the four golden sets, the router pool and the shift split by sha256 alongside the
+adapter revisions, and a promotion whose splits moved is **blocked even when a regression
+run is attached**: a regression number computed across a moved bar does not license the
+promotion, it is the thing that needs explaining.
+
+**Interview angle:** "what does your manifest pin?" separates two answers. Pinning model
+weights is the obvious half and everyone does it. Pinning the *evaluation* is what makes a
+historical score re-derivable, and it costs one dictionary.
+
+---
+
+### D31 · The first manifest is exempt from the gate, because a regression needs something to regress from
+**Rejected:** the first implementation, which blocked v1.
+**Why:** `blocking_reasons` refuses a promotion whose components moved without a regression
+run attached. On v1 every component "moves" — from `None` — so the baseline manifest could
+never be promoted, and the gate could never be satisfied by any input. It read as the gate
+working.
+
+The fix is not a special case so much as the definition: a regression is a comparison
+against a previous version, and v1 has none.
+
+**Interview angle:** a gate that cannot be satisfied is indistinguishable from a strict gate
+until someone tries to pass it. Worth pairing with F33's report-only period — both are the
+same lesson about gates that are theoretically correct and practically unusable.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -674,6 +706,7 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Adapter revisions pinned (F16) | **4 + base**, PII restore verified byte-identical to the scored revision | Phase 2 |
 | Router pool scored through the adapters | — needs a GPU session | Phase 2 |
 | Router training path verified end to end | **works**, on synthetic labels · ~14 s / 25 steps on laptop MPS — **F10 needs no GPU** | Phase 2 |
+| System manifest v1 promoted (F16) | 4 adapters + base + 6 splits pinned · gate `report_only` | Phase 4 |
 | Frontier escalation arm measured (F8) | **3,954 of 5,800 pairs** · $0.21 · blocked on a daily request quota, resumes free | Phase 2 |
 | Drafting val rows sharing an instruction with train | **467 of 3,982 (11.7%)** — D24 | Phase 1 |
 | **Label-noise quarantine rate, per task** | — | Phase 4 |

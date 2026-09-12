@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "note": "Phase 2 baseline: four adapters, splits frozen",
+  "components": {
+    "base_model": {
+      "repo": "Qwen/Qwen2.5-1.5B-Instruct",
+      "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+      "weight_file": "adapter_model.safetensors",
+      "weight_sha256": null,
+      "last_modified": "2024-09-25 12:32:50+00:00"
+    },
+    "adapters": {
+      "intent": {
+        "repo": "Tanny03/adapterops-intent",
+        "revision": "a7eb75ec67386805b1026aeacffa4f6c27d2de7e",
+        "weight_file": "adapter_model.safetensors",
+        "weight_sha256": "6d1a57e9aa23e560e2276e0aa0af5260077e945ac721c19b7dc0508e0ba2004b",
+        "last_modified": "2026-09-11 05:06:43+00:00"
+      },
+      "urgency": {
+        "repo": "Tanny03/adapterops-urgency",
+        "revision": "53d1006e1c4cc863ab1d5db56cb5049938c14888",
+        "weight_file": "adapter_model.safetensors",
+        "weight_sha256": "c821ef1dd3ccedaad2a47c9fbfd15468151331fde1da27a246a2f4557a84640d",
+        "last_modified": "2026-09-11 17:22:46+00:00"
+      },
+      "pii": {
+        "repo": "Tanny03/adapterops-pii",
+        "revision": "3b38a28479215897ab927f00b78da99a57813469",
+        "weight_file": "adapter_model.safetensors",
+        "weight_sha256": "8bf54f7d6bd24ea831d80bf527399f681d9e8ddb5647ed95a0eeb71602f86e9c",
+        "last_modified": "2026-09-11 16:47:17+00:00",
+        "note": "These weights (sha256 8bf54f7d...) are byte-identical to revision 5405e954, the revision that scored 0.9190 strict span F1. dbb236a9 briefly overwrote main with different tensors (4ef039e9...) \u2014 the changelog-29 incident \u2014 and 3b38a284 restored them. Verified by comparing the LFS digest at all three revisions, not by trusting the restore commit's message."
+      },
+      "drafting": {
+        "repo": "Tanny03/adapterops-drafting",
+        "revision": "3778c895d3501f4e8d513252e8e217da4287e720",
+        "weight_file": "adapter_model.safetensors",
+        "weight_sha256": "2e3eeb7e0aac60874e34ff7067681f80955a6b83f8a15e8dc86e65674207aeda",
+        "last_modified": "2026-09-11 07:14:42+00:00"
+      }
+    },
+    "router": null,
+    "judge": null
+  },
+  "eval_splits": {
+    "golden_intent": {
+      "file": "evals/golden/intent.parquet",
+      "bytes": 30137,
+      "sha256": "ca4851759de2429632ba03a96619b558103b841f78506b6ccd7acac35590a2e9"
+    },
+    "golden_urgency": {
+      "file": "evals/golden/urgency.parquet",
+      "bytes": 118488,
+      "sha256": "d18da5aa08741ef27dd6cb1c1bed10373f0176c9e1e20c85e89df3d5003332b9"
+    },
+    "golden_pii": {
+      "file": "evals/golden/pii.parquet",
+      "bytes": 224549,
+      "sha256": "12e344e5be2d0e0e602ed848069f469045bc43488ae6448308f0dc7c5237f828"
+    },
+    "golden_drafting": {
+      "file": "evals/golden/drafting.parquet",
+      "bytes": 81691,
+      "sha256": "55863e85c4c743f3d9b9be337ae06f0ef24a54e078fba035928f0478a8ad1c0e"
+    },
+    "router_pool": {
+      "file": "data/router/pool.parquet",
+      "bytes": 1298274,
+      "sha256": "e822501a1bfaf188bd1ea55babec50ebdd32981e77a70694cfe69db36c6d3d49"
+    },
+    "router_shift": {
+      "file": "data/router/shift.parquet",
+      "bytes": 34122,
+      "sha256": "61b34ad236b07619e18d676fa8f199ccd6a2c5a2be1abc0c2e72e30c6adc1f69"
+    },
+    "hard_cases": null
+  },
+  "gate": {
+    "state": "report_only",
+    "why": "F33 \u2014 the hard-cases threshold is derived from variance observed across two baseline runs against an unchanged manifest, and those runs have not happened. A threshold invented before then is the unfalsifiable gate PRD \u00a711 removed.",
+    "thresholds": {}
+  },
+  "provenance": {
+    "intent__adapter.json": {
+      "file": "runs/intent__adapter.json",
+      "bytes": 2363,
+      "sha256": "19b915d284fa3892070e112ba94424c0fec60138eb123c8cbf46f2756c0ba408"
+    },
+    "pii__adapter.json": {
+      "file": "runs/pii__adapter.json",
+      "bytes": 2906,
+      "sha256": "e836491b411be5537c5e673491c0e9f9f6b3b2c07c3edacd87efc78eae49f1c2"
+    },
+    "urgency__adapter.json": {
+      "file": "runs/urgency__adapter.json",
+      "bytes": 1871,
+      "sha256": "dbab58e5eca3ca08a812650b28fe4f69f2645e3854765bba4102300600b34346"
+    },
+    "m1_serving.json": null,
+    "router__train.json": null,
+    "router__operating_curve.json": null
+  },
+  "promoted_over": null,
+  "diff_from_previous": {
+    "changed": {
+      "components.adapters.drafting": {
+        "from": null,
+        "to": "3778c895d3501f4e8d513252e8e217da4287e720"
+      },
+      "components.adapters.intent": {
+        "from": null,
+        "to": "a7eb75ec67386805b1026aeacffa4f6c27d2de7e"
+      },
+      "components.adapters.pii": {
+        "from": null,
+        "to": "3b38a28479215897ab927f00b78da99a57813469"
+      },
+      "components.adapters.urgency": {
+        "from": null,
+        "to": "53d1006e1c4cc863ab1d5db56cb5049938c14888"
+      },
+      "components.base_model": {
+        "from": null,
+        "to": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306"
+      },
+      "eval_splits.golden_drafting": {
+        "from": null,
+        "to": "55863e85c4c743f3d9b9be337ae06f0ef24a54e078fba035928f0478a8ad1c0e"
+      },
+      "eval_splits.golden_intent": {
+        "from": null,
+        "to": "ca4851759de2429632ba03a96619b558103b841f78506b6ccd7acac35590a2e9"
+      },
+      "eval_splits.golden_pii": {
+        "from": null,
+        "to": "12e344e5be2d0e0e602ed848069f469045bc43488ae6448308f0dc7c5237f828"
+      },
+      "eval_splits.golden_urgency": {
+        "from": null,
+        "to": "d18da5aa08741ef27dd6cb1c1bed10373f0176c9e1e20c85e89df3d5003332b9"
+      },
+      "eval_splits.router_pool": {
+        "from": null,
+        "to": "e822501a1bfaf188bd1ea55babec50ebdd32981e77a70694cfe69db36c6d3d49"
+      },
+      "eval_splits.router_shift": {
+        "from": null,
+        "to": "61b34ad236b07619e18d676fa8f199ccd6a2c5a2be1abc0c2e72e30c6adc1f69"
+      }
+    },
+    "eval_splits_moved": [
+      "eval_splits.golden_drafting",
+      "eval_splits.golden_intent",
+      "eval_splits.golden_pii",
+      "eval_splits.golden_urgency",
+      "eval_splits.router_pool",
+      "eval_splits.router_shift"
+    ]
+  }
+}
