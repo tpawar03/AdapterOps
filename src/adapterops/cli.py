@@ -67,6 +67,14 @@ def _cmd_frontier(args: argparse.Namespace) -> int:
     return frontier_main(limit=args.limit, workers=args.workers, purpose=args.purpose)
 
 
+def _cmd_prompted(args: argparse.Namespace) -> int:
+    from adapterops.eval.prompted import main as prompted_main
+
+    return prompted_main(task=args.task, recipe=args.recipe, base_url=args.base_url,
+                         max_model_len=args.max_model_len, budget_only=args.budget_only,
+                         force=args.force)
+
+
 def _cmd_regress(args: argparse.Namespace) -> int:
     from adapterops.eval.regression import main as regress_main
 
@@ -200,6 +208,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_fr.add_argument("--workers", type=int, default=6)
     p_fr.add_argument("--purpose", choices=["router", "mining"], default=None)
     p_fr.set_defaults(func=_cmd_frontier)
+
+    p_pb = sub.add_parser("prompted", help="prompted baseline on the golden set (M2)")
+    p_pb.add_argument("--task", required=True, choices=["intent", "urgency", "pii", "drafting"])
+    p_pb.add_argument("--recipe", default="fewshot", choices=["fewshot", "per-class"])
+    p_pb.add_argument("--base-url", default="http://localhost:8000")
+    p_pb.add_argument("--max-model-len", type=int, default=1536)
+    p_pb.add_argument("--budget-only", action="store_true",
+                      help="check the prompt fits the server's context; needs no server")
+    p_pb.add_argument("--force", action="store_true", help="replace a recorded baseline")
+    p_pb.set_defaults(func=_cmd_prompted)
 
     p_rg = sub.add_parser("regress", help="on-demand regression run, both splits (F18)")
     p_rg.add_argument("--base-url", default="http://localhost:8000")
