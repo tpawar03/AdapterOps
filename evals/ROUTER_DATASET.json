@@ -1,0 +1,128 @@
+{
+  "purpose": "Router train/eval assembly with the F31 hard-cases exclusion (D7/D29).",
+  "regenerate": "uv run adapterops router-dataset --force",
+  "seed": 20260909,
+  "exclusion": "structural, not subtractive \u2014 router and mining rows are drawn as disjoint slices at pool-freeze time (D29). Nothing is removed here.",
+  "exclusions_verified": {
+    "hard_candidates_in_train": 0,
+    "hard_candidates_in_eval": 0,
+    "hard_candidates_in_shift_eval": 0,
+    "train_failures_missing": 0,
+    "train_in_eval": 0,
+    "train_in_shift_eval": 0,
+    "eval_in_shift_eval": 0
+  },
+  "files": {
+    "train": {
+      "file": "data/router/router_train.parquet",
+      "rows": 1561,
+      "sha256": "4254c7bae69e188b9628347eab54422757d63d3ae9c308331ddf727907cdc98a"
+    },
+    "eval": {
+      "file": "data/router/router_eval.parquet",
+      "rows": 392,
+      "sha256": "0ad25bf9fa7637389045e42eb589f265ab50feee41406b6b5d707d5a6b5239ca"
+    },
+    "shift_eval": {
+      "file": "data/router/router_shift_eval.parquet",
+      "rows": 1047,
+      "sha256": "302c12afeeb0d04a0dbc5700e5bab1d672c76efa286a6cd0e787f507c1e95ef3"
+    },
+    "hard_candidates": {
+      "file": "data/router/router_hard_candidates.parquet",
+      "rows": 525,
+      "sha256": "aa4e2e8f06bdda3677f0109a33d5db4fce6455f1498b3fbcc7cf654cc3bba5e6"
+    }
+  },
+  "splits": {
+    "train": {
+      "rows": 1561,
+      "success_rate": 0.656,
+      "per_task": {
+        "drafting": 405,
+        "urgency": 398,
+        "pii": 397,
+        "intent": 361
+      }
+    },
+    "eval": {
+      "rows": 392,
+      "success_rate": 0.6556,
+      "per_task": {
+        "drafting": 102,
+        "pii": 100,
+        "urgency": 100,
+        "intent": 90
+      }
+    },
+    "shift_eval": {
+      "rows": 1047,
+      "success_rate": 0.6523,
+      "per_task": {
+        "intent": 299,
+        "pii": 253,
+        "urgency": 252,
+        "drafting": 243
+      }
+    },
+    "hard_candidates": {
+      "rows": 525,
+      "success_rate": 0.0,
+      "per_task": {
+        "drafting": 150,
+        "pii": 150,
+        "urgency": 150,
+        "intent": 75
+      }
+    }
+  },
+  "hard_candidates": {
+    "drafting": {
+      "failures_in_mining_slice": 351,
+      "mining_rows": 700,
+      "failure_rate": 0.5014,
+      "reserved": 150,
+      "cap": 150,
+      "cap_bound": true,
+      "by_bucket": {
+        "off_reference": 150
+      }
+    },
+    "intent": {
+      "failures_in_mining_slice": 75,
+      "mining_rows": 700,
+      "failure_rate": 0.1071,
+      "reserved": 75,
+      "cap": 150,
+      "cap_bound": false,
+      "by_bucket": {
+        "wrong_label": 75
+      }
+    },
+    "pii": {
+      "failures_in_mining_slice": 206,
+      "mining_rows": 700,
+      "failure_rate": 0.2943,
+      "reserved": 150,
+      "cap": 150,
+      "cap_bound": true,
+      "by_bucket": {
+        "boundary": 63,
+        "mixed": 62,
+        "missed": 20,
+        "invented": 5
+      }
+    },
+    "urgency": {
+      "failures_in_mining_slice": 309,
+      "mining_rows": 700,
+      "failure_rate": 0.4414,
+      "reserved": 150,
+      "cap": 150,
+      "cap_bound": true,
+      "by_bucket": {
+        "wrong_label": 150
+      }
+    }
+  }
+}

@@ -33,10 +33,10 @@ and in the phase column of §4.
 
 | ID | Milestone | State |
 |---|---|---|
-| M1 | 4 adapters served concurrently | not started |
+| M1 | 4 adapters served concurrently | **PASS** — 5,800 reqs, 0 errors, 23.6 rps |
 | M2 | Adapters vs prompted baseline | intent ✓ (+0.4091). urgency and pii have **non-prompted** baselines only (TF-IDF, regex+NER) — those do not close M2 |
-| M3 | Router operating curve vs 3 baselines | not started |
-| M4 | Within-task distribution shift | not started |
+| M3 | Router operating curve vs 3 baselines | **measured — and it is a negative.** Escalation lowers quality on this benchmark |
+| M4 | Within-task distribution shift | router scored on both sides · degradation is small because the router barely reads text |
 | M5 | Judge calibration reported | not started |
 | M6 | Manifest drives serving | manifest format + promote/rollback built · serving reads it after the GPU run |
 | M7 | **detect → block → rollback proven** | block + rollback built and tested · detect needs the regression run |
@@ -725,7 +725,13 @@ Filled in as results arrive. **Empty is the correct state today.**
 | **Within-task shift split frozen (F36)** | shift side **32-40%** of the router slice · every task both sides | Phase 2 |
 | Shift-side vocabulary unseen in-distribution | **25.1% / 29.8% / 41.4% / 56.0%** (drafting / urgency / intent / PII) | Phase 2 |
 | Adapter revisions pinned (F16) | **4 + base**, PII restore verified byte-identical to the scored revision | Phase 2 |
-| Router pool scored through the adapters | — needs a GPU session | Phase 2 |
+| **M1 — four adapters concurrent** | **PASS** · 5,800 reqs · **0 errors** · 23.6 rps · 246 s | Phase 2 |
+| Per-adapter P95, A10 | urgency **60 ms** · intent **136 ms** · PII **2,259 ms** · drafting **3,001 ms** | Phase 2 |
+| Router pool scored (F7) | 5,800 pairs · success: intent **0.891**, PII **0.724**, urgency **0.503**, drafting 0.501 | Phase 2 |
+| Hard-cases mined (F31) | **525** · 150 each for urgency/PII/drafting, **75 intent** (`cap_bound: false`) | Phase 2 |
+| **Router (F10), ranking quality** | ROC-AUC **0.7064** eval / **0.7129** shift — but **0.996 correlated with a task-name lookup** | Phase 2 |
+| Task-prior-only baseline | ROC-AUC **0.6883** — the router adds **+0.018** over knowing only the task | Phase 2 |
+| **Frontier arm quality (F8)** | **0.304** vs local **0.653** — escalation *lowers* quality on every task | Phase 2 |
 | Router training path verified end to end | **works**, on synthetic labels · ~14 s / 25 steps on laptop MPS — **F10 needs no GPU** | Phase 2 |
 | System manifest v1 promoted (F16) | 4 adapters + base + 6 splits pinned · gate `report_only` | Phase 4 |
 | Frontier escalation arm measured (F8) | **3,954 of 5,800 pairs** · $0.21 · blocked on a daily request quota, resumes free | Phase 2 |
@@ -738,6 +744,64 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 2 · The router learned which task it was looking at, and almost nothing else.**
+It scores **0.7064 ROC-AUC** on the held-out eval set and **0.7129** under shift, which
+reads like a working component. The per-task breakdown says otherwise: drafting 0.512,
+intent **0.361** — *below chance* — PII 0.617, urgency 0.602.
+
+*The explanation, tested rather than assumed.* The four tasks fail at very different rates
+— intent 0.10, PII 0.27, drafting 0.49, urgency 0.49 — so a model that reads only the task
+name already ranks failures well across the pooled set. A pure task-prior lookup, with no
+text at all, scores **0.6883**. The trained router scores 0.7064 and its predictions
+correlate **0.996** with that lookup. It added **0.018 AUC** over knowing nothing but which
+task it was.
+
+*Means:* the pooled number is an artifact of aggregating four tasks with different base
+rates, and reporting it alone would have been the single most misleading number the project
+could produce. The per-task rows are the result; the headline is not.
+
+*This was the risk the design named in advance.* `pool.py` says an unbalanced pool "would
+let it learn a per-task prior instead of reading the text", and the pool *is* balanced at
+750 per task — but balancing the **rows** does not balance the **failure rates**, and the
+shortcut lives in the latter. Balance was necessary and not sufficient.
+
+*Changes the plan:* the task-feature ablation (`include_task=False`) is the diagnostic that
+separates "cannot read this text" from "did not need to", and is the number that decides
+whether F10 is fixable or the signal is absent.
+
+**Phase 2 · Escalating to the frontier makes quality *worse*, on every task.** The operating
+curve's whole premise is that escalation buys quality at a cost. Measured, it does not: the
+frontier arm scores **0.304** against local's **0.653**, and every policy's quality falls as
+budget rises. `rescued` (local fails, frontier succeeds) runs 0.9-15%; `broken` (local
+succeeds, frontier fails) runs 27-63%.
+
+| task | local | frontier | rescued | broken |
+|---|---|---|---|---|
+| intent | 0.891 | 0.647 | 3.6% | 28.0% |
+| PII | 0.724 | 0.101 | 0.9% | 63.2% |
+| urgency | 0.503 | 0.387 | 15.3% | 26.9% |
+| drafting | 0.501 | 0.084 | 2.1% | 43.9% |
+
+*What this is not.* **Not "a 1.5B adapter beats GPT-4o-mini."** Stating it that way would be
+the overclaim this project exists to avoid. The PII breakdown shows why: the frontier's
+span **recall is 0.547** against the adapter's 0.943, while its relaxed-minus-strict gap is
+only 0.070 — so the regions it does find are mostly right, and it simply *does not list*
+~45% of the items. ai4privacy counts TITLE, AGE, GENDER and DATE as personal information; a
+model applying a commonsense notion of "personal information" skips them. At a per-document
+rule of *every* span exact, 0.55 recall over ~7.6 spans per document arithmetically floors
+the score near zero — which is exactly the 0.101 observed.
+
+*What it is.* **These benchmarks reward conformance to a dataset's labelling conventions,
+which fine-tuning transfers and prompting does not.** The adapter learned what ai4privacy
+counts as PII and how Bitext phrases a reply. A frontier model's greater general capability
+is invisible to a metric defined by those conventions.
+
+*Means:* the cost-quality argument in §8 does not hold on this benchmark as scored, and the
+honest curve shows escalation as a quality *loss*. A fair frontier comparison needs either
+few-shot exemplars carrying the conventions, or metrics that do not reward exact conformance
+— the relaxed span F1 and the Phase 3 judge are both already built, which makes this a
+measurable follow-up rather than a caveat.
 
 **Phase 2 · The post-GPU chain was rehearsed end to end on a synthetic scored pool, and it
 found three things.** `router-dataset` → `router-train` → `router-report` had never run in

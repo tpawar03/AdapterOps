@@ -68,6 +68,14 @@ class RouterConfig:
     TrainingArguments in transformers 5 — qlora.py already hit this and the guard it
     added is reused here, because the failure mode is a TypeError partway into a run."""
     seed: int = SEED
+    include_task: bool = True
+    """Prepend `task: <name>` to the text (F10). Set False for the shortcut ablation.
+
+    Task identity is a *shortcut feature*: the four tasks fail at 10%, 27%, 49% and 49%,
+    so a model that reads only the task name already ranks failures well across the pooled
+    set. The first trained router scored 0.7064 ROC-AUC and correlated **0.996** with a
+    pure task-prior lookup scoring 0.6883 — it took the shortcut. This flag is how that is
+    demonstrated rather than asserted."""
     use_cpu: bool | None = None
     """None selects: CUDA when present, otherwise CPU. **MPS is skipped deliberately.**
 
@@ -83,8 +91,10 @@ class RouterConfig:
     output_dir: str = str(OUT_DIR)
 
 
-def to_text(frame: pd.DataFrame) -> list[str]:
+def to_text(frame: pd.DataFrame, include_task: bool = True) -> list[str]:
     """`task: <name> | <ticket text>` — the task value seen as text, like everything else."""
+    if not include_task:
+        return frame.text.astype(str).tolist()
     return [f"task: {t} | {x}" for t, x in zip(frame.task, frame.text, strict=True)]
 
 
@@ -135,7 +145,7 @@ def train(cfg: RouterConfig | None = None) -> dict:
 
     def encode(frame: pd.DataFrame) -> Dataset:
         ds = Dataset.from_dict({
-            "text": to_text(frame),
+            "text": to_text(frame, cfg.include_task),
             # label 1 = the adapter failed = escalate. Framing the positive class as the
             # failure keeps average precision reading as "how well are failures ranked".
             "labels": (~frame.success.astype(bool)).astype(int).tolist(),

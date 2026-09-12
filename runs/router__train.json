@@ -1,0 +1,96 @@
+{
+  "config": {
+    "base_model": "microsoft/deberta-v3-small",
+    "max_length": 256,
+    "epochs": 3.0,
+    "batch_size": 8,
+    "grad_accum": 2,
+    "learning_rate": 2e-05,
+    "weight_decay": 0.01,
+    "warmup_fraction": 0.1,
+    "seed": 20260909,
+    "use_cpu": null,
+    "output_dir": "/Users/tanmay/Desktop/AdapterOps/checkpoints/router"
+  },
+  "device": "cpu",
+  "splits": {
+    "eval": {
+      "overall": {
+        "n": 392,
+        "failure_rate": 0.3444,
+        "roc_auc": 0.7064,
+        "average_precision": 0.5124,
+        "baseline_average_precision": 0.3444
+      },
+      "per_task": {
+        "drafting": {
+          "n": 102,
+          "failure_rate": 0.4902,
+          "roc_auc": 0.5123,
+          "average_precision": 0.5222,
+          "baseline_average_precision": 0.4902
+        },
+        "intent": {
+          "n": 90,
+          "failure_rate": 0.1,
+          "roc_auc": 0.3608,
+          "average_precision": 0.0874,
+          "baseline_average_precision": 0.1
+        },
+        "pii": {
+          "n": 100,
+          "failure_rate": 0.27,
+          "roc_auc": 0.6169,
+          "average_precision": 0.4061,
+          "baseline_average_precision": 0.27
+        },
+        "urgency": {
+          "n": 100,
+          "failure_rate": 0.49,
+          "roc_auc": 0.6018,
+          "average_precision": 0.5717,
+          "baseline_average_precision": 0.49
+        }
+      }
+    },
+    "shift_eval": {
+      "overall": {
+        "n": 1047,
+        "failure_rate": 0.3477,
+        "roc_auc": 0.7129,
+        "average_precision": 0.4972,
+        "baseline_average_precision": 0.3477
+      },
+      "per_task": {
+        "drafting": {
+          "n": 243,
+          "failure_rate": 0.5185,
+          "roc_auc": 0.5512,
+          "average_precision": 0.5642,
+          "baseline_average_precision": 0.5185
+        },
+        "intent": {
+          "n": 299,
+          "failure_rate": 0.1237,
+          "roc_auc": 0.5421,
+          "average_precision": 0.1354,
+          "baseline_average_precision": 0.1237
+        },
+        "pii": {
+          "n": 253,
+          "failure_rate": 0.2885,
+          "roc_auc": 0.7394,
+          "average_precision": 0.5666,
+          "baseline_average_precision": 0.2885
+        },
+        "urgency": {
+          "n": 252,
+          "failure_rate": 0.5079,
+          "roc_auc": 0.4681,
+          "average_precision": 0.4864,
+          "baseline_average_precision": 0.5079
+        }
+      }
+    }
+  }
+}
