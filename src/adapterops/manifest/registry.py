@@ -21,6 +21,7 @@ before believing any score attributed to a pinned adapter.
 
 from __future__ import annotations
 
+import copy
 import json
 from pathlib import Path
 
@@ -31,6 +32,7 @@ BASE_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
 TASKS = ("intent", "urgency", "pii", "drafting")
 HF_USER = "Tanny03"
 WEIGHT_FILE = "adapter_model.safetensors"
+CANDIDATES_DIR = REPO_ROOT / "manifests" / "candidates"
 
 
 def _resolve(repo: str, revision: str = "main") -> dict:
@@ -77,13 +79,13 @@ def pin(force: bool = False) -> int:
     return 0
 
 
-def verify() -> tuple[int, dict]:
+def verify(pins: Path | None = None) -> tuple[int, dict]:
     """Compare the pin against the Hub. Returns (exit code, per-component findings)."""
     if not MANIFEST.exists():
         print("  nothing pinned — run `uv run adapterops pin-adapters` first.")
         return 2, {}
 
-    pinned = json.loads(MANIFEST.read_text())["components"]
+    pinned = json.loads((pins or MANIFEST).read_text())["components"]
     findings, worst = {}, "ok"
     for name, entry in pinned.items():
         try:
@@ -134,3 +136,43 @@ def main(action: str = "verify", force: bool = False) -> int:
     if action == "pin":
         return pin(force=force)
     return verify()[0]
+
+
+def candidate_components(base: dict, task: str, resolved: dict) -> dict:
+    """The current pin set with exactly one adapter replaced, recording what it replaced."""
+    if task == "base_model" or task not in base:
+        msg = f"{task!r} is not a swappable adapter in this pin set"
+        raise ValueError(msg)
+    out = copy.deepcopy(base)
+    out[task] = {**resolved, "candidate_of": (base[task] or {}).get("repo")}
+    return out
+
+
+def pin_candidate(task: str, repo: str, name: str, force: bool = False) -> int:
+    """Pin a candidate adapter set for M7 or M11: the current pins with one adapter swapped.
+
+    A candidate is served under the real task name, so the regression run addresses it
+    exactly as it would the adapter it might replace. The file records which adapter it
+    stands in for, so a served candidate is never mistaken for the pinned system.
+    """
+    path = CANDIDATES_DIR / f"{name}.json"
+    if path.exists() and not force:
+        print(f"  {path.relative_to(REPO_ROOT)} exists — --force to re-resolve it")
+        return 1
+    resolved = _resolve(repo)
+    if not resolved["weight_sha256"]:
+        print(f"  {repo} has no {WEIGHT_FILE} at main — not a pinnable adapter")
+        return 2
+    base = json.loads(MANIFEST.read_text())["components"]
+    CANDIDATES_DIR.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({
+        "purpose": "Candidate pin set — the pinned system with one adapter swapped. Served "
+                   "with PINS=<this file> for M7 (regressed adapter) or M11 (under-trained).",
+        "candidate": name,
+        "replaces": task,
+        "base_pins": str(MANIFEST.relative_to(REPO_ROOT)),
+        "components": candidate_components(base, task, resolved),
+    }, indent=2) + "\n", encoding="utf-8")
+    print(f"  {name}: {task} -> {repo} @ {resolved['revision'][:8]} "
+          f"weights {str(resolved['weight_sha256'])[:12]}")
+    return 0

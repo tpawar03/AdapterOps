@@ -118,10 +118,16 @@ def _cmd_pin_adapters(args: argparse.Namespace) -> int:
     return pin(force=args.force)
 
 
-def _cmd_verify_pins(_: argparse.Namespace) -> int:
+def _cmd_verify_pins(args: argparse.Namespace) -> int:
     from adapterops.manifest.registry import verify
 
-    return verify()[0]
+    return verify(Path(args.pins) if args.pins else None)[0]
+
+
+def _cmd_pin_candidate(args: argparse.Namespace) -> int:
+    from adapterops.manifest.registry import pin_candidate
+
+    return pin_candidate(task=args.task, repo=args.repo, name=args.name, force=args.force)
 
 
 def _cmd_train(args: argparse.Namespace) -> int:
@@ -256,7 +262,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_pin.set_defaults(func=_cmd_pin_adapters)
 
     p_verify = sub.add_parser("verify-pins", help="has a pinned adapter moved on the Hub?")
+    p_verify.add_argument("--pins", default=None, help="verify a candidate pin set instead")
     p_verify.set_defaults(func=_cmd_verify_pins)
+
+    p_cand = sub.add_parser("pin-candidate",
+                            help="pin a candidate set with one adapter swapped (M7, M11)")
+    p_cand.add_argument("--task", required=True, choices=["intent", "urgency", "pii", "drafting"])
+    p_cand.add_argument("--repo", required=True, help="Hub repo of the candidate adapter")
+    p_cand.add_argument("--name", required=True, help="names manifests/candidates/<name>.json")
+    p_cand.add_argument("--force", action="store_true")
+    p_cand.set_defaults(func=_cmd_pin_candidate)
 
     p_train = sub.add_parser("train", help="QLoRA-train a task adapter (needs CUDA)")
     p_train.add_argument("--task", required=True, choices=["intent", "urgency", "pii", "drafting"])

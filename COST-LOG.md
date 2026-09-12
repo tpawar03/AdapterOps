@@ -3,7 +3,7 @@
 F24 (P0). Every session, every charge. Hard ceiling **$50** (M9); stop and reassess
 at **$25** (§14). Update this and STATUS.md §1 together.
 
-**Running total: $2.16 / $50.00**
+**Running total: $4.56 / $50.00**
 
 | Phase | Provider | What | Duration | Charge | Total |
 |---|---|---|---|---|---|
@@ -14,6 +14,7 @@ at **$25** (§14). Update this and STATUS.md §1 together.
 | 1 | Lambda | Train PII + drafting adapters, A10 | ~50 min | ~$0.63 | ~$1.07 |
 | 1 | Lambda | Retrain PII, 8K rows / 3 epochs + eval | ~70 min | ~$0.88 | ~$1.95 |
 | 2 | OpenAI | Frontier escalation arm (F8), `gpt-4o-mini` — 3,954 of 5,800 pairs | ~35 min | $0.21 | $2.16 |
+| 3 | OpenAI | GPT-4o judge grades (F13) — 1,950 replies, 1,200 adapter + 750 frontier; token-derived at list price | ~75 min | $2.40 | $4.56 |
 
 ## Budget envelope (PRD §12)
 

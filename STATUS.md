@@ -23,7 +23,7 @@ and in the phase column of §4.
 | **Phase** | **Phase 2 complete, and its results are negative and recorded.** M1 passed on real hardware; the router was trained and the operating curve measured. The Phase 4 manifest, promotion blocking and rollback were built ahead while waiting on paid runs. Phase 3 (judge) is next. |
 | **Spec** | PRD v2.6, published + in repo |
 | **Hours logged** | 0 / 180 |
-| **Spend** | **$2.16** / $50.00 |
+| **Spend** | **$4.56** / $50.00 — excluding the Phase 2 GPU charge, not yet reported |
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
 | **Blocking** | Nothing. Two open inputs, neither blocking: the **actual GPU charge** for the Phase 2 session (the cost log is missing it), and the frontier arm's last mining-slice pairs, running unattended against the daily request quota. |
 | **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · intent **0.9312** (+0.4091 over prompted) · PII **0.9190** strict · urgency **loses to TF-IDF** · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · router pool scored · **525 hard cases mined** · router measured as **0.02–0.03 over a task-name lookup, across six runs** · escalation measured as a **quality loss** on every task · system manifest v1 with blocking and rollback |
@@ -41,7 +41,7 @@ and in the phase column of §4.
 | M6 | Manifest drives serving | manifest format + promote/rollback built · serving reads it after the GPU run |
 | M7 | **detect → block → rollback proven** | **detect (F18) → block proven in code** on the frozen splits, serving mocked · rollback tested · remains: real serving + the F21 shuffled-label adapter (GPU) |
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
-| M9 | Spend ≤ $50 | on track ($2.16) |
+| M9 | Spend ≤ $50 | on track ($4.56, GPU charge pending) |
 | M10 | Hard-cases split mined + adjudicated | **done** — 525 mined → **507 retained**, 18 quarantined · intent label-noise rate **24.0%** · screen applied only where it beats chance (D36) |
 | M11 | **Gate sensitivity measured** | checkpoint captured · scoring in Phase 5 |
 
@@ -883,7 +883,7 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Task-prior-only baseline | ROC-AUC **0.6883** — the router adds **+0.018** over knowing only the task | Phase 2 |
 | Router seed study, 3 seeds × 2 variants | task feature: **no reliable effect** · router beats the task prior by **0.02–0.03 in all six runs** · intent eval AUC sd **0.119** | Phase 2 |
 | **Frontier arm quality (F8)** | in-distribution **0.278** vs local **0.656** · shift **0.313** vs local **0.652** — escalation *lowers* quality in both | Phase 2 |
-| **Judge labelling projected (F13)** | **$3.38** for 1,950 GPT-4o grades (1,200 adapter + 750 frontier) · counted locally, no API call · **approved at a $5 cap** | Phase 3 |
+| **Judge labelling projected (F13)** | **$3.38** for 1,950 GPT-4o grades (1,200 adapter + 750 frontier) · counted locally, no API call · **approved at a $5 cap** · **actual $2.40 for all 1,950, 0 unparseable** | Phase 3 |
 | Judge base benchmark (§15), CPU | DeBERTa-v3-base **2.74 s/step** (~18 min) vs Qwen2.5-0.5B LoRA **3.38 s/step** (~22 min) · QLoRA not runnable here (no CUDA) | Phase 3 |
 | GPT-4o judge sample | **10/10** parsed · **$0.0123** actual vs $0.0200 projected — the local projection runs conservative | Phase 3 |
 | Judge training path (F14), smoke on a planted signal | **works** after target scaling · Spearman **0.859** · within-±1 **1.00** — the first smoke passed at Spearman −0.45 | Phase 3 |
