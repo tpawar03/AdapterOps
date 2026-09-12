@@ -685,6 +685,29 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
 
+**Phase 2 · The operating curve would have compared two policies on two different
+populations.** `report.py` runs for the first time *after* a paid GPU session, so it was
+exercised against synthetic runs beforehand. The dry run found that the learned router only
+has predictions for its held-out eval splits, while the curve was being computed over the
+whole 3,000-pair router slice — so the router would have been ranked on missing values
+while confidence was ranked on everything. Two policies, two populations, one chart, and no
+error anywhere.
+
+*Fixed by naming the population rather than assuming it.* The report now emits a block per
+population — `router_in_distribution` (M3) and `router_shift` (M4) when a router exists,
+and a `router_slice__no_router_yet` block labelled as such when one does not — and every
+policy inside a block is scored on identical rows.
+
+*Also checked while there, because it is the invariant D28 rests on:* both arms are cut at
+the same drafting threshold, taken from the local run. A test reproduces the frontier's
+drafting successes by hand from that one number, and separately asserts the rate is **not**
+0.5000 — which is the hallmark of each arm having cut at its own median.
+
+*The dry run also showed the curve is non-monotonic*, peaking mid-budget and falling back to
+the frontier's own quality at budget 1.0. That is correct and is the entire cost-quality
+argument in one line: escalating everything is worse than escalating selectively, because
+the frontier loses on pairs the adapter already gets right.
+
 **Phase 2 · The router trained to `nan`, and neither the device nor the data was at
 fault.** A smoke run of the DeBERTa router on synthetic labels completed normally and
 reported a train loss of **753.5**, `grad_norm: nan`, and `eval_loss: nan`. A run that
