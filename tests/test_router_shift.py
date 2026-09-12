@@ -39,11 +39,14 @@ def test_frozen_shift_matches_its_manifest_and_the_pool_it_was_cut_from():
         "the pool has been re-frozen since the shift split was cut; re-run router-shift"
 
 
-def test_shift_covers_the_pool_exactly_once():
-    pool_ids = set(pd.read_parquet(POOL).pair_id)
+def test_shift_covers_the_router_slice_exactly_once_and_nothing_else():
+    """Mining rows feed F31, never a router eval, so a shift side for them would be a
+    column nothing reads — and would invite someone to read it."""
+    pool = pd.read_parquet(POOL)
     s = shift()
     assert s.pair_id.is_unique
-    assert set(s.pair_id) == pool_ids
+    assert set(s.pair_id) == set(pool.loc[pool.purpose == "router", "pair_id"])
+    assert not set(s.pair_id) & set(pool.loc[pool.purpose == "mining", "pair_id"])
 
 
 def test_every_task_appears_on_both_sides():

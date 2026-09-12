@@ -39,6 +39,12 @@ def _cmd_router_shift(args: argparse.Namespace) -> int:
     return shift_main(force=args.force)
 
 
+def _cmd_router_dataset(args: argparse.Namespace) -> int:
+    from adapterops.router.dataset import main as dataset_main
+
+    return dataset_main(force=args.force)
+
+
 def _cmd_pin_adapters(args: argparse.Namespace) -> int:
     from adapterops.manifest.registry import pin
 
@@ -109,6 +115,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_shift.add_argument("--force", action="store_true",
                          help="re-draw the shift split — moves the bar M4 is reported against")
     p_shift.set_defaults(func=_cmd_router_shift)
+
+    p_rds = sub.add_parser("router-dataset",
+                           help="assemble router train/eval with the F31 exclusion")
+    p_rds.add_argument("--force", action="store_true", help="rebuild a frozen dataset")
+    p_rds.set_defaults(func=_cmd_router_dataset)
 
     p_pin = sub.add_parser("pin-adapters", help="pin adapter revisions in manifests/ (F16)")
     p_pin.add_argument("--force", action="store_true",

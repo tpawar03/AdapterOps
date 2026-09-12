@@ -53,13 +53,29 @@ def test_pool_never_overlaps_golden_or_adapter_training_data():
         assert counts["duplicate_texts"] == 0, f"{task}: duplicate texts in the pool"
 
 
-def test_every_task_is_equally_represented():
+def test_every_task_is_equally_represented_in_both_slices():
     """Task is an input feature (F10); an unbalanced pool teaches a per-task prior."""
-    from adapterops.router.pool import PER_TASK, TASKS
+    from adapterops.router.pool import PER_TASK, PER_TASK_MINING, TASKS
 
-    counts = pool().task.value_counts()
+    counts = pool().groupby(["task", "purpose"]).size().unstack()
     assert set(counts.index) == set(TASKS)
-    assert set(counts) == {PER_TASK}
+    assert set(counts["router"]) == {PER_TASK}
+    assert set(counts["mining"]) == {PER_TASK_MINING}
+
+
+def test_router_and_mining_slices_share_no_rows():
+    """The F31 exclusion, enforced by allocation rather than subtraction (D29). If these
+    two slices ever overlap, the hard-cases split is mined from router training data and
+    D7's leak is back with nothing to announce it."""
+    p = pool()
+    router = set(p.loc[p.purpose == "router", "text"])
+    mining = set(p.loc[p.purpose == "mining", "text"])
+    assert not router & mining
+    # source_row is an index into each task's own val split, so uniqueness is only
+    # meaningful per task — across tasks the numbers collide by construction.
+    per_slice = p.groupby(["task", "purpose"]).source_row.nunique()
+    per_slice_rows = p.groupby(["task", "purpose"]).size()
+    assert (per_slice == per_slice_rows).all()
 
 
 def test_pairs_are_uniquely_identified_and_complete():

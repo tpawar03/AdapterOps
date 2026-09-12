@@ -138,6 +138,10 @@ def main(force: bool = False) -> int:
         return 2
 
     pool = pd.read_parquet(POOL_FILE)
+    # Only the router slice is partitioned. Mining rows exist to supply the Phase 4
+    # hard-cases split and never reach a router eval, so a shift side for them would be
+    # a column nothing reads.
+    pool = pool[pool.purpose == "router"]
     frames, metas = [], {}
     for task in sorted(pool.task.unique()):
         rows = pool[pool.task == task]
@@ -178,6 +182,7 @@ def main(force: bool = False) -> int:
         "file": str(SHIFT_FILE.relative_to(REPO_ROOT)),
         "sha256": hashlib.sha256(SHIFT_FILE.read_bytes()).hexdigest(),
         "pool_sha256": hashlib.sha256(POOL_FILE.read_bytes()).hexdigest(),
+        "covers": "the pool's `router` rows only — `mining` rows feed F31, not M4",
         "tasks": metas,
     }, indent=2) + "\n", encoding="utf-8")
     print(f"\n  froze {SHIFT_FILE.relative_to(REPO_ROOT)} and "

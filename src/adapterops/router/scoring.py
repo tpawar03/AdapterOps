@@ -152,6 +152,45 @@ def success_rates(labelled: pd.DataFrame) -> pd.DataFrame:
     })
 
 
+FAILURE_BUCKETS = {
+    "intent": ("wrong_label",),
+    "urgency": ("wrong_label",),
+    "pii": ("no_output", "boundary", "missed", "invented", "mixed"),
+    "drafting": ("off_reference",),
+}
+
+
+def failure_type(row) -> str | None:
+    """Bucket a failed pair by *how* it failed (F31). None for a success.
+
+    The buckets exist so the hard-cases split is capped per failure mode rather than per
+    task: PII fails in four distinguishable ways, and an uncapped mine would fill the split
+    with whichever one is most common and call it a hard-cases set.
+
+    `boundary` is separated from `missed` on purpose — it is the difference between a model
+    that cannot find a span and one that finds it and draws the edges wrong, and the PII
+    baseline work already showed those are different problems with different fixes.
+    """
+    if bool(row["success"]):
+        return None
+    task = row["task"]
+    if task in ("intent", "urgency"):
+        return "wrong_label"
+    if task == "drafting":
+        return "off_reference"
+    if row.get("pred_spans", 0) == 0:
+        return "no_output"
+    if row.get("span_f1_relaxed", 0.0) > row.get("span_f1", 0.0) + 0.01:
+        return "boundary"
+    missed = row.get("span_recall", 1.0) < 1.0
+    invented = row.get("span_precision", 1.0) < 1.0
+    if missed and not invented:
+        return "missed"
+    if invented and not missed:
+        return "invented"
+    return "mixed"
+
+
 def gold_spans_for(text: str, gold: str) -> list[Span]:
     """Exposed for the GPU script, which needs gold spans without re-deriving the parse."""
     return spans_from_values(text, parse_model_output(gold))

@@ -2,10 +2,18 @@
   "purpose": "Frozen router pool (F7). Re-drawing it moves the router's training data and the population the hard-cases split is mined from.",
   "regenerate": "uv run adapterops router-pool --force",
   "seed": 20260909,
-  "pairs": 3000,
+  "pairs": 5800,
+  "pairs_by_purpose": {
+    "router": 3000,
+    "mining": 2800
+  },
+  "purposes": {
+    "router": "trains and evaluates the router (F7/F10)",
+    "mining": "the only source of the Phase 4 hard-cases split (F31) \u2014 disjoint from router data by construction, so D7's leak cannot occur"
+  },
   "file": "data/router/pool.parquet",
-  "bytes": 668310,
-  "sha256": "615de230594d3df13c426711712b27d8eebff87e8fa709373ce26d6ff6c269ba",
+  "bytes": 1298274,
+  "sha256": "e822501a1bfaf188bd1ea55babec50ebdd32981e77a70694cfe69db36c6d3d49",
   "drawn_from": "data/<task>/split_val.parquet \u2014 held out from both the adapters and the golden sets",
   "exclusions_verified": {
     "drafting": {
@@ -29,7 +37,6 @@
       "duplicate_texts": 0
     }
   },
-  "not_excluded_here": "hard-cases items (F31) \u2014 unknown until the pool is scored; cut in adapterops.router.dataset",
   "tasks": [
     {
       "task": "intent",
@@ -41,7 +48,8 @@
       "excluded_in_adapter_train": 0,
       "excluded_duplicate_text": 0,
       "eligible": 1498,
-      "sampled": 750
+      "sampled": 750,
+      "sampled_mining": 700
     },
     {
       "task": "urgency",
@@ -53,7 +61,8 @@
       "excluded_in_adapter_train": 0,
       "excluded_duplicate_text": 0,
       "eligible": 1743,
-      "sampled": 750
+      "sampled": 750,
+      "sampled_mining": 700
     },
     {
       "task": "pii",
@@ -65,7 +74,8 @@
       "excluded_in_adapter_train": 0,
       "excluded_duplicate_text": 0,
       "eligible": 3000,
-      "sampled": 750
+      "sampled": 750,
+      "sampled_mining": 700
     },
     {
       "task": "drafting",
@@ -77,7 +87,8 @@
       "excluded_in_adapter_train": 467,
       "excluded_duplicate_text": 16,
       "eligible": 3499,
-      "sampled": 750
+      "sampled": 750,
+      "sampled_mining": 700
     }
   ]
 }

@@ -7,8 +7,9 @@
   "cluster_rule": "the cluster whose size is closest to an even share of the pool; lowest index breaks a tie. Fixed before any router exists.",
   "shift_side": "union of the held cluster and the top and bottom length deciles",
   "file": "data/router/shift.parquet",
-  "sha256": "ef71675f0a8afcbe5d0b6fea19d98feed7ee8c9fbbe40ad35191011ea7baa2b4",
-  "pool_sha256": "615de230594d3df13c426711712b27d8eebff87e8fa709373ce26d6ff6c269ba",
+  "sha256": "61b34ad236b07619e18d676fa8f199ccd6a2c5a2be1abc0c2e72e30c6adc1f69",
+  "pool_sha256": "e822501a1bfaf188bd1ea55babec50ebdd32981e77a70694cfe69db36c6d3d49",
+  "covers": "the pool's `router` rows only \u2014 `mining` rows feed F31, not M4",
   "tasks": {
     "drafting": {
       "cluster_sizes": {

@@ -28,9 +28,12 @@ task label would reshape the success base rate the router exists to learn. The p
 plain seeded sample, so `medium`-heavy urgency and the long tail of intents arrive in the
 proportions the router will actually see.
 
-**The third exclusion is not here.** Hard-cases items (F31/D7) cannot be removed at this
-stage — which pairs those are is unknown until the pool has been scored. That cut happens
-in `adapterops.router.dataset`, after scoring.
+**The F31 exclusion is enforced here, by allocation rather than by subtraction.** Every
+row carries a `purpose`: `router` rows train and evaluate the router, `mining` rows are
+where the Phase 4 hard-cases split is mined from, and the two never mix. Removing hard
+cases from the router's data *after* scoring was the first design, and D29 records why it
+failed — an exclusion you have to remember to apply is one that can be skipped, and this
+one cannot be noticed when it is.
 
 Run:  uv run adapterops router-pool
 """
@@ -55,9 +58,22 @@ SEED = 20260909
 """Same seed as the mirror and the splits. One number to change, one thing it means."""
 
 PER_TASK = 750
-"""4 x 750 = 3,000 pairs, the volume PRD §9 allocates to the router. Every task gets the
-same count: the router takes task identity as an input feature (F10), and an unbalanced
-pool would let it learn a per-task prior instead of reading the text."""
+"""The router slice. 4 x 750 = 3,000 pairs, the volume PRD §9 allocates to the router.
+Every task gets the same count: the router takes task identity as an input feature (F10),
+and an unbalanced pool would let it learn a per-task prior instead of reading the text."""
+
+PER_TASK_MINING = 700
+"""The mining slice — disjoint, and the reason the F31 exclusion cannot be forgotten (D29).
+
+Hard cases are adapter *failures*, and failures are the scarce resource here: the router
+needs them to learn, the router's eval set needs them to measure, and the hard-cases split
+is made of them. Carving the third use out of the first two is what the first version of
+`dataset.py` did, and on synthetic data it left the router's training set with a 1.00
+success rate — every failure reserved, nothing left to learn from.
+
+So mining gets its own rows, drawn here, scored in the same GPU pass and never entering
+router training or router eval. The size is what the sources can still supply after the
+router slice: intent's val split has 1,498 eligible rows, which caps this at 700."""
 
 TASKS = ("intent", "urgency", "pii", "drafting")
 
@@ -74,6 +90,7 @@ class TaskPool:
     excluded_duplicate_text: int
     eligible: int
     sampled: int
+    sampled_mining: int
 
     def as_dict(self) -> dict:
         return {**self.__dict__}
@@ -87,8 +104,9 @@ def _texts(path: Path, column: str) -> set[str]:
     return set(pd.read_parquet(path)[column].astype(str))
 
 
-def build_task(task: str, per_task: int = PER_TASK) -> tuple[pd.DataFrame, TaskPool]:
-    """Draw one task's pairs, applying both exclusions and counting what each removed."""
+def build_task(task: str, per_task: int = PER_TASK,
+               per_task_mining: int = PER_TASK_MINING) -> tuple[pd.DataFrame, TaskPool]:
+    """Draw one task's pairs, applying every exclusion and counting what each removed."""
     text_col, gold_col = COLUMNS[task]
     source = REPO_ROOT / "data" / task / "split_val.parquet"
     df = pd.read_parquet(source).reset_index(names="source_row")
@@ -113,10 +131,17 @@ def build_task(task: str, per_task: int = PER_TASK) -> tuple[pd.DataFrame, TaskP
                f"Lower PER_TASK or widen the source — do not relax an exclusion.")
         raise ValueError(msg)
 
-    drawn = keep.sample(n=per_task, random_state=SEED).sort_values("source_row")
+    shuffled = keep.sample(frac=1.0, random_state=SEED)
+    router = shuffled.iloc[:per_task].sort_values("source_row")
+    mining = shuffled.iloc[per_task:per_task + per_task_mining].sort_values("source_row")
+
+    drawn = pd.concat([router, mining])
+    purposes = ["router"] * len(router) + ["mining"] * len(mining)
     pairs = pd.DataFrame({
-        "pair_id": [f"{task}-{i:04d}" for i in range(per_task)],
+        "pair_id": [f"{task}-{p[0]}{i:04d}"
+                    for p, i in zip(purposes, range(len(drawn)), strict=True)],
         "task": task,
+        "purpose": purposes,
         "text": drawn[text_col].to_numpy(),
         "gold": drawn[gold_col].astype(str).to_numpy(),
         "source_file": str(source.relative_to(REPO_ROOT)),
@@ -132,7 +157,8 @@ def build_task(task: str, per_task: int = PER_TASK) -> tuple[pd.DataFrame, TaskP
         excluded_in_adapter_train=int(in_trained.sum()),
         excluded_duplicate_text=n_duplicate,
         eligible=len(keep),
-        sampled=per_task,
+        sampled=len(router),
+        sampled_mining=len(mining),
     )
     return pairs, meta
 
@@ -174,7 +200,8 @@ def main(force: bool = False, per_task: int = PER_TASK) -> int:
               f"- golden {meta.excluded_in_golden:>3} "
               f"- in-adapter-train {meta.excluded_in_adapter_train:>3} "
               f"- dup {meta.excluded_duplicate_text:>3} "
-              f"= eligible {meta.eligible:>5,} -> sampled {meta.sampled:,}")
+              f"= eligible {meta.eligible:>5,} -> router {meta.sampled:,} "
+              f"+ mining {meta.sampled_mining:,}")
 
     pool = pd.concat(frames, ignore_index=True)
     POOL_DIR.mkdir(parents=True, exist_ok=True)
@@ -194,14 +221,18 @@ def main(force: bool = False, per_task: int = PER_TASK) -> int:
         "regenerate": "uv run adapterops router-pool --force",
         "seed": SEED,
         "pairs": len(pool),
+        "pairs_by_purpose": {k: int(v) for k, v in pool.purpose.value_counts().items()},
+        "purposes": {
+            "router": "trains and evaluates the router (F7/F10)",
+            "mining": "the only source of the Phase 4 hard-cases split (F31) — disjoint "
+                      "from router data by construction, so D7's leak cannot occur",
+        },
         "file": str(POOL_FILE.relative_to(REPO_ROOT)),
         "bytes": POOL_FILE.stat().st_size,
         "sha256": _sha256(POOL_FILE),
         "drawn_from": "data/<task>/split_val.parquet — held out from both the adapters "
                       "and the golden sets",
         "exclusions_verified": checks,
-        "not_excluded_here": "hard-cases items (F31) — unknown until the pool is scored; "
-                             "cut in adapterops.router.dataset",
         "tasks": [m.as_dict() for m in metas],
     }, indent=2) + "\n", encoding="utf-8")
 

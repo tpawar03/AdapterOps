@@ -573,6 +573,50 @@ proxy and reporting one blended curve is the same work with none of the credibil
 
 ---
 
+### D29 · The hard-cases exclusion is an allocation, not a subtraction — after two failed attempts
+**Rejected:** twice, before landing. The record of both is the point of this entry.
+
+BUILD-PLAN calls the F31 exclusion the single most important line of code in Phase 2: get
+it wrong and every router number is inflated with nothing to announce it. The exclusion
+itself is one line. *Where* it is applied took three goes.
+
+**Attempt 1 — mine hard cases from the whole pool, subtract from router training.** The
+literal reading of PRD §11's "held-out router eval set (disjoint from hard cases)". It
+destroys the eval set. Hard cases are adapter failures capped at ~150 per task; holding
+them out of a 150-row eval slice takes nearly every failure with them. On synthetic data at
+a 22% failure rate, the router eval set went from **22.5% failures to 2.5%** — an operating
+curve measured on a population with almost nothing left to escalate, where every policy
+converges for reasons that have nothing to do with routing.
+
+**Attempt 2 — split first, mine only from the training portion.** Fixes eval, breaks
+training. The 150-per-task cap is *larger* than the failure count a ~400-row training slice
+contains, so reserving hard cases left router training at a **1.00 success rate**. One
+class. It would have trained without error and predicted a constant.
+
+**What both missed** is that failures are the scarce resource, and three consumers need
+disjoint shares of them: the router learns from failures, the router's eval measures on
+failures, and the hard-cases split is made of failures. That is an allocation problem, not
+an ordering problem. The pool now draws two slices at freeze time — 750 `router` rows and
+700 `mining` rows per task, 5,800 pairs — and `dataset.py` has no subtraction step at all.
+The exclusion holds because the populations were never the same rows.
+
+**Consequence, reported rather than engineered around:** 150 hard cases per task requires
+~150 failures per task, and intent's adapter scores 0.9312. At a ~7% failure rate, 700
+mining rows yield roughly 50. The intent hard-cases split will be small, the manifest
+records `cap_bound: false` and the measured failure rate beside it, and the honest reading
+is that **the size of a failure-mined split is a statement about the adapter**, not a
+target to hit.
+
+**Interview angle:** the best answer to "tell me about a bug in your own work" in the
+project, because neither failed version was detectable by inspection. Both produced a
+dataset of the right shape with plausible per-task counts; attempt 1's only symptom was
+policies that agreed suspiciously well, and attempt 2's was a router that predicted one
+class. Both were found by giving synthetic data a known failure rate and asserting it
+survived to the far end — which is a cheap test to write and the only thing that would have
+caught either.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -624,9 +668,11 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Learned router vs confidence baseline | — | Phase 2 |
 | Within-task shift degradation | — | Phase 2 |
 | Judge correlation + ±1 agreement | — | Phase 3 |
-| **Router pool frozen (F7)** | **3,000 pairs**, 750/task · exclusions verified zero | Phase 2 |
-| **Within-task shift split frozen (F36)** | shift side **32-40%** per task · every task both sides | Phase 2 |
+| **Router pool frozen (F7)** | **5,800 pairs** — 750 router + 700 mining per task, exclusions verified zero | Phase 2 |
+| **Within-task shift split frozen (F36)** | shift side **32-40%** of the router slice · every task both sides | Phase 2 |
 | Shift-side vocabulary unseen in-distribution | **25.1% / 29.8% / 41.4% / 56.0%** (drafting / urgency / intent / PII) | Phase 2 |
+| Adapter revisions pinned (F16) | **4 + base**, PII restore verified byte-identical to the scored revision | Phase 2 |
+| Router pool scored through the adapters | — needs a GPU session | Phase 2 |
 | Drafting val rows sharing an instruction with train | **467 of 3,982 (11.7%)** — D24 | Phase 1 |
 | **Label-noise quarantine rate, per task** | — | Phase 4 |
 | Hard-split run-to-run variance | — | Phase 4 |
