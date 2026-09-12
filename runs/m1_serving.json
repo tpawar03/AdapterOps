@@ -1,0 +1,56 @@
+{
+  "milestone": "M1 \u2014 four adapters served concurrently on one base",
+  "host": "Linux-6.8.0-1046-nvidia-x86_64-with-glibc2.39",
+  "concurrency": 16,
+  "requests": 5800,
+  "errors": 0,
+  "fallback_rate": 0.0,
+  "wall_seconds": 245.9,
+  "throughput_rps": 23.6,
+  "adapters_distinct": true,
+  "distinctness_probe": {
+    "probe_prompts": 8,
+    "identical_pairs": [],
+    "distinct": true,
+    "sample": {
+      "intent": "declined_card_payment",
+      "urgency": "card_payment_refused",
+      "pii": "CARDDECLINED",
+      "drafting": "Card Decline Notification\n\nThis classification is based on the fact that the customer has"
+    }
+  },
+  "per_adapter": {
+    "drafting": {
+      "requests": 1450,
+      "p50_ms": 1248.6,
+      "p95_ms": 3000.5,
+      "max_new_tokens": 448,
+      "mean_generated_tokens": 123.6,
+      "truncated": 0
+    },
+    "intent": {
+      "requests": 1450,
+      "p50_ms": 81.6,
+      "p95_ms": 135.9,
+      "max_new_tokens": 12,
+      "mean_generated_tokens": 5.0,
+      "truncated": 0
+    },
+    "pii": {
+      "requests": 1450,
+      "p50_ms": 857.9,
+      "p95_ms": 2259.4,
+      "max_new_tokens": 384,
+      "mean_generated_tokens": 80.4,
+      "truncated": 0
+    },
+    "urgency": {
+      "requests": 1450,
+      "p50_ms": 51.4,
+      "p95_ms": 59.5,
+      "max_new_tokens": 6,
+      "mean_generated_tokens": 2.0,
+      "truncated": 0
+    }
+  }
+}
