@@ -58,7 +58,13 @@ def join(local: pd.DataFrame, frontier: pd.DataFrame,
 
     joined = local.merge(front, on="pair_id", how="inner", validate="one_to_one")
     if router_scores is not None:
-        joined = joined.merge(router_scores[["pair_id", "router_p_fail"]],
+        # `side` lives in the router's eval splits, not in the scored pool. Merging only
+        # router_p_fail dropped it, so populations() never split and the report blended
+        # in-distribution and shift rows — M3 and M4 measured as one number.
+        keep = ["pair_id", "router_p_fail"]
+        if "side" in router_scores.columns and "side" not in joined.columns:
+            keep.append("side")
+        joined = joined.merge(router_scores[keep],
                               on="pair_id", how="left", validate="one_to_one")
     joined.attrs["drafting_cut"] = cut
     return joined

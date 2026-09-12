@@ -67,6 +67,13 @@ def _cmd_frontier(args: argparse.Namespace) -> int:
     return frontier_main(limit=args.limit, workers=args.workers, purpose=args.purpose)
 
 
+def _cmd_judge_label(args: argparse.Namespace) -> int:
+    from adapterops.judge.label import main as judge_main
+
+    return judge_main(project=args.project, include_frontier=args.include_frontier,
+                      limit=args.limit, workers=args.workers, spend_cap=args.spend_cap)
+
+
 def _cmd_router_dataset(args: argparse.Namespace) -> int:
     from adapterops.router.dataset import main as dataset_main
 
@@ -169,6 +176,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_fr.add_argument("--workers", type=int, default=6)
     p_fr.add_argument("--purpose", choices=["router", "mining"], default=None)
     p_fr.set_defaults(func=_cmd_frontier)
+
+    p_jl = sub.add_parser("judge-label", help="GPT-4o judgments on drafting outputs (F13)")
+    p_jl.add_argument("--project", action="store_true",
+                      help="count tokens and price the run locally — makes no API call")
+    p_jl.add_argument("--include-frontier", action="store_true",
+                      help="also grade the 750 frontier drafts (evaluation only)")
+    p_jl.add_argument("--limit", type=int, default=None, help="items per source")
+    p_jl.add_argument("--workers", type=int, default=4)
+    p_jl.add_argument("--spend-cap", type=float, default=8.0,
+                      help="hard stop in USD, derived from token counts")
+    p_jl.set_defaults(func=_cmd_judge_label)
 
     p_pin = sub.add_parser("pin-adapters", help="pin adapter revisions in manifests/ (F16)")
     p_pin.add_argument("--force", action="store_true",

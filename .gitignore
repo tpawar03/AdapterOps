@@ -38,3 +38,6 @@ data/router/frontier.lock
 # reproducible in minutes and would add a dozen parquets per study.
 data/router/*__s[0-9]*.parquet
 runs/router__train__*__s[0-9]*.json
+
+# Judge labelling run lock (adapterops.judge.label) — process-local, never committed.
+data/judge/judge.lock

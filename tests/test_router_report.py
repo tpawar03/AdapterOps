@@ -129,3 +129,26 @@ def test_a_population_with_no_failures_reports_a_note_not_a_crash():
     built = report.build_report(joined, None, ("random", "confidence", "oracle"))
     view = built["populations"]["router_slice__no_router_yet"]["all_tasks"]
     assert "curve" not in view and "note" in view
+
+
+def test_populations_split_by_side_when_only_the_router_scores_carry_it():
+    """The real scored pool has no `side` column — side lives in the router's eval splits.
+
+    The first version merged only `router_p_fail`, so the split never fired and the report
+    blended 392 in-distribution rows with 1,047 shift rows into one 1,439-pair population:
+    M3 and M4 measured as a single number. The synthetic fixture carried `side` on the
+    local frame, which is exactly why no test caught it.
+    """
+    local, front = synthetic()
+    local = local.drop(columns=["side"])
+    router_scores = pd.DataFrame({
+        "pair_id": local.pair_id,
+        "router_p_fail": np.linspace(0, 1, len(local)),
+        "side": ["shift" if i % 3 == 0 else "in_distribution" for i in range(len(local))],
+    })
+    pops = report.populations(report.join(local, front, router_scores), router_scores)
+
+    assert set(pops) == {"router_in_distribution", "router_shift"}
+    assert set(pops["router_shift"].side) == {"shift"}
+    assert set(pops["router_in_distribution"].side) == {"in_distribution"}
+    assert not set(pops["router_shift"].pair_id) & set(pops["router_in_distribution"].pair_id)
