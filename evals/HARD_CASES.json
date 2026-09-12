@@ -1,0 +1,66 @@
+{
+  "purpose": "Hard-cases split (F31) after the adjudication screen (F30). Mined from adapter failures in the mining slice only (D29); never router data.",
+  "regenerate": "uv run adapterops hard-cases --force",
+  "rule": "quarantine when an independent model gives the same alternative answer as the adapter against the gold label, on tasks where that carries signal (D36)",
+  "rejected_rule": "PRD \u00a79 literal \u2014 quarantine when the frontier also rejects gold. Confounded by selection: hard cases are chosen for difficulty, so a second miss is expected rather than evidence of a bad label.",
+  "cost": "none \u2014 reuses the escalation arm's frontier answers on the mining slice",
+  "hard_cases": {
+    "file": "evals/hard/hard_cases.parquet",
+    "rows": 507,
+    "sha256": "2924aa3f6b6f6e2d2a841078e6d4cbaa8220dc05dc44c81e9a91c8dd0d7cdeb5"
+  },
+  "quarantine": {
+    "file": "evals/hard/quarantine.parquet",
+    "rows": 18,
+    "sha256": "b1c97380052e56eed6d37efc99223c4285cd8b79c602400f398a2b4ba381a2f9"
+  },
+  "per_task": {
+    "drafting": {
+      "candidates": 150,
+      "with_frontier_answer": 40,
+      "applicability": "not_applicable",
+      "reason": "gold is a reference reply; there is no label to dispute",
+      "quarantined": 0,
+      "retained": 150,
+      "quarantine_rate": 0.0
+    },
+    "intent": {
+      "candidates": 75,
+      "with_frontier_answer": 75,
+      "applicability": "applied",
+      "reason": "77 classes: two independent errors coincide by chance about once in 76",
+      "quarantined": 18,
+      "retained": 57,
+      "quarantine_rate": 0.24,
+      "classes": 77,
+      "prd_literal_rule_rate": 0.64,
+      "independent_agreement_rate": 0.24,
+      "agreement_given_both_wrong": 0.375,
+      "uniform_chance_given_both_wrong": 0.0132
+    },
+    "pii": {
+      "candidates": 150,
+      "with_frontier_answer": 150,
+      "applicability": "not_applicable",
+      "reason": "span conventions dominate \u2014 frontier disagreement measures convention, not labels",
+      "quarantined": 0,
+      "retained": 150,
+      "quarantine_rate": 0.0,
+      "frontier_documents_fully_right": 0.0267
+    },
+    "urgency": {
+      "candidates": 150,
+      "with_frontier_answer": 150,
+      "applicability": "reported_not_applied",
+      "reason": "3 classes: once both models are wrong, coinciding is near a coin flip",
+      "quarantined": 0,
+      "retained": 150,
+      "quarantine_rate": 0.0,
+      "classes": 3,
+      "prd_literal_rule_rate": 0.64,
+      "independent_agreement_rate": 0.3867,
+      "agreement_given_both_wrong": 0.6042,
+      "uniform_chance_given_both_wrong": 0.5
+    }
+  }
+}

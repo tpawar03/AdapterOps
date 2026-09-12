@@ -67,6 +67,12 @@ def _cmd_frontier(args: argparse.Namespace) -> int:
     return frontier_main(limit=args.limit, workers=args.workers, purpose=args.purpose)
 
 
+def _cmd_hard_cases(args: argparse.Namespace) -> int:
+    from adapterops.router.adjudicate import main as hard_main
+
+    return hard_main(force=args.force)
+
+
 def _cmd_judge_report(_: argparse.Namespace) -> int:
     from adapterops.judge.report import main as judge_report_main
 
@@ -188,6 +194,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_fr.add_argument("--workers", type=int, default=6)
     p_fr.add_argument("--purpose", choices=["router", "mining"], default=None)
     p_fr.set_defaults(func=_cmd_frontier)
+
+    p_hc = sub.add_parser("hard-cases",
+                          help="adjudicate mined failures and freeze the hard split (F30/F31)")
+    p_hc.add_argument("--force", action="store_true",
+                      help="re-screen a frozen hard split — moves the bar it gates on")
+    p_hc.set_defaults(func=_cmd_hard_cases)
 
     p_jr = sub.add_parser("judge-report",
                           help="D28 proxy vs judge, same-family check, escalation re-scored")

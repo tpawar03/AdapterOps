@@ -42,7 +42,7 @@ and in the phase column of §4.
 | M7 | **detect → block → rollback proven** | block + rollback built and tested · detect needs the regression run |
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
 | M9 | Spend ≤ $50 | on track ($2.16) |
-| M10 | Hard-cases split mined + adjudicated | not started |
+| M10 | Hard-cases split mined + adjudicated | **done** — 525 mined → **507 retained**, 18 quarantined · intent label-noise rate **24.0%** · screen applied only where it beats chance (D36) |
 | M11 | **Gate sensitivity measured** | checkpoint captured · scoring in Phase 5 |
 
 ---
@@ -750,6 +750,42 @@ can actually evaluate. This one could not evaluate the option the spec named. Re
 
 ---
 
+### D36 · Hard cases are screened for label noise by independent agreement, not by a second miss
+**Rejected:** PRD §9's literal rule — quarantine a mined item when the frontier model also
+disagrees with the gold label.
+**Why:** on the 525 mined candidates that rule quarantines **64%** of intent's hard cases and
+**64%** of urgency's. The reason is selection. An item became a hard case *because* the adapter
+failed on it, so the set is disproportionately difficult, and a second model missing it too is
+exactly what difficulty predicts. The rule cannot tell a hard item from a mislabelled one.
+
+The rule used quarantines an item when an independent model (gpt-4o-mini) gives **the same
+alternative answer as the adapter**, against gold. Two models converging on one specific answer
+the gold rejects is what label noise produces and difficulty does not. And that agreement is
+checked against chance before it is trusted:
+
+| task | classes | both wrong, same answer | uniform chance | applied |
+|---|---|---|---|---|
+| intent | 77 | **37.5%** | 1.3% | yes — about 29× chance |
+| urgency | 3 | 60.4% | 50.0% | no — barely above chance |
+
+Uniform chance is a floor, since confusable neighbouring intents raise the true rate, but a
+29× gap is not closed by that. On urgency the same rule is barely distinguishable from a coin
+flip, so it is reported and not applied. PII (the frontier gets 2.7% of documents fully right)
+and drafting (no label to dispute) are declared not applicable.
+
+Result: **18 of 75 intent hard cases quarantined (24.0%)**, 507 retained. It cost nothing — it
+reuses the answers the escalation arm had already paid for. What it catches reads like the real
+thing: *"Can you explain the various transaction times shown on my statement?"*, labelled
+`transaction_charged_twice`, answered `transfer_timing` by both models.
+
+**Interview angle:** the PRD's rule is the intuitive one, and it would have quarantined two
+thirds of the split and published that as a label-noise rate. The better question is not
+"does a second model disagree" but "does it disagree *the same way*" — and then whether that
+agreement beats chance for the number of classes. That last check is what kept the rule off
+urgency, where its output would have looked identical and meant nothing.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -821,7 +857,8 @@ Filled in as results arrive. **Empty is the correct state today.**
 | System manifest v1 promoted (F16) | 4 adapters + base + 6 splits pinned · gate `report_only` | Phase 4 |
 | Frontier escalation arm measured (F8) | **3,954 of 5,800 pairs** · $0.21 · blocked on a daily request quota, resumes free | Phase 2 |
 | Drafting val rows sharing an instruction with train | **467 of 3,982 (11.7%)** — D24 | Phase 1 |
-| **Label-noise quarantine rate, per task** | — | Phase 4 |
+| **Label-noise quarantine rate, per task** | intent **24.0%** (18/75) · urgency measured, not applied (60.4% vs 50.0% chance) · PII and drafting not applicable | Phase 4 |
+| Hard-cases split frozen (F31) | **507 retained** — drafting 150, PII 150, urgency 150, intent 57 · 18 quarantined · **$0** | Phase 4 |
 | Hard-split run-to-run variance | — | Phase 4 |
 | **M11: does the hard split catch what the random set misses?** | — | Phase 5 |
 
@@ -829,6 +866,27 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 4 · The PRD's adjudication rule would have quarantined two thirds of the hard split.**
+§9 quarantines a mined item when the frontier model also disagrees with the gold label. On the
+525 mined candidates that is **64.0%** of intent's and **64.0%** of urgency's hard cases —
+which, reported as the per-task label-noise rate M10 asks for, would have said nearly two
+thirds of those labels were wrong.
+
+*Why it cannot be right:* the candidates were selected *because* the adapter failed on them.
+The set is disproportionately difficult, so a second model failing too is what difficulty
+predicts. The rule measures hardness and names it noise.
+
+*What replaced it* (D36): quarantine when the second model gives the **same alternative
+answer** as the adapter, and only where that beats chance for the number of classes. Intent:
+37.5% against a 1.3% floor — applied, **18 of 75 quarantined (24.0%)**. Urgency: 60.4%
+against 50.0% — reported, not applied.
+
+*The caveat that stays attached:* two language models can share a confusion — adjacent
+intents such as `transfer_timing` and `pending_transfer` are genuinely close — and uniform
+chance does not model that. So 24.0% is strong evidence that those labels are *contestable*,
+not proof that they are wrong. That is still the useful property: a gate should not block a
+release for disagreeing with a contestable label.
 
 **Phase 3 · A smoke test passed a judge that had learned nothing.** The first end-to-end
 smoke of F14 reported **PASS** with a calibration Spearman of **−0.45** and a bias of
