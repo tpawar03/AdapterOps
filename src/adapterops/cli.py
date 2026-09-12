@@ -67,6 +67,12 @@ def _cmd_frontier(args: argparse.Namespace) -> int:
     return frontier_main(limit=args.limit, workers=args.workers, purpose=args.purpose)
 
 
+def _cmd_judge_train(_: argparse.Namespace) -> int:
+    from adapterops.judge.train import main as judge_train_main
+
+    return judge_train_main()
+
+
 def _cmd_judge_label(args: argparse.Namespace) -> int:
     from adapterops.judge.label import main as judge_main
 
@@ -176,6 +182,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_fr.add_argument("--workers", type=int, default=6)
     p_fr.add_argument("--purpose", choices=["router", "mining"], default=None)
     p_fr.set_defaults(func=_cmd_frontier)
+
+    p_jt = sub.add_parser("judge-train", help="train the distilled drafting judge (F14)")
+    p_jt.set_defaults(func=_cmd_judge_train)
 
     p_jl = sub.add_parser("judge-label", help="GPT-4o judgments on drafting outputs (F13)")
     p_jl.add_argument("--project", action="store_true",

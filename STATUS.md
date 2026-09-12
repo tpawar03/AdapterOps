@@ -816,6 +816,7 @@ Filled in as results arrive. **Empty is the correct state today.**
 | **Judge labelling projected (F13)** | **$3.38** for 1,950 GPT-4o grades (1,200 adapter + 750 frontier) · counted locally, no API call · **approved at a $5 cap** | Phase 3 |
 | Judge base benchmark (§15), CPU | DeBERTa-v3-base **2.74 s/step** (~18 min) vs Qwen2.5-0.5B LoRA **3.38 s/step** (~22 min) · QLoRA not runnable here (no CUDA) | Phase 3 |
 | GPT-4o judge sample | **10/10** parsed · **$0.0123** actual vs $0.0200 projected — the local projection runs conservative | Phase 3 |
+| Judge training path (F14), smoke on a planted signal | **works** after target scaling · Spearman **0.859** · within-±1 **1.00** — the first smoke passed at Spearman −0.45 | Phase 3 |
 | Router training path verified end to end | **works**, on synthetic labels · ~14 s / 25 steps on laptop MPS — **F10 needs no GPU** | Phase 2 |
 | System manifest v1 promoted (F16) | 4 adapters + base + 6 splits pinned · gate `report_only` | Phase 4 |
 | Frontier escalation arm measured (F8) | **3,954 of 5,800 pairs** · $0.21 · blocked on a daily request quota, resumes free | Phase 2 |
@@ -828,6 +829,24 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 3 · A smoke test passed a judge that had learned nothing.** The first end-to-end
+smoke of F14 reported **PASS** with a calibration Spearman of **−0.45** and a bias of
+**−2.38**. Its criterion checked that a correlation *existed*, not that it was positive —
+so a judge worse than useless cleared it.
+
+*Why it learned nothing:* training began near **MSE 9.5**. A regression head initialises
+near zero while grades run 1–5, so the first steps go to learning the average grade, and
+over 22 steps that was the whole of what it learned.
+
+*Fixed twice.* Grades now train as `(score − 3) / 2` and map back afterwards, so the offset
+is not something to discover. And the smoke criterion now requires **Spearman > 0.5 on a
+planted signal**. Re-run: Spearman **0.859**, Pearson 0.876, within-±1 **1.00**, bias −0.04.
+
+*Means:* a test's pass criterion is itself a claim, and "it produced a number" is not the
+claim that matters. It is D31 inverted — that was a gate too strict for anything to pass,
+this was a check too weak for anything to fail — and both read as working until the
+output was looked at rather than the verdict.
 
 **Phase 2 · The committed operating curve measured M3 and M4 as one number.** The report
 printed a single `router_eval` population of **1,439 pairs** — which is the 392
