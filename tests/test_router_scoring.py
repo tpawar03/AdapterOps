@@ -156,3 +156,43 @@ def test_compare_puts_every_policy_on_one_frame_with_per_task_columns():
     assert set(out.policy) == {"random", "confidence", "oracle"}
     assert {"quality__intent", "quality__pii",
             "escalation__intent", "escalation__pii"} <= set(out.columns)
+
+
+# --- the CPU half of the generation run -------------------------------------------
+
+def pool_sample(per_task: int = 4) -> pd.DataFrame:
+    pool = pd.read_parquet(ROOT / "data/router/pool.parquet")
+    return pool.groupby("task", group_keys=False).head(per_task).reset_index(drop=True)
+
+
+def test_a_perfect_adapter_scores_one_on_every_task():
+    """Exercises the real gold of all four tasks through the real scorers, no GPU.
+
+    Worth its runtime because PII's gold is span offsets recovered from a `LABEL: value`
+    string — if that round-trip were lossy, every PII success label would be wrong and the
+    only symptom would be a suspiciously low success rate on the GPU run.
+    """
+    from adapterops.router.generate import score_frame
+
+    frame = pool_sample().assign(prediction=lambda d: d.gold, error=None)
+    scored = scoring.label(score_frame(frame))
+    assert scored.success.all(), scored.loc[~scored.success, ["task", "gold"]]
+
+
+def test_a_failed_request_scores_as_a_failure_rather_than_vanishing():
+    """A pair local inference could not answer is exactly a pair that should have been
+    escalated. Dropping it would also hide the fallback rate PRD §11 monitors."""
+    from adapterops.router.generate import score_frame
+
+    frame = pool_sample(2).assign(prediction="", error="ReadTimeout")
+    scored = scoring.label(score_frame(frame))
+    assert not scored.success.any()
+    assert len(scored) == len(frame)
+
+
+def test_requests_are_interleaved_across_adapters_not_batched_by_task():
+    """Task-by-task order would keep one adapter resident and measure a single-adapter
+    server — then report the number as concurrent multi-LoRA latency."""
+    pool = pool_sample(3)
+    order = pool.sort_values("pair_id", key=lambda s: s.str.slice(-4)).task.tolist()
+    assert len(set(order[:4])) == 4, f"first four requests hit {set(order[:4])}"

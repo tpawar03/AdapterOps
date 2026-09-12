@@ -535,6 +535,44 @@ the only time that removal is credible.
 
 ---
 
+### D27 · Generation and the success rule are separated, so the threshold is free to change
+**Rejected:** scoring pairs inside the GPU run and writing out a binary `success` column.
+**Why:** "did the adapter succeed on this pair" is a judgement call, and three of the four
+rules have a defensible alternative. PII uses per-document strict F1 = 1.0 — every span
+found, exact boundaries, nothing invented — but *recall* = 1.0 is arguably the better
+compliance rule, since a false positive is over-redaction and a false negative is a
+breach. Deciding that inside the GPU run would price a one-line change at a GPU session.
+
+So the run writes score *components* — per-document precision, recall, strict and relaxed
+F1, the raw prediction, the log-probabilities — and `router/scoring.py:label()` derives the
+binary on a laptop. The rule is a CPU re-run; the generation is not.
+
+**Interview angle:** the cheap decision and the expensive one were tangled, and separating
+them costs nothing at design time. It is also what makes the drafting proxy tolerable —
+Phase 3 swaps the judge in and re-derives, without re-generating 3,000 completions.
+
+---
+
+### D28 · Drafting's router label is a named proxy, and its cost is measured rather than argued
+**Rejected:** leaving drafting out of the router pool until the Phase 3 judge exists.
+**Why:** task identity is an input feature to the router (F10), and F36 requires every task
+on both sides of the shift split. A router that has never seen `task=drafting` reproduces
+exactly the confound D11 was written to remove. Drafting has to be in the pool.
+
+But its real metric is the judge, which does not exist yet. So Phase 2 labels it by
+token-F1 against the Bitext reference reply, cut at the pool median — **the weakest label
+in the project, and marked `label_is_proxy` in every output**. Two things follow, both
+built rather than promised: the operating curve is reported with and without drafting
+pairs, so it is visible how much of the result rests on the weak label; and when the judge
+arrives, its agreement with this proxy is measured and published.
+
+**Interview angle:** the useful move is not defending the proxy, it is bounding it. "One
+of four tasks has a stand-in label, here is the result with and without it, and here is the
+agreement number once the real metric existed" is a complete answer. Quietly using the
+proxy and reporting one blended curve is the same work with none of the credibility.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -598,6 +636,25 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 2 · A median threshold labelled total failure as total success.** The drafting
+router label cuts at the pool median token-F1. A test that fed *empty* predictions through
+the scorer — meant only to check that failed requests are not silently dropped — came back
+with every drafting pair marked a success.
+
+The cause is that a median is degenerate exactly when the distribution is. With every reply
+scoring zero, the median is zero, and `>= median` is true for all of them. The rule would
+have reported a 100% success rate on a task where the adapter produced nothing, and on a
+GPU run that outcome would have looked like a quiet, plausible number rather than an error.
+
+*Fixed as a precondition, not a second threshold:* a reply sharing no tokens at all with
+the reference is not a success at any cut. Adding a tunable floor would have traded one
+arbitrary constant for two.
+
+*Means:* relative thresholds carry an absolute failure mode, and it surfaces only under
+inputs nobody writes a test for on purpose. This one was found by a test aimed at something
+else entirely — which is the argument for testing the degenerate input rather than the
+representative one.
 
 **Phase 2 · The drafting split leaks at the second cut, and the pool test found the
 third.** Building the router pool surfaced two things neither the splits code nor its

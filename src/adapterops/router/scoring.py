@@ -18,7 +18,7 @@ then a re-run of this module, not a re-run of the GPU.
 | intent | predicted label equals gold | none |
 | urgency | predicted priority equals gold | none |
 | PII | every gold span found, exact boundaries and label, nothing invented | none |
-| drafting | token-F1 against the reference at or above the pool median | **one, and it is arbitrary** |
+| drafting | non-zero token-F1 against the reference, at or above the pool median | **one, and it is arbitrary** |
 
 PII uses per-document strict F1 = 1.0 rather than a threshold, which is both
 parameter-free and the operationally meaningful bar: a document with one span missed is a
@@ -28,7 +28,11 @@ compliance rule and is a one-line change here because the components are stored.
 
 Drafting is the weak one. Its real label is the distilled judge, which does not exist until
 Phase 3, so Phase 2 uses token-F1 against the Bitext reference reply and cuts at the pool
-median. That cut is arbitrary and is marked as such in the output. Two things follow, both
+median. That cut is arbitrary and is marked as such in the output. It also carries the one
+guard a median cut needs: a median is degenerate when the distribution is, and a run where
+every reply scored zero would put the cut at zero and label total failure as total success.
+Sharing no tokens with the reference is therefore a disqualifier in its own right rather
+than a second threshold to tune. Two things follow, both
 of which are done rather than promised: the router's operating curve is reported with and
 without drafting pairs, so it is visible how much of the result rests on the weak label;
 and when the judge arrives, its agreement with this proxy is measured and reported.
@@ -119,11 +123,18 @@ def label(scored: pd.DataFrame) -> pd.DataFrame:
             out.loc[rows, "success"] = out.loc[rows, "span_f1"] >= 1.0
             out.loc[rows, "label_rule"] = "per-document strict span F1 = 1.0"
         elif task == "drafting":
-            cut = out.loc[rows, "proxy_token_f1"].median()
-            out.loc[rows, "success"] = out.loc[rows, "proxy_token_f1"] >= cut
+            proxy = out.loc[rows, "proxy_token_f1"]
+            cut = proxy.median()
+            # A median cut is degenerate when the distribution is: if every reply scores
+            # zero, the median is zero and `>= cut` marks total failure as total success.
+            # Found by a test that fed empty predictions in. Sharing no tokens at all with
+            # the reference is not a success at any cut, so that is a precondition rather
+            # than a second threshold to tune.
+            out.loc[rows, "success"] = (proxy > 0) & (proxy >= cut)
+            degenerate = "" if cut > 0 else "  DEGENERATE: median is zero, "
             out.loc[rows, "label_rule"] = (
-                f"PROXY: token-F1 vs reference >= pool median ({cut:.4f}) — "
-                f"arbitrary cut, replaced by the judge in Phase 3")
+                f"PROXY: token-F1 vs reference > 0 and >= pool median ({cut:.4f}) — "
+                f"arbitrary cut, replaced by the judge in Phase 3.{degenerate}")
 
     out["success"] = out["success"].astype(bool)
     out["label_is_proxy"] = out.task.isin(PROXY_LABELLED_TASKS)

@@ -25,3 +25,7 @@ checkpoints/
 # fonts and mermaid, rebuilt from source.html on demand. Tracking it would add a
 # fresh multi-megabyte blob to history on every PRD edit.
 /adapter-service-prd.html
+
+# Pinned adapters materialised on the rented box (adapterops.serve.launch).
+# No leading dot, deliberately (D20).
+_adapters/
