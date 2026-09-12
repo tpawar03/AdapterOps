@@ -27,7 +27,7 @@ and in the phase column of §4.
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
 | **Blocking** | Nothing. Two open inputs, neither blocking: the **actual GPU charge** for the Phase 2 session (the cost log is missing it), and the frontier arm's last mining-slice pairs, running unattended against the daily request quota. |
 | **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · intent **0.9312** (+0.4091 over prompted) · PII **0.9190** strict · urgency **loses to TF-IDF** · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · router pool scored · **525 hard cases mined** · router measured as **0.02–0.03 over a task-name lookup, across six runs** · escalation measured as a **quality loss** on every task · system manifest v1 with blocking and rollback |
-| **Next action** | **Phase 3 judge.** It replaces drafting's proxy label, now the weakest label in the project, and it is one of the two fairer frontier comparisons the escalation finding calls for. It needs ~1,200 GPT-4o judgments — paid, and subject to the 10,000 requests/day cap — so it is approved before it runs. |
+| **Next action** | **Phase 3 judge.** GPT-4o grading approved (1,950 grades, $5 cap) and starting with a small sample; then F14 training on whichever base the §15 benchmark favours, and F15 calibration. |
 
 ### Milestone tracker
 
@@ -36,7 +36,7 @@ and in the phase column of §4.
 | M1 | 4 adapters served concurrently | **PASS** — 5,800 reqs, 0 errors, 23.6 rps |
 | M2 | Adapters vs prompted baseline | intent ✓ (+0.4091). urgency and pii have **non-prompted** baselines only (TF-IDF, regex+NER) — those do not close M2 |
 | M3 | Router operating curve vs 3 baselines | **measured — and it is a negative.** Escalation lowers quality on this benchmark |
-| M4 | Within-task distribution shift | router scored on both sides · degradation is small because the router barely reads text |
+| M4 | Within-task distribution shift | **no measurable degradation** — local 0.656 → 0.652, router AUC 0.707 → 0.716 · consistent with a router that barely reads the text |
 | M5 | Judge calibration reported | not started |
 | M6 | Manifest drives serving | manifest format + promote/rollback built · serving reads it after the GPU run |
 | M7 | **detect → block → rollback proven** | block + rollback built and tested · detect needs the regression run |
@@ -697,6 +697,33 @@ size would be dominated by seed noise, which is worth knowing before F33 derives
 
 ---
 
+### D34 · The judge is reference-free, and its rubric states a policy for template slots
+**Rejected:** a reference-guided judge that sees the Bitext reply alongside the one it grades.
+**Why:** the drafting proxy already measures overlap with the reference, and the Phase 2
+escalation finding showed what a reference-shaped metric rewards — conformance to one
+dataset's house style, which fine-tuning transfers and a frontier model does not. A judge
+that grades against the reference would rebuild that bias one level up. The cost is grading
+without an answer key, which is acceptable because Bitext's replies are generic procedures
+rather than account-specific facts.
+
+The slot policy was found in the data, not assumed. **49%** of the adapter's replies and
+**42%** of Bitext's own references contain slots like `{{Order Number}}`; only **12.5%** of
+GPT-4o-mini's replies do. Left to its own taste, a judge could read a slot as an unfinished
+reply and mark the adapter down for following the dataset's format. The rubric says to treat
+slots as the correct value, and says it identically for every reply.
+
+*Also caught while building it:* the frontier arm's `Ledger` prices tokens as gpt-4o-mini.
+Reused unchanged for a gpt-4o run it would under-count spend about 16x, and the spend cap
+would never fire. It is subclassed with gpt-4o prices, and a test trips a $1 cap with $2.50
+of tokens.
+
+**Interview angle:** "how did you validate your LLM judge?" usually gets a correlation
+number. The better answer starts earlier — what the judge is *allowed to see*, and which
+conventions in the data would silently bias it — because a well-correlated judge that
+inherited the benchmark's house style is measuring the wrong thing precisely.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -756,10 +783,11 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Per-adapter P95, A10 | urgency **60 ms** · intent **136 ms** · PII **2,259 ms** · drafting **3,001 ms** | Phase 2 |
 | Router pool scored (F7) | 5,800 pairs · success: intent **0.891**, PII **0.724**, urgency **0.503**, drafting 0.501 | Phase 2 |
 | Hard-cases mined (F31) | **525** · 150 each for urgency/PII/drafting, **75 intent** (`cap_bound: false`) | Phase 2 |
-| **Router (F10), ranking quality** | ROC-AUC **0.7064** eval / **0.7129** shift — but **0.996 correlated with a task-name lookup** | Phase 2 |
+| **Router (F10), ranking quality** | canonical retrain ROC-AUC **0.7069** eval / **0.7164** shift (first run 0.7064 / 0.7129, **0.996 correlated with a task-name lookup**) | Phase 2 |
 | Task-prior-only baseline | ROC-AUC **0.6883** — the router adds **+0.018** over knowing only the task | Phase 2 |
 | Router seed study, 3 seeds × 2 variants | task feature: **no reliable effect** · router beats the task prior by **0.02–0.03 in all six runs** · intent eval AUC sd **0.119** | Phase 2 |
-| **Frontier arm quality (F8)** | **0.304** vs local **0.653** — escalation *lowers* quality on every task | Phase 2 |
+| **Frontier arm quality (F8)** | in-distribution **0.278** vs local **0.656** · shift **0.313** vs local **0.652** — escalation *lowers* quality in both | Phase 2 |
+| **Judge labelling projected (F13)** | **$3.38** for 1,950 GPT-4o grades (1,200 adapter + 750 frontier) · counted locally, no API call · **approved at a $5 cap** | Phase 3 |
 | Router training path verified end to end | **works**, on synthetic labels · ~14 s / 25 steps on laptop MPS — **F10 needs no GPU** | Phase 2 |
 | System manifest v1 promoted (F16) | 4 adapters + base + 6 splits pinned · gate `report_only` | Phase 4 |
 | Frontier escalation arm measured (F8) | **3,954 of 5,800 pairs** · $0.21 · blocked on a daily request quota, resumes free | Phase 2 |
@@ -772,6 +800,21 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 2 · The committed operating curve measured M3 and M4 as one number.** The report
+printed a single `router_eval` population of **1,439 pairs** — which is the 392
+in-distribution eval pairs *plus* the 1,047 shift pairs. The population split keys on a
+`side` column that lives in the router's eval splits and not in the scored pool, and the
+join merged only `router_p_fail`, so the split never fired.
+
+*Why no test caught it:* the synthetic fixture put `side` on the local frame, where the real
+schema never has it. The test exercised the code path with a shape the production data does
+not have. The regression test now drops `side` from the fixture to match the real schema.
+
+*Means:* small in effect — the blended 0.304 vs 0.653 becomes 0.278 vs 0.656 in-distribution
+and 0.313 vs 0.652 under shift, and escalation lowers quality in both — but it matters in
+kind, because M4's entire purpose is to be read *separately* from M3. Separated, M4 shows no
+degradation under shift at all.
 
 **Phase 2 · The router learned which task it was looking at, and almost nothing else.**
 It scores **0.7064 ROC-AUC** on the held-out eval set and **0.7129** under shift, which
@@ -802,9 +845,10 @@ itself carries task identity (PII documents are long, intent queries are short b
 phrases), so the model can recover the prior either way.
 
 **Phase 2 · Escalating to the frontier makes quality *worse*, on every task.** The operating
-curve's whole premise is that escalation buys quality at a cost. Measured, it does not: the
-frontier arm scores **0.304** against local's **0.653**, and every policy's quality falls as
-budget rises. `rescued` (local fails, frontier succeeds) runs 0.9-15%; `broken` (local
+curve's whole premise is that escalation buys quality at a cost. Measured, it does not: the frontier arm scores **0.278** against local's **0.656** in-distribution and **0.313**
+against **0.652** under shift, and every policy's quality falls as budget rises. (First
+reported as 0.304 vs 0.653, a figure that blended the two populations — see the finding
+below. The conclusion does not move.) `rescued` (local fails, frontier succeeds) runs 0.9-15%; `broken` (local
 succeeds, frontier fails) runs 27-63%.
 
 | task | local | frontier | rescued | broken |
