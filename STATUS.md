@@ -20,30 +20,30 @@ and in the phase column of §4.
 
 | | |
 |---|---|
-| **Phase** | **Gate 0.5 PASSED.** The headline claim holds. Phase 1 next — three more adapters. |
-| **Spec** | PRD v2.4, published + in repo |
+| **Phase** | **Phase 1 complete on the free path.** Four adapters trained, published and scored. Phase 2 (router) is next; its two remaining Phase 1 items (M1, latency) need a paid GPU session. |
+| **Spec** | PRD v2.6, published + in repo |
 | **Hours logged** | 0 / 180 |
-| **Spend** | $0.00 / $50.00 |
-| **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, 244 packages locked, base env installs clean on macOS. |
-| **Blocking** | 1 of 8 day-1 checks remains: Kaggle API token, for the urgency dataset mirror (check 4). Blocks Phase 1, not Phase 0. |
-| **Done so far** | **7 of 8 day-1 checks**, 3 of 4 datasets mirrored with provenance, eval splits frozen (intent 770 / drafting 300), eval harness + majority floor, PII confound measured and F3 reframed (PRD v2.5), OpenAI key + $15 cap, 2 commits pushed, secret scan clean |
-| **Next action** | Kaggle API token → mirror the urgency dataset; then OpenAI billing cap (day-1 check 8) |
+| **Spend** | **$1.95** / $50.00 |
+| **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
+| **Blocking** | Nothing on the free path. M1 (four adapters served concurrently) and the per-adapter latency benchmark both need rented GPU — queued, not blocked. |
+| **Done so far** | All 8 day-1 checks, 4 of 4 datasets mirrored with provenance, all four eval splits frozen, eval harness + span scorer + majority floor, **four adapters trained and published**, intent **0.9312** (+0.4091 over prompted), PII **0.9190 strict** (+0.418 over regex+NER), urgency **0.470 — loses to TF-IDF, kept as a finding**, Gate 0.5 passed on real hardware |
+| **Next action** | Phase 2 CPU-side machinery — freeze the router pool (F7), build the shift split (F36) and the routing baselines (F8/F9), so the GPU session that scores the pool is one script and one bill |
 
 ### Milestone tracker
 
 | ID | Milestone | State |
 |---|---|---|
 | M1 | 4 adapters served concurrently | not started |
-| M2 | Adapters vs prompted baseline | not started |
+| M2 | Adapters vs prompted baseline | intent ✓ (+0.4091). urgency and pii have **non-prompted** baselines only (TF-IDF, regex+NER) — those do not close M2 |
 | M3 | Router operating curve vs 3 baselines | not started |
 | M4 | Within-task distribution shift | not started |
 | M5 | Judge calibration reported | not started |
 | M6 | Manifest drives serving | not started |
 | M7 | **detect → block → rollback proven** | not started |
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
-| M9 | Spend ≤ $50 | on track ($0) |
+| M9 | Spend ≤ $50 | on track ($1.95) |
 | M10 | Hard-cases split mined + adjudicated | not started |
-| M11 | **Gate sensitivity measured** | not started |
+| M11 | **Gate sensitivity measured** | checkpoint captured · scoring in Phase 5 |
 
 ---
 

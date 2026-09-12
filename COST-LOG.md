@@ -3,7 +3,7 @@
 F24 (P0). Every session, every charge. Hard ceiling **$50** (M9); stop and reassess
 at **$25** (§14). Update this and STATUS.md §1 together.
 
-**Running total: $0.00 / $50.00**
+**Running total: $1.95 / $50.00**
 
 | Phase | Provider | What | Duration | Charge | Total |
 |---|---|---|---|---|---|
