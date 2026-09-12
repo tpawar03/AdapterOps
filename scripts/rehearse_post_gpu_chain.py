@@ -12,10 +12,15 @@ MPS OOM in router training, and confirmation that the intent hard-cases cap does
 
     uv run python scripts/rehearse_post_gpu_chain.py
 """
-import json, shutil, sys, tempfile
+import json
+import shutil
+import sys
+import tempfile
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-import numpy as np, pandas as pd
+import numpy as np
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 tmp = Path(tempfile.mkdtemp(prefix="rehearse-"))
