@@ -724,6 +724,32 @@ inherited the benchmark's house style is measuring the wrong thing precisely.
 
 ---
 
+### D35 · The judge is DeBERTa-v3-base, by §15's rule — a rule that could not see the option §10 named
+**Rejected:** Qwen2.5-0.5B with QLoRA, the alternative §10 lists.
+**Why:** §15 fixed the decision rule before any measurement: whichever base trains faster on
+available compute. Available compute without new spend is this laptop's CPU. There is no
+CUDA, so QLoRA's 4-bit path (bitsandbytes) cannot run at all, and MPS had already run out of
+memory on DeBERTa. The comparison that *could* be made, on real judge inputs at batch 8 and
+max length 512, median of six steps after two warmup:
+
+| | seconds / step | projected real run | trainable params |
+|---|---|---|---|
+| DeBERTa-v3-base, full fine-tune | **2.74** | ~18 min | 184M |
+| Qwen2.5-0.5B, LoRA r=16, fp32 | 3.38 | ~22 min | 2.2M |
+
+DeBERTa takes about 19% less time per step. The rule picks it, and the gap is not close
+enough to call a tie. Two things are stated rather than implied. First, **QLoRA never ran** —
+this is not evidence that it loses, only that it was unavailable. Second, the rule measures
+speed and nothing else; F15 calibration is where judge quality gets measured, and a poor
+calibration would be a finding against the rule, not grounds for choosing differently in
+hindsight.
+
+**Interview angle:** a decision rule written in advance is only as good as the options it
+can actually evaluate. This one could not evaluate the option the spec named. Reporting
+"DeBERTa trains faster than QLoRA Qwen" would have been tidy and false.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -788,6 +814,8 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Router seed study, 3 seeds × 2 variants | task feature: **no reliable effect** · router beats the task prior by **0.02–0.03 in all six runs** · intent eval AUC sd **0.119** | Phase 2 |
 | **Frontier arm quality (F8)** | in-distribution **0.278** vs local **0.656** · shift **0.313** vs local **0.652** — escalation *lowers* quality in both | Phase 2 |
 | **Judge labelling projected (F13)** | **$3.38** for 1,950 GPT-4o grades (1,200 adapter + 750 frontier) · counted locally, no API call · **approved at a $5 cap** | Phase 3 |
+| Judge base benchmark (§15), CPU | DeBERTa-v3-base **2.74 s/step** (~18 min) vs Qwen2.5-0.5B LoRA **3.38 s/step** (~22 min) · QLoRA not runnable here (no CUDA) | Phase 3 |
+| GPT-4o judge sample | **10/10** parsed · **$0.0123** actual vs $0.0200 projected — the local projection runs conservative | Phase 3 |
 | Router training path verified end to end | **works**, on synthetic labels · ~14 s / 25 steps on laptop MPS — **F10 needs no GPU** | Phase 2 |
 | System manifest v1 promoted (F16) | 4 adapters + base + 6 splits pinned · gate `report_only` | Phase 4 |
 | Frontier escalation arm measured (F8) | **3,954 of 5,800 pairs** · $0.21 · blocked on a daily request quota, resumes free | Phase 2 |

@@ -1,0 +1,54 @@
+{
+  "question": "\u00a715 \u2014 which judge base trains faster on the available compute?",
+  "available_compute": {
+    "cuda": false,
+    "mps": true,
+    "bitsandbytes_installed": false,
+    "qlora_as_specified_runnable_here": false,
+    "cpu_threads": 4
+  },
+  "setup": {
+    "batch": 8,
+    "max_length": 512,
+    "train_items": 1050,
+    "epochs": 3,
+    "real_run_steps": 396,
+    "device": "cpu",
+    "measured_steps": 6,
+    "warmup_steps": 2
+  },
+  "results": [
+    {
+      "name": "deberta-v3-base, full fine-tune, fp32",
+      "total_params_M": 184.4,
+      "trainable_params_M": 184.42,
+      "dtypes": [
+        "torch.float32"
+      ],
+      "load_seconds": 8.5,
+      "seconds_per_step_median": 2.744,
+      "projected_minutes_for_real_run": 18.1,
+      "losses_finite": true,
+      "peak_rss_gb_so_far": 7.63
+    },
+    {
+      "name": "qwen2.5-0.5b-instruct, LoRA r=16, fp32",
+      "total_params_M": 496.2,
+      "trainable_params_M": 2.16,
+      "dtypes": [
+        "torch.float32"
+      ],
+      "load_seconds": 17.4,
+      "seconds_per_step_median": 3.377,
+      "projected_minutes_for_real_run": 22.3,
+      "losses_finite": true,
+      "peak_rss_gb_so_far": 8.08
+    }
+  ],
+  "decision": {
+    "rule": "\u00a715 \u2014 whichever judge base trains faster on available compute",
+    "chosen": "microsoft/deberta-v3-base, full fine-tune",
+    "not_measured": "Qwen2.5-0.5B with QLoRA as \u00a710 names it \u2014 4-bit needs bitsandbytes and CUDA, neither available",
+    "caveat": "speed only; judge quality is measured by F15 calibration, not by this rule"
+  }
+}
