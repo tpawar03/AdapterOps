@@ -1,0 +1,64 @@
+{
+  "coverage": {
+    "local_router_graded": 750,
+    "frontier_router_graded": 750,
+    "expected_each": 750,
+    "complete": true,
+    "note": null
+  },
+  "score_distribution": {
+    "local": {
+      "2": 11,
+      "3": 121,
+      "4": 339,
+      "5": 279
+    },
+    "frontier": {
+      "2": 2,
+      "3": 19,
+      "4": 294,
+      "5": 435
+    }
+  },
+  "d28_proxy_vs_judge": {
+    "n": 750,
+    "spearman": 0.2808,
+    "binary_agreement": 0.5707,
+    "cohen_kappa": 0.1398,
+    "proxy_success_rate": 0.5013,
+    "judge_success_rate": 0.824,
+    "proxy_cut": 0.5323741007194244,
+    "judge_success_min": 4,
+    "note": "judge_success_min is a stated choice; kappa is the chance-corrected reading"
+  },
+  "same_family_check": {
+    "n": 750,
+    "mean_local": 4.1813,
+    "mean_frontier": 4.5493,
+    "mean_difference_frontier_minus_local": 0.368,
+    "frontier_higher": 0.3947,
+    "local_higher": 0.1093,
+    "tied": 0.496,
+    "wilcoxon_p": 0.0,
+    "caveat": "GPT-4o grades both arms. A gap favouring the frontier may be real quality or family preference, and the two cannot be separated without human labels."
+  },
+  "escalation_under_judge": {
+    "pairs": 750,
+    "judge": {
+      "local_success": 0.824,
+      "frontier_success": 0.972,
+      "rescued": 0.1627,
+      "broken": 0.0147,
+      "mean_local": 4.1813,
+      "mean_frontier": 4.5493
+    },
+    "token_f1_proxy_on_the_same_pairs": {
+      "local_success": 0.5013,
+      "frontier_success": 0.084,
+      "rescued": 0.0213,
+      "broken": 0.4387
+    },
+    "judge_success_min": 4,
+    "proxy_cut": 0.5323741007194244
+  }
+}

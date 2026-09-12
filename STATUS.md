@@ -27,7 +27,7 @@ and in the phase column of §4.
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
 | **Blocking** | Nothing. Two open inputs, neither blocking: the **actual GPU charge** for the Phase 2 session (the cost log is missing it), and the frontier arm's last mining-slice pairs, running unattended against the daily request quota. |
 | **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · intent **0.9312** (+0.4091 over prompted) · PII **0.9190** strict · urgency **loses to TF-IDF** · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · router pool scored · **525 hard cases mined** · router measured as **0.02–0.03 over a task-name lookup, across six runs** · escalation measured as a **quality loss** on every task · system manifest v1 with blocking and rollback |
-| **Next action** | **Phase 3 judge.** GPT-4o grading approved (1,950 grades, $5 cap) and starting with a small sample; then F14 training on whichever base the §15 benchmark favours, and F15 calibration. |
+| **Next action** | **Phase 3 results are in** — D28 closed (the proxy was near noise) and drafting escalation reverses under the judge. Now: judge calibration (M5, training), relabel drafting's router pairs with teacher grades and re-run the router, then the consolidated GPU session (M7, M11, F33 baselines, M2 prompted baselines, PII re-score). |
 
 ### Milestone tracker
 
@@ -887,6 +887,9 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Judge base benchmark (§15), CPU | DeBERTa-v3-base **2.74 s/step** (~18 min) vs Qwen2.5-0.5B LoRA **3.38 s/step** (~22 min) · QLoRA not runnable here (no CUDA) | Phase 3 |
 | GPT-4o judge sample | **10/10** parsed · **$0.0123** actual vs $0.0200 projected — the local projection runs conservative | Phase 3 |
 | Judge training path (F14), smoke on a planted signal | **works** after target scaling · Spearman **0.859** · within-±1 **1.00** — the first smoke passed at Spearman −0.45 | Phase 3 |
+| **D28: token-F1 proxy vs GPT-4o judge (drafting)** | Spearman **0.28** · κ **0.14** · proxy success 0.50 vs judge 0.82 — the proxy was close to noise | Phase 3 |
+| **Drafting escalation under the judge** | frontier **0.972** vs adapter **0.824** · rescued **16.3%**, broken **1.5%** (token-F1: 2.1% and 43.9%) | Phase 3 |
+| Same-family check, GPT-4o grading both | frontier higher on **39.5%**, lower on 10.9%, tied 49.6% · mean +0.37 · p < 0.001 · quality and preference inseparable | Phase 3 |
 | Router training path verified end to end | **works**, on synthetic labels · ~14 s / 25 steps on laptop MPS — **F10 needs no GPU** | Phase 2 |
 | System manifest v1 promoted (F16) | 4 adapters + base + 6 splits pinned · gate `report_only` | Phase 4 |
 | Frontier escalation arm measured (F8) | **3,954 of 5,800 pairs** · $0.21 · blocked on a daily request quota, resumes free | Phase 2 |
@@ -900,6 +903,39 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 3 · Under a reference-free judge, escalating drafting *rescues* 16% of requests and
+breaks 1.5% — the reverse of what token-F1 said.** GPT-4o graded the adapter's and
+GPT-4o-mini's replies to the same 750 router-slice drafting requests:
+
+| drafting, 750 pairs | adapter success | frontier success | rescued | broken |
+|---|---|---|---|---|
+| GPT-4o judge, grade ≥ 4 | 0.824 | **0.972** | **16.3%** | **1.5%** |
+| token-F1 vs reference (Phase 2) | 0.501 | 0.084 | 2.1% | 43.9% |
+
+*What it confirms:* the Phase 2 reading of its own negative. Under a metric rewarding overlap
+with Bitext's phrasing, GPT-4o-mini scored 91.6% of its drafts as failures. Under a metric of
+whether the reply serves the request, it is the stronger drafter. **For drafting, the escalation
+"finding" was the metric.** Intent, urgency and PII are unaffected — their metrics are exact
+match and exact span, not a proxy — though PII's gap shares the same convention mechanism.
+
+*What it does not settle:* the size. GPT-4o grades both arms and GPT-4o-mini is its own family
+(§10). Paired, the frontier is graded higher on **39.5%** of requests and lower on **10.9%**, with
+49.6% tied (Wilcoxon p < 0.001), and that gap cannot be split into quality and family preference
+without human labels. Family preference could inflate the frontier's grades; it does not explain
+why token-F1 failed nine in ten of those same replies, which is the house-style mechanism.
+
+*D28 closed, badly for the proxy.* Token-F1 agrees with the judge at **Spearman 0.28** and
+**Cohen's κ 0.14** — slight agreement. The proxy marks 50% of the adapter's drafts successful by
+construction; the judge marks 82%. The drafting labels the Phase 2 router trained on were close
+to noise, and drafting's router AUC near 0.5 was the router correctly failing to predict noise.
+
+*Also visible:* the judge is lenient. Half of all pairs tie, and 97% of frontier replies grade 4
+or 5. A 1–5 rubric compresses at the top, so the success threshold of 4 carries a great deal.
+
+*Changes the plan:* drafting's 750 router pairs are relabelled with the teacher grade and the
+router re-run; drafting's 150 hard cases, mined as *proxy* failures, are re-examined rather than
+trusted.
 
 **Phase 4 · The committed PII adapter score was generated under a cap that cuts off 18% of the
 golden spans.** `scripts/eval_adapter.py` generated PII answers with `max_new_tokens=160`.
@@ -1010,7 +1046,8 @@ phrases), so the model can recover the prior either way.
 curve's whole premise is that escalation buys quality at a cost. Measured, it does not: the frontier arm scores **0.278** against local's **0.656** in-distribution and **0.313**
 against **0.652** under shift, and every policy's quality falls as budget rises. (First
 reported as 0.304 vs 0.653, a figure that blended the two populations — see the finding
-below. The conclusion does not move.) `rescued` (local fails, frontier succeeds) runs 0.9-15%; `broken` (local
+below. The conclusion does not move.) For drafting it did move once a real metric existed —
+see the Phase 3 finding on escalation under the judge. `rescued` (local fails, frontier succeeds) runs 0.9-15%; `broken` (local
 succeeds, frontier fails) runs 27-63%.
 
 | task | local | frontier | rescued | broken |
