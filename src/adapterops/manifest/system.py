@@ -153,7 +153,8 @@ def diff(old: dict | None, new: dict) -> dict:
     }
 
 
-def blocking_reasons(new: dict, regression: dict | None) -> list[str]:
+def blocking_reasons(new: dict, regression: dict | None,
+                     refreeze: str | None = None) -> list[str]:
     """Why this manifest must not be promoted (F19). Empty means promote.
 
     `regression` is the result of a regression run — the on-demand script from Phase 4.
@@ -164,7 +165,12 @@ def blocking_reasons(new: dict, regression: dict | None) -> list[str]:
     **The first manifest is exempt**, and the check that says so is not a special case so
     much as the definition: a regression is a comparison against a previous version, and v1
     has none. The first attempt at this blocked v1 for having "moved" every component away
-    from nothing.
+    from nothing. **A component arriving later is exempt for the same reason (D39)** — v1 was
+    pinned before the router existed, and a regression for it has nothing to compare against.
+
+    **Splits move only by a deliberate re-freeze (D39).** `refreeze` names the decision that
+    records it, and is refused when an already-pinned model moves in the same promotion: a
+    regression measured across a moved bar compares nothing.
     """
     reasons = []
     old = load_current()
@@ -172,13 +178,20 @@ def blocking_reasons(new: dict, regression: dict | None) -> list[str]:
     if old is None:
         return reasons          # baseline: there is no previous version to regress from
 
-    model_keys = [k for k in moved["changed"] if k.startswith("components.")]
+    model_keys = [k for k, change in moved["changed"].items()
+                  if k.startswith("components.") and change["from"] is not None]
     if model_keys and regression is None:
         reasons.append(
             f"components moved ({', '.join(model_keys)}) with no regression run attached — "
             f"run the regression script and pass its result")
 
-    if moved["eval_splits_moved"]:
+    if refreeze and not moved["eval_splits_moved"]:
+        reasons.append(f"--refreeze-splits {refreeze} given, but no eval split moved")
+    elif refreeze and model_keys:
+        reasons.append(
+            f"re-freezing splits ({', '.join(moved['eval_splits_moved'])}) while models move "
+            f"({', '.join(model_keys)}) — re-freeze in a promotion of its own first")
+    elif moved["eval_splits_moved"] and not refreeze:
         reasons.append(
             f"eval splits moved ({', '.join(moved['eval_splits_moved'])}) — a score "
             f"measured against a different bar is not comparable to the previous one. "
@@ -194,9 +207,9 @@ def blocking_reasons(new: dict, regression: dict | None) -> list[str]:
 
 
 def promote(note: str = "", regression: dict | None = None, force: bool = False,
-            pins: Path | None = None) -> int:
+            pins: Path | None = None, refreeze: str | None = None) -> int:
     new = build(note, pins)
-    reasons = blocking_reasons(new, regression)
+    reasons = blocking_reasons(new, regression, refreeze)
     if reasons and not force:
         print("  PROMOTION BLOCKED:")
         for r in reasons:
@@ -213,6 +226,9 @@ def promote(note: str = "", regression: dict | None = None, force: bool = False,
     new["diff_from_previous"] = diff(old, new)
     if reasons and force:
         new["promoted_despite"] = reasons
+    if refreeze and new["diff_from_previous"]["eval_splits_moved"]:
+        new["refrozen_splits"] = {"decision": refreeze,
+                                  "splits": new["diff_from_previous"]["eval_splits_moved"]}
     MANIFEST_DIR.mkdir(parents=True, exist_ok=True)
     CURRENT.write_text(json.dumps(new, indent=2) + "\n", encoding="utf-8")
     print(f"  promoted manifest v{new['version']}"

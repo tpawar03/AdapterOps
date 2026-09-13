@@ -53,7 +53,8 @@ def _cmd_manifest(args: argparse.Namespace) -> int:
                 return 2
             regression = run["comparison"]
         return system.promote(note=args.note, force=args.force, regression=regression,
-                              pins=Path(args.pins) if args.pins else None)
+                              pins=Path(args.pins) if args.pins else None,
+                              refreeze=args.refreeze_splits)
     return system.rollback(to=args.to)
 
 
@@ -231,6 +232,9 @@ def build_parser() -> argparse.ArgumentParser:
                        help="build from a candidate pin set instead of manifests/adapters.json")
     p_man.add_argument("--regression", default=None,
                        help="a regression run (with --baseline) to attach to the promotion")
+    p_man.add_argument("--refreeze-splits", default=None, metavar="DECISION",
+                       help="re-pin moved eval splits deliberately, citing the decision that "
+                            "records it; refused if a pinned model moves in the same promotion")
     p_man.set_defaults(func=_cmd_manifest)
 
     p_rt = sub.add_parser("router-train", help="train the DeBERTa router (F10)")

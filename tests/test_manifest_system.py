@@ -170,3 +170,48 @@ def test_m7_a_regressed_candidate_is_blocked_then_an_equivalent_one_promotes_and
 
     assert system.rollback() == 0
     assert system.load_current()["version"] == 1
+
+
+def test_a_component_arriving_from_nothing_needs_no_regression_run(repo):
+    """D39: v1 was pinned before the router existed. A component with no previous pin has
+    nothing to regress from — the reasoning that exempts v1 itself."""
+    tmp, _ = repo
+    system.promote(note="baseline")
+    components = json.loads((tmp / "manifests" / "adapters.json").read_text())["components"]
+    components["urgency"] = {"repo": "u", "revision": "u1", "weight_sha256": "u1"}
+    (tmp / "manifests" / "adapters.json").write_text(json.dumps({"components": components}))
+
+    assert system.promote(note="urgency arrives") == 0
+    assert system.load_current()["version"] == 2
+
+
+def test_a_split_refrozen_citing_a_decision_promotes_and_is_recorded(repo):
+    tmp, pin_adapters = repo
+    system.promote(note="baseline")
+    (tmp / "evals" / "golden" / "intent.parquet").write_bytes(b"golden-v2-refrozen")
+
+    assert system.promote(note="re-freeze", refreeze="D39") == 0
+    current = system.load_current()
+    assert current["refrozen_splits"] == {"decision": "D39",
+                                          "splits": ["eval_splits.golden_intent"]}
+    assert "promoted_despite" not in current, "a re-freeze was recorded as a forced release"
+
+    pin_adapters("bbb2")                       # the next candidate sees only its own change
+    reasons = system.blocking_reasons(system.build(), {"per_task": {}})
+    assert not any("eval splits moved" in r for r in reasons)
+
+
+def test_a_refreeze_is_refused_when_a_model_moves_with_it(repo):
+    tmp, pin_adapters = repo
+    system.promote(note="baseline")
+    (tmp / "evals" / "golden" / "intent.parquet").write_bytes(b"golden-v2-refrozen")
+    pin_adapters("bbb2")
+
+    assert system.promote(note="both", refreeze="D39", regression={"per_task": {}}) == 1
+    assert system.load_current()["version"] == 1
+
+
+def test_a_refreeze_with_no_moved_split_is_refused(repo):
+    system.promote(note="baseline")
+    assert system.promote(note="nothing moved", refreeze="D39") == 1
+    assert system.load_current()["version"] == 1
