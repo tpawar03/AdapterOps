@@ -45,7 +45,15 @@ def _cmd_manifest(args: argparse.Namespace) -> int:
     if args.action == "show":
         return system.show()
     if args.action == "promote":
-        return system.promote(note=args.note, force=args.force)
+        regression = None
+        if args.regression:
+            run = json.loads(Path(args.regression).read_text())
+            if "comparison" not in run:
+                print(f"  {args.regression} has no comparison — run regress with --baseline")
+                return 2
+            regression = run["comparison"]
+        return system.promote(note=args.note, force=args.force, regression=regression,
+                              pins=Path(args.pins) if args.pins else None)
     return system.rollback(to=args.to)
 
 
@@ -213,6 +221,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_man.add_argument("--force", action="store_true",
                        help="promote despite blocking reasons — recorded in the manifest")
     p_man.add_argument("--to", type=int, default=None, help="roll back to this version")
+    p_man.add_argument("--pins", default=None,
+                       help="build from a candidate pin set instead of manifests/adapters.json")
+    p_man.add_argument("--regression", default=None,
+                       help="a regression run (with --baseline) to attach to the promotion")
     p_man.set_defaults(func=_cmd_manifest)
 
     p_rt = sub.add_parser("router-train", help="train the DeBERTa router (F10)")

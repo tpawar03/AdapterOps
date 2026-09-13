@@ -136,3 +136,37 @@ def test_a_derived_threshold_file_becomes_the_gate_a_new_manifest_carries(repo):
     gate = system.build()["gate"]
     assert gate["state"] == "enforcing" and gate["thresholds"] == {"intent": 0.0117}
     assert gate["derivation"] == "evals/GATE_THRESHOLDS.json"
+
+
+def test_m7_a_regressed_candidate_is_blocked_then_an_equivalent_one_promotes_and_rolls_back(repo):
+    """M7 at the manifest level, on a candidate pin set: detect -> block -> rollback.
+
+    The candidate swaps intent for different weights, as the F21 shuffled adapter will. With a
+    derived threshold in force, a measured drop past it is refused; an equivalent candidate is
+    promoted; and rollback restores the version before it.
+    """
+    tmp, _ = repo
+    assert system.promote(note="baseline") == 0
+    (tmp / "evals" / "GATE_THRESHOLDS.json").write_text(json.dumps({
+        "gate": {"state": "enforcing", "thresholds": {"intent": 0.0117},
+                 "multiplier": 3.0, "why": "D37"}}))
+
+    candidate = tmp / "manifests" / "candidates" / "intent-shuffled.json"
+    candidate.parent.mkdir(parents=True)
+    components = json.loads((tmp / "manifests" / "adapters.json").read_text())["components"]
+    components["intent"] = {"repo": "r-shuffled", "revision": "shuf1",
+                            "weight_sha256": "shuf1", "candidate_of": "r"}
+    candidate.write_text(json.dumps({"components": components}))
+
+    regressed = {"per_task": {"intent": {"drop": 0.91}}}
+    assert system.promote(note="shuffled", regression=regressed, pins=candidate) == 1
+    assert system.load_current()["version"] == 1, "a blocked candidate was promoted"
+
+    equivalent = {"per_task": {"intent": {"drop": 0.0}}}
+    assert system.promote(note="equivalent", regression=equivalent, pins=candidate) == 0
+    current = system.load_current()
+    assert current["version"] == 2 and current["pins"].endswith("intent-shuffled.json")
+    assert current["components"]["adapters"]["intent"]["revision"] == "shuf1"
+
+    assert system.rollback() == 0
+    assert system.load_current()["version"] == 1

@@ -81,18 +81,22 @@ def current_gate() -> dict:
     return {**derived["gate"], "derivation": str(path.relative_to(REPO_ROOT))}
 
 
-def build(note: str = "") -> dict:
+def build(note: str = "", pins: Path | None = None) -> dict:
     """Assemble a candidate manifest from what is on disk right now.
 
     Components that do not exist yet are pinned as `null` rather than omitted, so the
     manifest's shape says what a complete system needs and a diff shows a component
     *arriving* rather than a key appearing from nowhere.
     """
-    adapters = json.loads(ADAPTERS.read_text())["components"] if ADAPTERS.exists() else {}
+    source = pins or ADAPTERS
+    # A candidate pin set (M7, M11) builds a manifest exactly as the real pins would, so the
+    # gate judges the weights that were actually served and regressed.
+    adapters = json.loads(source.read_text())["components"] if source.exists() else {}
     router = {name: _pin_file(name) for name in ROUTER_FILES}
     return {
         "version": next_version(),
         "note": note,
+        "pins": str(pins) if pins else None,
         "components": {
             "base_model": adapters.get("base_model"),
             "adapters": {t: adapters.get(t) for t in
@@ -189,8 +193,9 @@ def blocking_reasons(new: dict, regression: dict | None) -> list[str]:
     return reasons
 
 
-def promote(note: str = "", regression: dict | None = None, force: bool = False) -> int:
-    new = build(note)
+def promote(note: str = "", regression: dict | None = None, force: bool = False,
+            pins: Path | None = None) -> int:
+    new = build(note, pins)
     reasons = blocking_reasons(new, regression)
     if reasons and not force:
         print("  PROMOTION BLOCKED:")
