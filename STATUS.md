@@ -23,9 +23,9 @@ and in the phase column of §4.
 | **Phase** | **Phase 4 GPU session done — M7 proven on real serving, M11 negative.** Phases 2 and 3 are recorded, negatives included. Phase 5 (README, dashboard, demo) is next. |
 | **Spec** | PRD v2.6, published + in repo |
 | **Hours logged** | 0 / 180 |
-| **Spend** | **$5.93** / $50.00 — excluding two GPU charges not yet reported (Phase 2, Phase 4) |
+| **Spend** | **~$10** / $50.00 — as reported; $5.93 itemised, the Phase 2 and Phase 4 GPU sessions not itemised |
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
-| **Blocking** | Nothing. Open inputs: the Phase 2 and Phase 4 GPU charges, for the cost log. |
+| **Blocking** | Nothing. |
 | **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · judge distilled (**M5**, Spearman 0.73) · under judge labels the router equals a task-name lookup and **confidence routing captures 57%** of available gain · hard split rebuilt (470) · **M2** on one server: intent +0.356, PII +0.376, urgency within noise, drafting **+1.38 under GPT-4o** · **M7 proven**: shuffled adapter detected (drop 0.923), blocked, forced, rolled back · **M11 negative** |
 | **Next action** | Phase 5 — README (F23), dashboard (F17), Gradio demo (F22). No GPU work remains. |
 
@@ -41,7 +41,7 @@ and in the phase column of §4.
 | M6 | Manifest drives serving | **partly** — serving materialises the pin files the manifest is built from (`adapters.json`, candidate sets) at their pinned revisions; it does not read `system.json` itself |
 | M7 | **detect → block → rollback proven** | **PROVEN on real serving** — shuffled-label intent adapter: drop 0.9234 vs threshold 0.0117 → blocked for that reason alone · forced as v3 with the override recorded · rolled back to v2 |
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
-| M9 | Spend ≤ $50 | on track ($5.93, two GPU charges pending) |
+| M9 | Spend ≤ $50 | on track — ~$10 of $50 |
 | M10 | Hard-cases split mined + adjudicated | **done, rebuilt** — 470 retained; drafting bucket from judge failures (113), intent quarantine 24.0% (D36, D38) |
 | M11 | **Gate sensitivity measured** | **measured — negative.** The hard split caught nothing the random set missed; on intent, urgency and drafting it *improved* for the under-trained checkpoints |
 

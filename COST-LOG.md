@@ -3,7 +3,7 @@
 F24 (P0). Every session, every charge. Hard ceiling **$50** (M9); stop and reassess
 at **$25** (§14). Update this and STATUS.md §1 together.
 
-**Running total: $5.93 / $50.00** — excluding the Phase 2 and Phase 4 GPU charges, not yet reported
+**Running total: ~$10 / $50.00** — as reported; the Phase 2 and Phase 4 GPU sessions are not itemised
 
 | Phase | Provider | What | Duration | Charge | Total |
 |---|---|---|---|---|---|
@@ -16,8 +16,9 @@ at **$25** (§14). Update this and STATUS.md §1 together.
 | 2 | OpenAI | Frontier escalation arm (F8), `gpt-4o-mini` — all 5,800 pairs; resumer finished | ~5 h wall, daily-quota polling | $0.33 | $2.28 |
 | 3 | OpenAI | GPT-4o judge grades (F13) — 1,950 replies, 1,200 adapter + 750 frontier; token-derived at list price | ~75 min | $2.40 | $4.68 |
 | 3 | OpenAI | GPT-4o grades for the remaining 250 mining-slice drafting replies (D38) | ~3 min | $0.30 | $4.98 |
-| 4 | Lambda | **Phase 4–5 session** (`PHASE-4-RUN.md`), A10 — F21 shuffled adapter, 2 F33 baselines, 4 M2 prompted baselines, M11, M7, 2 re-runs · approved at $1.50 | ~1 h+ | **pending — not yet reported** | $4.98 + pending |
-| 4 | OpenAI | GPT-4o grades on golden drafting for M2 (`judge-m2`) — 300 adapter + 300 prompted replies · approved at $1.50 after a $1.28 projection · token-derived at list price | ~25 min | $0.95 | $5.93 + pending |
+| 4 | Lambda | **Phase 4–5 session** (`PHASE-4-RUN.md`), A10 — F21 shuffled adapter, 2 F33 baselines, 4 M2 prompted baselines, M11, M7, 2 re-runs · approved at $1.50 | ~1 h+ | in the GPU row below | — |
+| 4 | OpenAI | GPT-4o grades on golden drafting for M2 (`judge-m2`) — 300 adapter + 300 prompted replies · approved at $1.50 after a $1.28 projection · token-derived at list price | ~25 min | $0.95 | $5.93 |
+| 2 + 4 | Lambda | **GPU sessions for Phase 2 (M1 serving, router pool) and Phase 4–5, not itemised.** The account total was reported as about $10; this row is the remainder over everything itemised above | — | **~$4.07** (derived) | **~$10** |
 
 ## Budget envelope (PRD §12)
 
