@@ -60,6 +60,27 @@ def _pin_file(rel: str) -> dict | None:
     return {"file": rel, "bytes": path.stat().st_size, "sha256": _sha256(path)}
 
 
+def current_gate() -> dict:
+    """The gate a newly built manifest carries (F33, D37).
+
+    Derived thresholds when `evals/GATE_THRESHOLDS.json` exists; report-only otherwise. Never an
+    invented threshold — before the baseline runs exist there is nothing to derive one from, and
+    a guessed threshold is the unfalsifiable gate PRD §11 removed.
+    """
+    path = REPO_ROOT / "evals" / "GATE_THRESHOLDS.json"
+    if not path.exists():
+        return {
+            "state": "report_only",
+            "why": "F33 — thresholds are derived from two baseline regression runs against an "
+                   "unchanged manifest, with D37's training-variance floor, and those runs have "
+                   "not happened. A threshold invented before then is the unfalsifiable gate "
+                   "PRD §11 removed.",
+            "thresholds": {},
+        }
+    derived = json.loads(path.read_text())
+    return {**derived["gate"], "derivation": str(path.relative_to(REPO_ROOT))}
+
+
 def build(note: str = "") -> dict:
     """Assemble a candidate manifest from what is on disk right now.
 
@@ -80,14 +101,7 @@ def build(note: str = "") -> dict:
             "judge": None,                      # Phase 3
         },
         "eval_splits": {name: _pin_file(rel) for name, rel in SPLIT_FILES.items()},
-        "gate": {
-            "state": "report_only",
-            "why": "F33 — the hard-cases threshold is derived from variance observed "
-                   "across two baseline runs against an unchanged manifest, and those "
-                   "runs have not happened. A threshold invented before then is the "
-                   "unfalsifiable gate PRD §11 removed.",
-            "thresholds": {},
-        },
+        "gate": current_gate(),
         "provenance": {
             name: _pin_file(f"runs/{name}")
             for name in ("intent__adapter.json", "pii__adapter.json",

@@ -73,3 +73,19 @@ def test_the_gate_enforces_only_when_a_non_provisional_threshold_exists():
                      training={("intent", "random"): {"spread": 0.0039, "source": "x"}})
     gate = th.gate_from(real)
     assert gate["state"] == "enforcing" and set(gate["thresholds"]) == {"intent"}
+
+
+def test_derive_writes_the_gate_file_pins_its_inputs_and_refuses_to_redo(tmp_path, monkeypatch):
+    import json
+
+    monkeypatch.setattr(th, "OUT", tmp_path / "GATE_THRESHOLDS.json")
+    monkeypatch.setattr(th, "REPO_ROOT", tmp_path)
+    a, b = tmp_path / "a.json", tmp_path / "b.json"
+    a.write_text(json.dumps(run({"intent": {"random": 0.93}})))
+    b.write_text(json.dumps(run({"intent": {"random": 0.93}})))
+
+    assert th.main(str(a), str(b)) == 0
+    written = json.loads(th.OUT.read_text())
+    assert len(written["inputs"]) == 2 and all(len(i["sha256"]) == 64 for i in written["inputs"])
+    assert written["gate"]["state"] == "enforcing"
+    assert th.main(str(a), str(b)) == 1, "derived thresholds were silently replaced"

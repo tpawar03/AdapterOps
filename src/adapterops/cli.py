@@ -75,6 +75,12 @@ def _cmd_prompted(args: argparse.Namespace) -> int:
                          force=args.force)
 
 
+def _cmd_derive_thresholds(args: argparse.Namespace) -> int:
+    from adapterops.eval.thresholds import main as thresholds_main
+
+    return thresholds_main(run_a=args.run_a, run_b=args.run_b, force=args.force)
+
+
 def _cmd_regress(args: argparse.Namespace) -> int:
     from adapterops.eval.regression import main as regress_main
 
@@ -225,6 +231,13 @@ def build_parser() -> argparse.ArgumentParser:
                       help="check the prompt fits the server's context; needs no server")
     p_pb.add_argument("--force", action="store_true", help="replace a recorded baseline")
     p_pb.set_defaults(func=_cmd_prompted)
+
+    p_dt = sub.add_parser("derive-thresholds",
+                          help="gate thresholds from two baseline regression runs (F33, D37)")
+    p_dt.add_argument("--run-a", required=True, help="first baseline regression run")
+    p_dt.add_argument("--run-b", required=True, help="second baseline regression run")
+    p_dt.add_argument("--force", action="store_true")
+    p_dt.set_defaults(func=_cmd_derive_thresholds)
 
     p_rg = sub.add_parser("regress", help="on-demand regression run, both splits (F18)")
     p_rg.add_argument("--base-url", default="http://localhost:8000")

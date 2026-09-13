@@ -123,3 +123,16 @@ def test_an_enforcing_gate_blocks_a_drop_past_its_threshold(repo):
     assert any("exceeds threshold" in r for r in reasons)
     ok = system.blocking_reasons(candidate, {"per_task": {"intent": {"drop": 0.01}}})
     assert not any("exceeds threshold" in r for r in ok)
+
+
+def test_a_derived_threshold_file_becomes_the_gate_a_new_manifest_carries(repo):
+    """Until thresholds are derived the gate is report-only; once they are, promotion enforces
+    them without anyone copying numbers into the manifest by hand."""
+    tmp, _ = repo
+    assert system.build()["gate"]["state"] == "report_only"
+    (tmp / "evals" / "GATE_THRESHOLDS.json").write_text(json.dumps({
+        "gate": {"state": "enforcing", "thresholds": {"intent": 0.0117},
+                 "multiplier": 3.0, "why": "D37"}}))
+    gate = system.build()["gate"]
+    assert gate["state"] == "enforcing" and gate["thresholds"] == {"intent": 0.0117}
+    assert gate["derivation"] == "evals/GATE_THRESHOLDS.json"
