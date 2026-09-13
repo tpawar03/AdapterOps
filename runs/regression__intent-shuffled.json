@@ -1,0 +1,122 @@
+{
+  "name": "intent-shuffled",
+  "gated_metric": {
+    "intent": "micro_accuracy",
+    "urgency": "macro_f1",
+    "pii": "span_f1_strict",
+    "drafting": "judge_score_mean"
+  },
+  "per_split": {
+    "intent": {
+      "random": {
+        "n": 770,
+        "micro_accuracy": 0.0052,
+        "macro_f1": 0.0004
+      },
+      "hard": {
+        "n": 57,
+        "micro_accuracy": 0.0,
+        "macro_f1": 0.0
+      }
+    },
+    "urgency": {
+      "random": {
+        "n": 300,
+        "micro_accuracy": 0.4733,
+        "macro_f1": 0.4248
+      },
+      "hard": {
+        "n": 150,
+        "micro_accuracy": 0.0133,
+        "macro_f1": 0.0135
+      }
+    },
+    "pii": {
+      "random": {
+        "n": 300,
+        "span_f1_strict": 0.946
+      },
+      "hard": {
+        "n": 150,
+        "span_f1_strict": 0.8503
+      }
+    },
+    "drafting": {
+      "random": {
+        "n": 300,
+        "judge_score_mean": null,
+        "note": "no judge available \u2014 drafting is not gated on this run"
+      },
+      "hard": {
+        "n": 113,
+        "judge_score_mean": null,
+        "note": "no judge available \u2014 drafting is not gated on this run"
+      }
+    }
+  },
+  "comparison": {
+    "per_task": {
+      "intent": {
+        "gated_metric": "micro_accuracy",
+        "drop": 0.9234,
+        "random": {
+          "candidate": 0.0052,
+          "baseline": 0.9286,
+          "drop": 0.9234
+        },
+        "hard": {
+          "candidate": 0.0,
+          "baseline": 0.0,
+          "drop": 0.0
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      },
+      "urgency": {
+        "gated_metric": "macro_f1",
+        "drop": -0.0152,
+        "random": {
+          "candidate": 0.4248,
+          "baseline": 0.4096,
+          "drop": -0.0152
+        },
+        "hard": {
+          "candidate": 0.0135,
+          "baseline": 0.0068,
+          "drop": -0.0067
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      },
+      "pii": {
+        "gated_metric": "span_f1_strict",
+        "drop": 0.0002,
+        "random": {
+          "candidate": 0.946,
+          "baseline": 0.9462,
+          "drop": 0.0002
+        },
+        "hard": {
+          "candidate": 0.8503,
+          "baseline": 0.852,
+          "drop": 0.0017
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      },
+      "drafting": {
+        "gated_metric": "judge_score_mean",
+        "drop": null,
+        "random": {
+          "candidate": null,
+          "baseline": null,
+          "drop": null
+        },
+        "hard": {
+          "candidate": null,
+          "baseline": null,
+          "drop": null
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      }
+    }
+  },
+  "predictions_file": "runs/regression__intent-shuffled__predictions.parquet"
+}

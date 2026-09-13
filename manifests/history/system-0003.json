@@ -1,7 +1,7 @@
 {
-  "version": 2,
-  "note": "Re-freeze: pin the D38 hard split the Phase 4 baselines were measured on, the router checkpoint, and the F33 gate",
-  "pins": null,
+  "version": 3,
+  "note": "forced, to prove rollback",
+  "pins": "manifests/candidates/intent-shuffled.json",
   "components": {
     "base_model": {
       "repo": "Qwen/Qwen2.5-1.5B-Instruct",
@@ -12,11 +12,12 @@
     },
     "adapters": {
       "intent": {
-        "repo": "Tanny03/adapterops-intent",
-        "revision": "a7eb75ec67386805b1026aeacffa4f6c27d2de7e",
+        "repo": "Tanny03/adapterops-intent-shuffled",
+        "revision": "33f49b4c2eac9ea646bfb309d95fc9b2efd7c071",
         "weight_file": "adapter_model.safetensors",
-        "weight_sha256": "6d1a57e9aa23e560e2276e0aa0af5260077e945ac721c19b7dc0508e0ba2004b",
-        "last_modified": "2026-09-11 05:06:43+00:00"
+        "weight_sha256": "33edb145e8ddf66d9587124aca2f601d1f9b6595945da0b7081dbd3386e3bd68",
+        "last_modified": "2026-09-13 05:28:32+00:00",
+        "candidate_of": "Tanny03/adapterops-intent"
       },
       "urgency": {
         "repo": "Tanny03/adapterops-urgency",
@@ -133,31 +134,17 @@
       "sha256": "9c1a8a8bbe5379cf3cd946bd8b52defbd0035ecc84b7efd366fad06d0150bcc3"
     }
   },
-  "promoted_over": 1,
+  "promoted_over": 2,
   "diff_from_previous": {
     "changed": {
-      "components.router.checkpoints/router/config.json": {
-        "from": null,
-        "to": "c1a4609e221bb180f9aefa1b874c510890ce02dadf131bf7bfdc9ba438b637e3"
-      },
-      "components.router.checkpoints/router/model.safetensors": {
-        "from": null,
-        "to": "6310a4d396220019cc41a67331a5527df2f36f8fcaf58f77baf9a7f76855a2fa"
-      },
-      "eval_splits.hard_cases": {
-        "from": null,
-        "to": "b46c2f0b052fe67d69c7ca7c968159c17ca5f0ded12920cef4f10294d65de4ed"
+      "components.adapters.intent": {
+        "from": "a7eb75ec67386805b1026aeacffa4f6c27d2de7e",
+        "to": "33f49b4c2eac9ea646bfb309d95fc9b2efd7c071"
       }
     },
-    "eval_splits_moved": [
-      "eval_splits.hard_cases"
-    ]
+    "eval_splits_moved": []
   },
-  "refrozen_splits": {
-    "decision": "D39",
-    "splits": [
-      "eval_splits.hard_cases"
-    ]
-  },
-  "rolled_back_from": 3
+  "promoted_despite": [
+    "intent: regression 0.9234 exceeds threshold 0.0117"
+  ]
 }

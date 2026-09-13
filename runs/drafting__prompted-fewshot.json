@@ -1,0 +1,31 @@
+{
+  "task": "drafting",
+  "system": "prompted-fewshot",
+  "split": "evals/golden/drafting.parquet",
+  "n": 300,
+  "gated_metric": "judge_score_mean",
+  "metrics": {
+    "n": 300,
+    "judge_score_mean": 4.7018,
+    "judge": "distilled judge, checkpoints/judge (F14)"
+  },
+  "setup": {
+    "model": "Qwen/Qwen2.5-1.5B-Instruct, no adapter",
+    "recipe": "fewshot",
+    "demonstrations": 3,
+    "demonstration_source": "split_train, asserted disjoint from golden",
+    "decoding": "greedy, max_new_tokens as router.generate.MAX_TOKENS",
+    "seed": 20260909
+  },
+  "context_budget": {
+    "task": "drafting",
+    "recipe": "fewshot",
+    "header_tokens": 475,
+    "longest_query_tokens": 25,
+    "max_new_tokens": 448,
+    "needed": 948,
+    "max_model_len": 4096,
+    "fits": true
+  },
+  "predictions_file": "runs/drafting__prompted-fewshot__predictions.parquet"
+}

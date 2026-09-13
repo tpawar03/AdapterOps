@@ -1,5 +1,10 @@
 # Phase 4–5 GPU session — everything left that needs a GPU, in one bill
 
+> **Run.** Executed in Phase 4; results in STATUS.md. Two corrections came out of it and are folded
+> in below: the drafting prompted baseline and the shuffled regression must keep their replies
+> (`--save-predictions` — the first pass lost drafting's), and v2 must re-freeze the hard split
+> before M7 (D39).
+
 Every item below needs adapter inference or QLoRA training, and each one alone would be a
 separate rental. Bundled, it is one session of roughly an hour.
 
@@ -75,7 +80,7 @@ python -m adapterops.cli regress --name v1-baseline-1 --save-predictions
 python -m adapterops.cli regress --name v1-baseline-2 --save-predictions
 python -m adapterops.cli prompted --task urgency --max-model-len 4096
 python -m adapterops.cli prompted --task pii --max-model-len 4096
-python -m adapterops.cli prompted --task drafting --max-model-len 4096
+python -m adapterops.cli prompted --task drafting --max-model-len 4096 --save-predictions
 python -m adapterops.cli prompted --task intent --recipe per-class --max-model-len 4096
 ```
 
@@ -107,7 +112,7 @@ PINS=manifests/candidates/intent-shuffled.json MAX_MODEL_LEN=4096 ./scripts/phas
 
 ```bash
 python -m adapterops.cli regress --name intent-shuffled \
-    --baseline runs/regression__v1-baseline-1.json
+    --baseline runs/regression__v1-baseline-1.json --save-predictions
 ```
 
 ### Pass / fail, fixed before the numbers
@@ -129,7 +134,7 @@ From the laptop:
 ```bash
 BOX=ubuntu@<ip>; KEY=~/Downloads/AdapterOps.pem
 scp -i $KEY "$BOX:AdapterOps/runs/regression__*" runs/
-scp -i $KEY "$BOX:AdapterOps/runs/*__prompted-*.json" runs/
+scp -i $KEY "$BOX:AdapterOps/runs/*__prompted-*" runs/
 scp -i $KEY "$BOX:AdapterOps/runs/intent-shuffled__train.json" runs/
 scp -i $KEY "$BOX:AdapterOps/manifests/candidates/intent-shuffled.json" manifests/candidates/
 ```
@@ -161,7 +166,15 @@ uv run adapterops derive-thresholds \
     --run-a runs/regression__v1-baseline-1.json --run-b runs/regression__v1-baseline-2.json
 ```
 
-M7, detect → block — the gate must refuse the shuffled candidate:
+Re-freeze first (D39). v1 was pinned before the hard split and the router checkpoint existed, so
+every promotion over it is blocked for a moved split until the split is re-pinned on its own:
+
+```bash
+uv run adapterops judge-score --run runs/drafting__prompted-fewshot.json
+uv run adapterops manifest promote --refreeze-splits D39 --note "pin the hard split and router"
+```
+
+M7, detect → block — the gate must refuse the shuffled candidate, for the regression alone:
 
 ```bash
 uv run adapterops manifest promote --pins manifests/candidates/intent-shuffled.json \
