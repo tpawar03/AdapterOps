@@ -27,7 +27,7 @@ and in the phase column of §4.
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
 | **Blocking** | Nothing. Two open inputs, neither blocking: the **actual GPU charge** for the Phase 2 session (the cost log is missing it), and the frontier arm's last mining-slice pairs, running unattended against the daily request quota. |
 | **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · intent **0.9312** (+0.4091 over prompted) · PII **0.9190** strict · urgency **loses to TF-IDF** · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · router pool scored · **525 hard cases mined** · router measured as **0.02–0.03 over a task-name lookup, across six runs** · escalation measured as a **quality loss** on every task · system manifest v1 with blocking and rollback |
-| **Next action** | **Phase 3 results are in** — D28 closed (the proxy was near noise) and drafting escalation reverses under the judge. Now: judge calibration (M5, training), relabel drafting's router pairs with teacher grades and re-run the router, then the consolidated GPU session (M7, M11, F33 baselines, M2 prompted baselines, PII re-score). |
+| **Next action** | M5 reported (Spearman 0.73). Now: retrain the router on D38's judge labels, build laptop judge scoring for saved drafting predictions, then the GPU session in `PHASE-4-RUN.md` — $1.50, approved before renting. |
 
 ### Milestone tracker
 
@@ -37,7 +37,7 @@ and in the phase column of §4.
 | M2 | Adapters vs prompted baseline | intent ✓ (+0.4091). urgency and pii have **non-prompted** baselines only (TF-IDF, regex+NER) — those do not close M2 |
 | M3 | Router operating curve vs 3 baselines | **measured — and it is a negative.** Escalation lowers quality on this benchmark |
 | M4 | Within-task distribution shift | **no measurable degradation** — local 0.656 → 0.652, router AUC 0.707 → 0.716 · consistent with a router that barely reads the text |
-| M5 | Judge calibration reported | not started |
+| M5 | Judge calibration reported | **reported** — Spearman **0.73**, Pearson 0.71, exact 0.73, within ±1 0.99 (a constant 4 scores 0.99) · N3 (≥ 0.80) not reached |
 | M6 | Manifest drives serving | manifest format + promote/rollback built · serving reads it after the GPU run |
 | M7 | **detect → block → rollback proven** | **detect (F18) → block proven in code** on the frozen splits, serving mocked · rollback tested · remains: real serving + the F21 shuffled-label adapter (GPU) |
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
@@ -905,7 +905,8 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Golden-set run-to-run variance | — | Phase 1 |
 | Learned router vs confidence baseline | — | Phase 2 |
 | Within-task shift degradation | — | Phase 2 |
-| Judge correlation + ±1 agreement | — | Phase 3 |
+| **Judge calibration (M5), 150 held out** | Spearman **0.7285** · Pearson 0.7117 · exact **0.733** (constant-4 0.453) · within ±1 0.993 (constant-4 0.987) · MAE 0.356 (constant-4 0.560) · bias +0.058 | Phase 3 |
+| Judge training, laptop CPU | **73 min** (projected 18) · epoch 1 ≈ 58 min at ~29 s/step · epochs 2–3 ≈ 15 min at ~3.8 s/step · epoch-1 cause unexplained | Phase 3 |
 | **Router pool frozen (F7)** | **5,800 pairs** — 750 router + 700 mining per task, exclusions verified zero | Phase 2 |
 | **Within-task shift split frozen (F36)** | shift side **32-40%** of the router slice · every task both sides | Phase 2 |
 | Shift-side vocabulary unseen in-distribution | **25.1% / 29.8% / 41.4% / 56.0%** (drafting / urgency / intent / PII) | Phase 2 |
@@ -943,6 +944,51 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 3 · The distilled judge tracks GPT-4o at Spearman 0.73 — and its ±1
+agreement of 0.99 is almost entirely the scale.** DeBERTa-v3-base,
+trained on 945 of the adapter's graded replies and scored once on 150 held out:
+
+| | distilled judge | a model that always says 4 |
+|---|---|---|
+| Spearman | **0.7285** | undefined |
+| exact agreement | **0.733** | 0.453 |
+| within ±1 | 0.993 | **0.987** |
+| mean absolute error | **0.356** | 0.560 |
+
+*Why ±1 says so little here:* 125 of the 150 teacher grades are 4 or 5. On a scale that
+concentrated, a constant answer lands within one point of almost everything, so ±1 agreement can
+barely fail. The informative readings are the rank correlation and the gain in exact agreement and
+error over the constant — both real. PRD M5 pairs "correlation and ±1 agreement" as if equal; on
+this grade distribution they are not, and ±1 is now reported beside its trivial baseline.
+
+*Also visible:* the student is compressed toward the middle — predictions span 3.25–5.14
+with a standard deviation of 0.56 against the teacher's 0.74. That is a regression
+head's usual pull to the mean, and it is why exact agreement stops at 0.73.
+
+*Means:* N3 (correlation ≥ 0.80) is not reached. The judge recovers most of GPT-4o's ranking of
+drafts, at no API cost — which, as §10 concedes, was never the justification at this volume. What it
+contributes is the pattern and a checkable number, and the number is 0.73.
+
+**Phase 3 · The judge's slowdown lived in its first epoch, and my diagnosis of it was wrong.**
+Training took **73 minutes** against an 18-minute projection. But the first epoch alone took about
+**58 minutes** (~29 s/step), and epochs two and three took ~15 (**~3.8 s/step**) — within 1.4× of
+the benchmark's 2.7.
+
+*What was ruled out, each by measurement:* padding (shuffled batches pad to 1.03× the benchmark's
+tokens), the optimizer (the Trainer's fused AdamW is the *fastest* of three variants), thermal or
+power limits (none recorded), and CPU starvation.
+
+*The error:* a probe found the training process using as many cores as a fresh process that ran
+4.4 s/step, and I concluded the Trainer path did roughly 6× less work per core. That compared the
+**first epoch's average** pace with a core measurement taken **as the second epoch began** — two
+different moments. At the moment it was measured, the training was running at a normal rate. The
+claim is withdrawn.
+
+*Unexplained:* what slowed epoch one. Other CPU work from this session overlapped it, but too little
+of it to account for a 10× difference. For D35, the steady-state rate supports the benchmark's
+per-step number; the projection missed a one-off transient, and the ranking against Qwen was not
+re-measured.
 
 **Phase 4 · The drafting hard cases were mined on the proxy the judge overturned — 73% of the
 graded ones are successes.** The hard-cases split's drafting bucket holds 150 items mined as
