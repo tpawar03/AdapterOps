@@ -109,6 +109,13 @@ def _cmd_judge_score(args: argparse.Namespace) -> int:
     return judge_score_main(run_path=args.run, baseline=args.baseline, force=args.force)
 
 
+def _cmd_judge_m2(args: argparse.Namespace) -> int:
+    from adapterops.judge.m2 import main as m2_main
+
+    return m2_main(project=args.project, sides=args.sides, workers=args.workers,
+                   spend_cap=args.spend_cap)
+
+
 def _cmd_judge_report(_: argparse.Namespace) -> int:
     from adapterops.judge.report import main as judge_report_main
 
@@ -292,6 +299,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_js.add_argument("--baseline", default=None, help="recompute the run's comparison against this")
     p_js.add_argument("--force", action="store_true")
     p_js.set_defaults(func=_cmd_judge_score)
+
+    p_m2 = sub.add_parser("judge-m2",
+                          help="GPT-4o grades on golden drafting, adapter vs prompted (M2)")
+    p_m2.add_argument("--project", action="store_true",
+                      help="count tokens and price the run locally — makes no API call")
+    p_m2.add_argument("--sides", nargs="+", default=["adapter", "prompted"],
+                      choices=["adapter", "prompted"])
+    p_m2.add_argument("--workers", type=int, default=4)
+    p_m2.add_argument("--spend-cap", type=float, default=1.0,
+                      help="hard stop in USD, derived from token counts")
+    p_m2.set_defaults(func=_cmd_judge_m2)
 
     p_jr = sub.add_parser("judge-report",
                           help="D28 proxy vs judge, same-family check, escalation re-scored")
