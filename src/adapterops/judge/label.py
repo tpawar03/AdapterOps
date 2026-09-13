@@ -142,7 +142,8 @@ def parse_judgment(raw: str) -> int | None:
     return score if 1 <= score <= 5 else None
 
 
-def plan_items(include_frontier: bool = False, seed: int = SEED) -> pd.DataFrame:
+def plan_items(include_frontier: bool = False, seed: int = SEED,
+               include_remaining_mining: bool = False) -> pd.DataFrame:
     """Which replies get a GPT-4o grade.
 
     Local items are the adapter's drafting replies: every router-slice pair plus a seeded
@@ -175,6 +176,23 @@ def plan_items(include_frontier: bool = False, seed: int = SEED) -> pd.DataFrame
     items["split"] = "train"
     items.loc[items.sample(n=CALIBRATION_HOLDOUT, random_state=seed).index,
               "split"] = "calibration"
+
+    if include_remaining_mining:
+        # D38: the mining-slice drafting replies the original 1,200 did not sample, graded so the
+        # drafting hard bucket can be rebuilt from judge failures across the whole slice. Their
+        # split is `mining_only`, which judge training never reads — the judge already training
+        # was planned from the original 1,200 and must stay reproducible from them.
+        rest = mining_pool[~mining_pool.pair_id.isin(set(local.pair_id))].sort_values("pair_id")
+        items = pd.concat([items, pd.DataFrame({
+            "item_id": ("local:" + rest.pair_id).to_numpy(),
+            "source": "local",
+            "pair_id": rest.pair_id.to_numpy(),
+            "purpose": "mining",
+            "instruction": rest.text.astype(str).to_numpy(),
+            "reply": rest.prediction.astype(str).str.strip().to_numpy(),
+            "proxy_token_f1": rest.proxy_token_f1.to_numpy(),
+            "split": "mining_only",
+        })], ignore_index=True)
 
     if include_frontier:
         front = pd.read_parquet(FRONTIER_FILE)
@@ -320,8 +338,10 @@ def write_outputs(items: pd.DataFrame) -> Path:
 
 
 def main(project: bool = False, include_frontier: bool = False, limit: int | None = None,
-         workers: int = 4, spend_cap: float = DEFAULT_SPEND_CAP_USD) -> int:
-    items = plan_items(include_frontier=include_frontier)
+         workers: int = 4, spend_cap: float = DEFAULT_SPEND_CAP_USD,
+         include_remaining_mining: bool = False) -> int:
+    items = plan_items(include_frontier=include_frontier,
+                       include_remaining_mining=include_remaining_mining)
     if limit:
         items = items.groupby("source", group_keys=False).head(limit)
 

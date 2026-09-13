@@ -23,7 +23,7 @@ and in the phase column of §4.
 | **Phase** | **Phase 2 complete, and its results are negative and recorded.** M1 passed on real hardware; the router was trained and the operating curve measured. The Phase 4 manifest, promotion blocking and rollback were built ahead while waiting on paid runs. Phase 3 (judge) is next. |
 | **Spec** | PRD v2.6, published + in repo |
 | **Hours logged** | 0 / 180 |
-| **Spend** | **$4.56** / $50.00 — excluding the Phase 2 GPU charge, not yet reported |
+| **Spend** | **$4.96** / $50.00 — excluding the Phase 2 GPU charge, not yet reported |
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
 | **Blocking** | Nothing. Two open inputs, neither blocking: the **actual GPU charge** for the Phase 2 session (the cost log is missing it), and the frontier arm's last mining-slice pairs, running unattended against the daily request quota. |
 | **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · intent **0.9312** (+0.4091 over prompted) · PII **0.9190** strict · urgency **loses to TF-IDF** · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · router pool scored · **525 hard cases mined** · router measured as **0.02–0.03 over a task-name lookup, across six runs** · escalation measured as a **quality loss** on every task · system manifest v1 with blocking and rollback |
@@ -41,7 +41,7 @@ and in the phase column of §4.
 | M6 | Manifest drives serving | manifest format + promote/rollback built · serving reads it after the GPU run |
 | M7 | **detect → block → rollback proven** | **detect (F18) → block proven in code** on the frozen splits, serving mocked · rollback tested · remains: real serving + the F21 shuffled-label adapter (GPU) |
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
-| M9 | Spend ≤ $50 | on track ($4.56, GPU charge pending) |
+| M9 | Spend ≤ $50 | on track ($4.96, GPU charge pending) |
 | M10 | Hard-cases split mined + adjudicated | **partly invalid** — 507 retained, but the 150-item drafting bucket was mined on the token-F1 proxy and **73%** of its graded items pass the judge · intent, urgency and PII buckets stand · drafting bucket to be rebuilt (D38) |
 | M11 | **Gate sensitivity measured** | checkpoint captured · scoring in Phase 5 |
 
@@ -898,6 +898,7 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Hard-cases split frozen (F31) | **507 retained** — drafting 150, PII 150, urgency 150, intent 57 · 18 quarantined · **$0** | Phase 4 |
 | Drafting hard cases under the judge | **74 of 102** graded items grade ≥ 4 (73%) — mostly not failures | Phase 4 |
 | Drafting router labels under the judge | **322 of 750** flip (43%) · frozen router dataset: 44% train, 37% eval, 44% shift | Phase 4 |
+| Remaining mining drafting grades (D38) | **250 of 250** graded · $0.30 · all 1,450 drafting replies now carry a GPT-4o grade | Phase 4 |
 | Hard-split run-to-run variance | — | Phase 4 |
 | **M11: does the hard split catch what the random set misses?** | — | Phase 5 |
 

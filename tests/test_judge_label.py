@@ -103,3 +103,17 @@ def test_the_cost_projection_makes_no_api_call(monkeypatch):
     estimate = jl.project_cost(jl.plan_items(False).head(20))
     assert estimate["total"]["requests"] == 20
     assert estimate["total"]["usd"] > 0
+
+
+def test_remaining_mining_items_complete_the_slice_and_are_evaluation_only():
+    """D38 grades the 250 mining drafting replies the original plan skipped, to rebuild the
+    drafting hard bucket. They must never become judge training data."""
+    items = jl.plan_items(include_remaining_mining=True)
+    rest = items[items.split == "mining_only"]
+    assert len(rest) == 250
+    assert len(items[(items.source == "local") & (items.purpose == "mining")]) == 700
+    assert items.item_id.is_unique
+    assert set(rest.split) == {"mining_only"}
+    pd.testing.assert_frame_equal(
+        jl.plan_items(False),
+        items[items.split != "mining_only"].reset_index(drop=True))

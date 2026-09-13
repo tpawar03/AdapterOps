@@ -76,3 +76,11 @@ def test_target_scaling_centres_grades_and_round_trips_exactly():
     scores = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
     assert jt.to_target(scores).tolist() == [-1.0, -0.5, 0.0, 0.5, 1.0]
     assert jt.from_target(jt.to_target(scores)).tolist() == scores.tolist()
+
+
+def test_mining_only_grades_never_train_the_judge():
+    frame = labelled()
+    extra = pd.DataFrame([{"item_id": "local:m1", "source": "local", "split": "mining_only",
+                           "parsed_ok": True, "score": 2, "instruction": "mq", "reply": "mr"}])
+    fit, val, cal = jt.split_for_training(pd.concat([frame, extra], ignore_index=True))
+    assert "local:m1" not in set(fit.item_id) | set(val.item_id) | set(cal.item_id)
