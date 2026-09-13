@@ -59,3 +59,23 @@ def test_the_scoring_path_reproduces_the_judges_own_calibration_predictions():
     scores = js.load_judge()(cal.instruction.tolist(), cal.reply.tolist())
     assert np.allclose(scores, cal.judge_score.to_numpy(), atol=0.02), (
         list(zip(scores, cal.judge_score.to_numpy(), strict=True)))
+
+
+def test_a_prompted_baselines_replies_are_scored_into_its_metrics(tmp_path, monkeypatch):
+    """M2 for drafting: the prompted run has one golden split under `metrics`."""
+    preds = tmp_path / "p.parquet"
+    pd.DataFrame([{"task": "drafting", "split": "random", "text": "q", "gold": "g",
+                   "prediction": "abc"},
+                  {"task": "drafting", "split": "random", "text": "q", "gold": "g",
+                   "prediction": "abcde"}]).to_parquet(preds)
+    path = tmp_path / "drafting__prompted-fewshot.json"
+    path.write_text(json.dumps({"system": "prompted-fewshot", "predictions_file": str(preds),
+                                "metrics": {"n": 2, "judge_score_mean": None,
+                                            "note": "no judge available"}}))
+    monkeypatch.setattr(js, "load_judge",
+                        lambda: lambda texts, replies: [float(len(r)) for r in replies])
+
+    assert js.main(str(path)) == 0
+    metrics = json.loads(path.read_text())["metrics"]
+    assert metrics["judge_score_mean"] == 4.0 and "note" not in metrics
+    assert js.main(str(path)) == 1, "an already-scored baseline was silently rescored"

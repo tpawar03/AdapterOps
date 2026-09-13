@@ -288,7 +288,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_js = sub.add_parser("judge-score",
                           help="score a regression run's saved drafting replies with the judge")
-    p_js.add_argument("--run", required=True, help="a regress run made with --save-predictions")
+    p_js.add_argument("--run", required=True, help="a regress or prompted run made with --save-predictions")
     p_js.add_argument("--baseline", default=None, help="recompute the run's comparison against this")
     p_js.add_argument("--force", action="store_true")
     p_js.set_defaults(func=_cmd_judge_score)

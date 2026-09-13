@@ -81,6 +81,15 @@ def fill_regression_run(run: dict, drafting: dict) -> dict:
     return out
 
 
+def fill_prompted_run(run: dict, drafting: dict) -> dict:
+    """A prompted baseline (M2) holds one golden split under `metrics`, not `per_split`."""
+    out = copy.deepcopy(run)
+    out["metrics"]["judge_score_mean"] = drafting["random"]["judge_score_mean"]
+    out["metrics"]["judge"] = "distilled judge, checkpoints/judge (F14)"
+    out["metrics"].pop("note", None)
+    return out
+
+
 def main(run_path: str, baseline: str | None = None, force: bool = False) -> int:
     from adapterops.eval.regression import compare
 
@@ -89,6 +98,8 @@ def main(run_path: str, baseline: str | None = None, force: bool = False) -> int
     if "predictions_file" not in run:
         print(f"  {run_path} kept no predictions — re-run regress with --save-predictions")
         return 2
+    if "per_split" not in run:
+        return _main_prompted(path, run, force)
     already = [s for s, cell in run["per_split"]["drafting"].items()
                if cell.get("judge_score_mean") is not None]
     if already and not force:
@@ -105,4 +116,17 @@ def main(run_path: str, baseline: str | None = None, force: bool = False) -> int
         print(f"  drafting {split:6s} n {result['n']:>3} · judge score {result['judge_score_mean']}")
     if baseline:
         print(f"  drafting drop vs baseline: {filled['comparison']['per_task']['drafting']['drop']}")
+    return 0
+
+
+def _main_prompted(path: Path, run: dict, force: bool) -> int:
+    if run["metrics"].get("judge_score_mean") is not None and not force:
+        print(f"  {path} is already judge-scored — --force to rescore")
+        return 1
+    drafting = score_predictions(pd.read_parquet(REPO_ROOT / run["predictions_file"]),
+                                 load_judge())
+    path.write_text(json.dumps(fill_prompted_run(run, drafting), indent=2) + "\n",
+                    encoding="utf-8")
+    print(f"  {run['system']} drafting n {drafting['random']['n']} · "
+          f"judge score {drafting['random']['judge_score_mean']}")
     return 0
