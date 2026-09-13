@@ -88,6 +88,11 @@ class RouterConfig:
     """Reads `router_<split><data_suffix>.parquet`. D38's judge-labelled splits are written as
     `__judged` beside the frozen proxy-labelled ones, so the router can be retrained on them without
     overwriting the splits every earlier router number was measured on."""
+    target: str = "failure"
+    """What the router scores (D42). `failure`: the adapter got the pair wrong — v1's label.
+    `rescue`: the adapter failed and the frontier succeeded, the only pairs escalation helps; needs
+    the `__rescue` splits from `adapterops.router.cascade prepare`. The prediction column stays
+    `router_p_fail` for either, so readers need one name; the run file's config says which."""
     use_cpu: bool | None = None
     """None selects: CUDA when present, otherwise CPU. **MPS is skipped deliberately.**
 
@@ -101,6 +106,19 @@ class RouterConfig:
     deployment target: PRD §7 budgets the router at <50 ms on CPU. Set explicitly to
     override."""
     output_dir: str = str(OUT_DIR)
+
+
+def positive(frame: pd.DataFrame, target: str = "failure") -> pd.Series:
+    """The class the router ranks first — 1 means escalate."""
+    if target == "failure":
+        return (~frame.success.astype(bool)).astype(int)
+    if target == "rescue":
+        if "rescue" not in frame:
+            msg = "target 'rescue' needs the __rescue splits — run `cascade prepare` first"
+            raise KeyError(msg)
+        return frame.rescue.astype(bool).astype(int)
+    msg = f"unknown router target {target!r}"
+    raise ValueError(msg)
 
 
 def to_text(frame: pd.DataFrame, include_task: bool = True) -> list[str]:
@@ -138,7 +156,7 @@ def ranking_report(y_true: np.ndarray, p_fail: np.ndarray, tasks: np.ndarray) ->
 
 
 def shortcut_check(train_frame: pd.DataFrame, eval_frame: pd.DataFrame,
-                   summary: dict) -> dict:
+                   summary: dict, target: str = "failure") -> dict:
     """How much of the router's ranking is explained by the task name alone.
 
     The first trained router scored 0.7064 ROC-AUC and looked like a working component.
@@ -148,8 +166,8 @@ def shortcut_check(train_frame: pd.DataFrame, eval_frame: pd.DataFrame,
     """
     from sklearn.metrics import roc_auc_score
 
-    prior = 1 - train_frame.groupby("task").success.mean()
-    y = (~eval_frame.success.astype(bool)).astype(int)
+    prior = train_frame.assign(y=positive(train_frame, target)).groupby("task").y.mean()
+    y = positive(eval_frame, target)
     task_only = eval_frame.task.map(prior).to_numpy()
     return {
         "task_prior_only_roc_auc": round(float(roc_auc_score(y, task_only)), 4),
@@ -180,9 +198,10 @@ def train(cfg: RouterConfig | None = None) -> dict:
     def encode(frame: pd.DataFrame) -> Dataset:
         ds = Dataset.from_dict({
             "text": to_text(frame, cfg.include_task),
-            # label 1 = the adapter failed = escalate. Framing the positive class as the
-            # failure keeps average precision reading as "how well are failures ranked".
-            "labels": (~frame.success.astype(bool)).astype(int).tolist(),
+            # label 1 = escalate: the adapter failed (v1), or escalation rescues it (D42).
+            # Positive-class framing keeps average precision reading as "how well are the
+            # pairs worth escalating ranked".
+            "labels": positive(frame, cfg.target).tolist(),
         })
         return ds.map(lambda b: tok(b["text"], truncation=True, max_length=cfg.max_length),
                       batched=True, remove_columns=["text"])
@@ -254,9 +273,10 @@ def train(cfg: RouterConfig | None = None) -> dict:
         suffix = f"__{cfg.tag}" if cfg.tag else ""
         frame.to_parquet(DATA_DIR / f"router_{name}_scored{suffix}.parquet")
         summary["splits"][name] = ranking_report(
-            (~frame.success.astype(bool)).to_numpy(), p_fail, frame.task.to_numpy())
+            positive(frame, cfg.target).astype(bool).to_numpy(), p_fail, frame.task.to_numpy())
 
-    summary["shortcut_check"] = shortcut_check(splits["train"], splits["eval"], summary)
+    summary["shortcut_check"] = shortcut_check(splits["train"], splits["eval"], summary,
+                                               cfg.target)
     trainer.save_model(cfg.output_dir)
     tok.save_pretrained(cfg.output_dir)
     # load_best_model_at_end has already put the best weights at the root of output_dir,

@@ -8,7 +8,7 @@ The evaluation is the project. Two eval splits kept apart, gate thresholds deriv
 run-to-run variance, and a free baseline chosen because it might beat the learned router — which
 it did. The negative results are below with the same care as the wins.
 
-Portfolio project. No real users, no real customer data. About $10 spent of a $50 ceiling.
+Portfolio project. No real users, no real customer data. About $10.50 spent of a $50 ceiling.
 
 - **Results:** [`runs/DASHBOARD.md`](runs/DASHBOARD.md) — rendered from committed runs, no number typed by hand
 - **Demo:** built in [`demo/`](demo/), not yet deployed — `uv run python demo/app.py` runs it locally
@@ -20,6 +20,7 @@ Portfolio project. No real users, no real customer data. About $10 spent of a $5
 |---|---|---|
 | Four adapters served at once on one base | **5,800 requests, 0 errors**, 23.6 req/s on one A10 at concurrency 16. P95: urgency 60 ms, intent 136 ms, PII 2.3 s, drafting 3.0 s | `runs/m1_serving.json` |
 | Fine-tuning beats prompting the same base, same server — **on three of four tasks** | intent **0.929 vs 0.573** micro-accuracy · PII **0.946 vs 0.57** strict span F1 · drafting **4.24 vs 2.86** of 5, **graded by GPT-4o** · urgency: no (below) | `runs/*prompted*`, `runs/drafting__m2_gpt4o.json` |
+| Adapters vs GPT-4o-mini on the same golden sets | intent **0.929 vs 0.687** · PII **0.946 vs 0.666** · urgency 0.410 vs 0.382 macro-F1 · drafting **4.24 vs 4.52**, GPT-4o-graded — GPT-4o-mini leads on the open-ended task, and GPT-4o grades both sides | `runs/frontier__golden.json`, `runs/drafting__m2_gpt4o__frontier.json` |
 | Detect → block → roll back, on real serving | shuffled-label intent adapter: accuracy drop **0.923** against an enforced **0.0117** threshold → promotion refused → forced as v3 with the override recorded → rolled back to v2 | `runs/regression__intent-shuffled.json`, `manifests/history/` |
 | Gate thresholds come from measured noise | two runs of an unchanged manifest; a threshold is 3× the larger of inference and training spread. Intent's is enforced; the others are provisional because their training variance was never measured | `evals/GATE_THRESHOLDS.json` |
 | Label noise in failure-mined eval data | **24%** of intent's mined hard cases (18 of 75) quarantined as disputed labels | `STATUS.md` D36 |
@@ -36,7 +37,14 @@ Each of these outcomes was named as reportable in the spec before it was known.
 2. **The learned router lost to a free baseline.** At a 20% escalation budget, routing on the
    adapter's own confidence captures **57%** of the available quality gain (43% under distribution
    shift). The DeBERTa router scores **−19%** (−31%) — worse than never escalating — and under
-   judge labels its ranking AUC equals a lookup on the task name (0.691 vs 0.691).
+   judge labels its ranking AUC equals a lookup on the task name (0.691 vs 0.691). Three
+   pre-registered fixes — training on "escalation helps" instead of "adapter fails", a logistic
+   cascade over the adapter's log-probabilities, and per-task confidence — all lost too, with 95%
+   bootstrap intervals below zero (D42, `runs/router__v2.json`). The best of them ranked the
+   helpful escalations well (AUC 0.82) and still captured 14% of the gain, because its label
+   could not see the pairs escalation breaks. A two-line rule — escalate tasks in the order
+   escalation helped them in training, longest ticket first — captured 38%: better than every
+   learned router, still below confidence (F26, `runs/router__rules.json`).
 3. **Escalating everything to GPT-4o-mini lowers quality here.** On its own it scores 0.52 on the
    router pool against 0.73 for the local adapters. Escalation pays only when it is selective.
 4. **The hard-cases split cannot catch a regression.** It was mined from the current adapter's own
@@ -106,6 +114,11 @@ Local serving is cheaper only while load stays above the break-even rate: a rent
 hour whether or not requests arrive. The 6.5× ratio between the two per-1K figures holds only for
 a GPU that is never idle. Not measured, so not claimed: GPU memory at serving, frontier latency,
 and the A10's maximum throughput — M1 was a 246-second burst, not a saturation test.
+
+Judging costs **$1.30 per 1,000** GPT-4o grades (token-derived, 2,800 grades) against **59 seconds
+per 1,000** for the distilled judge on a laptop CPU with no API bill (`runs/judge__cost.json`). At
+this project's volume every GPT-4o grade together cost under $4, so distillation did not pay for
+itself here (D13).
 
 ## Limitations
 

@@ -35,6 +35,12 @@ INPUTS = {
     "serving": "runs/m1_serving.json",
     "economics": "runs/economics.json",
     "curve": "runs/router__operating_curve__judged.json",
+    "router_v2": "runs/router__v2.json",
+    "rules": "runs/router__rules.json",
+    "judge_cost": "runs/judge__cost.json",
+    "ceiling": "runs/frontier__golden.json",
+    "ceiling_drafting": "runs/drafting__m2_gpt4o__frontier.json",
+    "m2": "runs/drafting__m2_gpt4o.json",
     "shuffled": "runs/regression__intent-shuffled.json",
     "m11": "runs/regression__all-m11.json",
     "system": "manifests/system.json",
@@ -101,6 +107,66 @@ def routing_rows(data: dict) -> list[str]:
                 f"{r['escalation_rate']:.1%} | {fmt(r['quality'], 3)} | "
                 f"{'—' if gain is None else f'{gain:.0%}'} |")
     return lines
+
+
+def router_v2_rows(data: dict) -> list[str]:
+    v2 = data["router_v2"]
+    pops = v2["populations"]
+    lines = [
+        ("**Pre-registered retry (D42).** Three fixes for the learned router, frozen before training. "
+         "Quality difference from confidence at a 20% budget, with 95% paired bootstrap intervals:"),
+        "",
+        "| variant | in-distribution | shift | verdict |", "|---|---|---|---|",
+    ]
+    for name, ind in pops["router_in_distribution"]["vs_confidence_at_0.20"].items():
+        shift = pops["router_shift"]["vs_confidence_at_0.20"][name]
+        if name.startswith("gain_text_s"):
+            verdict = v2["verdicts"]["gain_text"]["per_seed"][name.rsplit("_s", 1)[1]]
+        else:
+            verdict = v2["verdicts"][name]
+        lines.append(
+            f"| {name} | {ind['difference']:+.3f} [{ind['ci95'][0]:+.3f}, {ind['ci95'][1]:+.3f}] | "
+            f"{shift['difference']:+.3f} [{shift['ci95'][0]:+.3f}, {shift['ci95'][1]:+.3f}] | "
+            f"{verdict} |")
+    return [*lines, ""]
+
+
+def frontier_rows(data: dict) -> list[str]:
+    ceiling = data["ceiling"]["per_task"]
+    lines = [
+        ("**Frontier reference, not a gate.** GPT-4o-mini with the escalation arm's prompts, on the "
+         "same golden items. Drafting is compared on GPT-4o grades, which also grade GPT-4o-mini."),
+        "",
+        "| task | this adapter | GPT-4o-mini |", "|---|---|---|",
+    ]
+    for task in ("intent", "urgency", "pii"):
+        metric = GATED[task]
+        lines.append(f"| {task} ({metric}) | "
+                     f"{data['baseline_a']['per_split'][task]['random'][metric]:.4f} | "
+                     f"{ceiling[task][metric]:.4f} |")
+    lines.append(f"| drafting (GPT-4o grade) | {data['m2']['sides']['adapter']['gpt4o_mean']:.4f} | "
+                 f"{data['ceiling_drafting']['sides']['frontier']['gpt4o_mean']:.4f} |")
+    return [*lines, ""]
+
+
+def rules_rows(data: dict) -> list[str]:
+    pops = data["rules"]["populations"]
+    ind, shift = pops["router_in_distribution"], pops["router_shift"]
+    lines = [
+        ("**Rules-based baseline (F26), reference only.** Written after the D42 allocation table was "
+         "read; the task order comes from the train split. At a 20% budget:"),
+        "",
+        "| rule | gain captured (in-dist / shift) | vs confidence, in-dist | vs confidence, shift |",
+        "|---|---|---|---|",
+    ]
+    for rule in ("rules_length", "rules_task_length"):
+        a, b = ind["vs_confidence_at_0.20"][rule], shift["vs_confidence_at_0.20"][rule]
+        lines.append(
+            f"| {rule} | {ind['headroom_captured']['0.2'][rule]:.0%} / "
+            f"{shift['headroom_captured']['0.2'][rule]:.0%} | "
+            f"{a['difference']:+.3f} [{a['ci95'][0]:+.3f}, {a['ci95'][1]:+.3f}] | "
+            f"{b['difference']:+.3f} [{b['ci95'][0]:+.3f}, {b['ci95'][1]:+.3f}] |")
+    return [*lines, ""]
 
 
 def failure_demo(data: dict) -> list[str]:
@@ -173,6 +239,7 @@ def render(data: dict) -> str:
         "training spread (D37); only intent has a measured training spread, so only intent is "
         "enforced."), "",
         *quality_rows(data, "random"), "",
+        *frontier_rows(data),
         "## 2 · Quality retained — hard cases", "",
         ("Mined from v1's failures and adjudicated for label noise. **Scores near 0 are expected "
         "by construction**, which is why this split cannot gate — see M11 below."), "",
@@ -182,6 +249,8 @@ def render(data: dict) -> str:
         f"operating curve over the router pool, read at a {OPERATING_BUDGET:.0%} escalation "
         "budget. Drafting is graded by GPT-4o on both arms."), "",
         *routing_rows(data), "",
+        *router_v2_rows(data),
+        *rules_rows(data),
         ("The adapter's own confidence is the only policy that pays. The learned router is worse "
         "than never escalating, and GPT-4o-mini on its own scores below the local adapters."), "",
         "## 4 · Cost per 1K requests — derived, not billed", "",
@@ -196,7 +265,13 @@ def render(data: dict) -> str:
         f"| ratio, only if the GPU is never idle | {work['ratio_if_gpu_fully_busy']}× |",
         (f"| weights on disk: one base + {len(econ['footprint']['adapter_bytes'])} adapters vs a "
         f"full copy per task | {econ['footprint']['one_base_plus_adapters_bytes'] / 1e9:.2f} GB "
-        f"vs {econ['footprint']['full_copy_per_task_bytes'] / 1e9:.2f} GB |"), "",
+        f"vs {econ['footprint']['full_copy_per_task_bytes'] / 1e9:.2f} GB |"),
+        (f"| judging 1K drafting replies: GPT-4o, token-derived over "
+         f"{data['judge_cost']['gpt4o']['overall']['grades']:,} grades | "
+         f"${data['judge_cost']['gpt4o']['overall']['usd_per_1k']:.2f} |"),
+        (f"| judging 1K drafting replies: distilled judge, "
+         f"{data['judge_cost']['distilled']['host']} CPU, no API | "
+         f"{data['judge_cost']['distilled']['seconds_per_1k']:.0f} s |"), "",
         "Not measured: " + "; ".join(f"{k.replace('_', ' ')} ({v})"
                                      for k, v in econ["not_measured"].items()) + ".", "",
         ("## 5 · P95 latency — M1, A10, four adapters at once, concurrency "

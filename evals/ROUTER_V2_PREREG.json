@@ -1,0 +1,75 @@
+{
+  "id": "router-v2",
+  "decision": "D42",
+  "status": "written before any variant below was trained or scored; frozen by hash in evals/ROUTER_V2_PREREG.sha256 on the first `cascade prepare`, and `cascade evaluate` refuses to run if this file changes",
+  "disclosure": [
+    "Already seen on the eval and shift splits before this was written, while diagnosing v1: per-task failure ROC-AUC of mean_logprob, min_logprob and the v1 router; each existing policy's per-task escalation share and quality at every budget; per-task local and GPT-4o-mini success rates. That diagnosis motivated the variants, so it is disclosed rather than hidden.",
+    "No variant below has been trained or scored on any split.",
+    "cascade_lr uses every per-pair generation signal already recorded, fixed without selection. That includes min_logprob, whose failure AUC on drafting's eval split was seen to be below 0.5."
+  ],
+  "target": {
+    "name": "rescue",
+    "definition": "the local adapter fails AND GPT-4o-mini succeeds on the same pair. Success rules are the judged operating curve's: exact label for intent and urgency, span rule for PII, GPT-4o grade >= 4 on both arms for drafting (D38).",
+    "why": "v1 predicted local failure, but escalating a pair the frontier also fails buys nothing. The oracle already ranks by gain (D32); the router's label never did."
+  },
+  "variants": {
+    "gain_text": {
+      "fixes": "target only",
+      "model": "microsoft/deberta-v3-small, router/train.py RouterConfig defaults unchanged, input `task: <name> | <ticket text>`",
+      "target": "rescue",
+      "seeds": [11, 22, 33],
+      "score": "P(rescue)",
+      "reporting": "each seed scored and judged separately; no seed is selected and no ensemble is formed"
+    },
+    "cascade_lr": {
+      "fixes": "target and information",
+      "model": "logistic regression after StandardScaler, both fit on the train split only",
+      "features": "per-task intercept, and per-task interactions with mean_logprob, min_logprob, log1p(n_tokens), and finish_reason == 'length'",
+      "target": "rescue",
+      "C_grid": [0.01, 0.1, 1, 10, 100],
+      "cv_folds": 5,
+      "cv_strata": "task x rescue",
+      "cv_scoring": "neg_log_loss",
+      "seed": 20260909,
+      "score": "P(rescue)"
+    },
+    "confidence_per_task": {
+      "fixes": "pooling log-probabilities across tasks whose outputs differ in length",
+      "model": "none — no label used",
+      "score": "-(mean_logprob - train-split task mean) / train-split task standard deviation"
+    }
+  },
+  "comparator": "confidence: -mean_logprob pooled across tasks — the policy behind the published 57%",
+  "reference_policies": ["random", "router_v1 (the published DeBERTa failure router)", "oracle"],
+  "populations": {
+    "primary": "eval split — router_in_distribution, 392 pairs",
+    "confirmation": "shift_eval split — router_shift, 1,047 pairs"
+  },
+  "primary_endpoint": "quality at escalation budget 0.20, with headroom captured against the oracle",
+  "uncertainty": {
+    "method": "paired bootstrap of quality(variant) - quality(confidence) at budget 0.20",
+    "resamples": 2000,
+    "stratified_by": "task",
+    "seed": 20260909,
+    "interval": "95% percentile",
+    "note": "the budget is re-applied inside each resample, so the ranking is re-read on every draw"
+  },
+  "decision_rule": {
+    "beats confidence": "in-distribution 95% interval entirely above 0 AND shift point estimate above 0; for gain_text, all three seeds must pass",
+    "loses to confidence": "in-distribution 95% interval entirely below 0; for gain_text, all three seeds",
+    "inconclusive": "anything else, including seeds that disagree"
+  },
+  "expected_power": "the oracle leaves at most 0.040 of quality above confidence at budget 0.20 in-distribution, on 392 pairs. An interval too wide to pass is a likely outcome and is reported as inconclusive, not as a loss.",
+  "reported_regardless": [
+    "the full operating curve at every budget, both populations",
+    "headroom captured at budgets 0.10 and 0.20",
+    "rescue ROC-AUC per task",
+    "per-task escalation share at budget 0.20",
+    "every variant and every seed, whatever the outcome"
+  ],
+  "not_allowed_after_scoring": [
+    "changing any feature, grid, seed, target, budget or decision rule",
+    "choosing among seeds",
+    "adding a variant and reporting only it"
+  ]
+}

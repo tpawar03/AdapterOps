@@ -126,9 +126,13 @@ def verify(pins: Path | None = None) -> tuple[int, dict]:
         print("\n  A pinned revision no longer serves the weights it was pinned to.")
         print("  Every score attributed to it is unverified until this is resolved.")
         return 1, findings
-    if any(f["state"] != "ok" for f in findings.values()):
-        print("\n  `main` has moved past a pin. Not an error — the pin is what is served —")
-        print("  but a newer adapter exists and nothing is using it.")
+    states = {f["state"] for f in findings.values()}
+    if "main_moved_new_weights" in states:
+        print("\n  `main` has moved past a pin with different weights. Not an error — the pin is")
+        print("  what is served — but a newer adapter exists and nothing is using it.")
+    elif "main_moved_same_weights" in states:
+        print("\n  `main` has moved past a pin, but the weights are identical — a README or config")
+        print("  commit such as a model card. What is served is unchanged.")
     return 0, findings
 
 

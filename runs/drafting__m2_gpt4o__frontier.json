@@ -1,0 +1,18 @@
+{
+  "model": "gpt-4o",
+  "success_min": 4,
+  "sides": {
+    "frontier": {
+      "n": 300,
+      "graded": 300,
+      "gpt4o_mean": 4.5167,
+      "gpt4o_success": 0.9633,
+      "at_cap_share": 0.0,
+      "gpt4o_mean_at_cap": null,
+      "gpt4o_mean_complete": 4.5167,
+      "distilled_mean": 4.491,
+      "distilled_vs_gpt4o_spearman": 0.575
+    }
+  },
+  "cost_usd_from_tokens": 0.373
+}

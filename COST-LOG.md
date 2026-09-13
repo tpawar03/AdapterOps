@@ -3,7 +3,7 @@
 F24 (P0). Every session, every charge. Hard ceiling **$50** (M9); stop and reassess
 at **$25** (§14). Update this and STATUS.md §1 together.
 
-**Running total: ~$10 / $50.00** — as reported; the Phase 2 and Phase 4 GPU sessions are not itemised
+**Running total: ~$10.47 / $50.00** — ~$10 as reported, plus $0.47 itemised since; the Phase 2 and Phase 4 GPU sessions are not itemised
 
 | Phase | Provider | What | Duration | Charge | Total |
 |---|---|---|---|---|---|
@@ -19,6 +19,7 @@ at **$25** (§14). Update this and STATUS.md §1 together.
 | 4 | Lambda | **Phase 4–5 session** (`PHASE-4-RUN.md`), A10 — F21 shuffled adapter, 2 F33 baselines, 4 M2 prompted baselines, M11, M7, 2 re-runs · approved at $1.50 | ~1 h+ | in the GPU row below | — |
 | 4 | OpenAI | GPT-4o grades on golden drafting for M2 (`judge-m2`) — 300 adapter + 300 prompted replies · approved at $1.50 after a $1.28 projection · token-derived at list price | ~25 min | $0.95 | $5.93 |
 | 2 + 4 | Lambda | **GPU sessions for Phase 2 (M1 serving, router pool) and Phase 4–5, not itemised.** The account total was reported as about $10; this row is the remainder over everything itemised above | — | **~$4.07** (derived) | **~$10** |
+| 5 | OpenAI | Golden-set frontier reference (`eval.ceiling`, `judge-m2 --sides frontier`) — GPT-4o-mini on 1,670 golden items ($0.100, 1,670 requests), then GPT-4o grades of its 300 drafting replies ($0.373, 410 requests — retries under the 30,000 TPM limit) · approved at $1.00 after a $0.53 projection · token-derived at list price | ~12 min | $0.473 | ~$10.47 |
 
 ## Budget envelope (PRD §12)
 

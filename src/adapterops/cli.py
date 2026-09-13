@@ -317,7 +317,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_m2.add_argument("--project", action="store_true",
                       help="count tokens and price the run locally — makes no API call")
     p_m2.add_argument("--sides", nargs="+", default=["adapter", "prompted"],
-                      choices=["adapter", "prompted"])
+                      choices=["adapter", "prompted", "frontier"])
     p_m2.add_argument("--workers", type=int, default=4)
     p_m2.add_argument("--spend-cap", type=float, default=1.0,
                       help="hard stop in USD, derived from token counts")

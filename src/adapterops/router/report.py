@@ -167,6 +167,13 @@ def join_judged(local: pd.DataFrame, frontier: pd.DataFrame, frontier_grades: pd
     return base
 
 
+def frontier_grades() -> pd.Series:
+    """GPT-4o grades on the frontier's drafting replies, one per pair (D38)."""
+    grades = pd.read_parquet(JUDGMENTS)
+    return (grades[(grades.source == "frontier") & grades.parsed_ok.astype(bool)]
+            .drop_duplicates("pair_id").set_index("pair_id").score.astype(float))
+
+
 def _shown(path: Path) -> str:
     try:
         return str(path.relative_to(REPO_ROOT))
@@ -203,10 +210,7 @@ def main(judged: bool = False) -> int:
         policies = ("random", "confidence", "router_p_fail", "oracle")
 
     if judged:
-        grades = pd.read_parquet(JUDGMENTS)
-        grades = (grades[(grades.source == "frontier") & grades.parsed_ok.astype(bool)]
-                  .drop_duplicates("pair_id").set_index("pair_id").score.astype(float))
-        joined = join_judged(local, frontier, grades, router_scores)
+        joined = join_judged(local, frontier, frontier_grades(), router_scores)
         proxy_tasks: tuple[str, ...] = ()
     else:
         joined = join(local, frontier, router_scores)

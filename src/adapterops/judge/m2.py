@@ -32,14 +32,26 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 SIDES = {
     "adapter": "runs/regression__v1-baseline-1__predictions.parquet",
     "prompted": "runs/drafting__prompted-fewshot__predictions.parquet",
+    "frontier": "runs/frontier__golden__predictions.parquet",   # eval.ceiling
 }
+DEFAULT_SIDES = ("adapter", "prompted")
 OUT_FILE = label.JUDGE_DIR / "m2_golden.parquet"
 SUMMARY_FILE = REPO_ROOT / "runs" / "drafting__m2_gpt4o.json"
 SUCCESS_MIN = 4                                   # the Phase 3 success rule, judge >= 4
 AT_CAP_TOKENS = MAX_TOKENS["drafting"] - 8        # within a few tokens of the cap counts as cut
 
 
-def plan_items(sides: Sequence[str] = tuple(SIDES)) -> pd.DataFrame:
+def outputs(sides: Sequence[str]) -> tuple[Path, Path]:
+    """Where a run's grades and summary go. Any side set other than M2's own writes beside it, so
+    grading the frontier ceiling can never overwrite the adapter-vs-prompted record."""
+    if tuple(sides) == DEFAULT_SIDES:
+        return OUT_FILE, SUMMARY_FILE
+    suffix = "__" + "_".join(sides)
+    return (OUT_FILE.with_name(f"{OUT_FILE.stem}{suffix}.parquet"),
+            SUMMARY_FILE.with_name(f"{SUMMARY_FILE.stem}{suffix}.json"))
+
+
+def plan_items(sides: Sequence[str] = DEFAULT_SIDES) -> pd.DataFrame:
     frames = []
     for side in sides:
         preds = pd.read_parquet(REPO_ROOT / SIDES[side])
@@ -96,7 +108,7 @@ def summarise(graded: pd.DataFrame,
     return out
 
 
-def main(project: bool = False, sides: Sequence[str] = tuple(SIDES), workers: int = 4,
+def main(project: bool = False, sides: Sequence[str] = DEFAULT_SIDES, workers: int = 4,
          spend_cap: float = 1.0, judge=None, count_tokens=None) -> int:
     items = plan_items(sides)
     if project:
@@ -126,8 +138,9 @@ def main(project: bool = False, sides: Sequence[str] = tuple(SIDES), workers: in
     graded = items[items.item_id.isin(cache)].copy()
     for column in ("score", "raw", "prompt_tokens", "completion_tokens"):
         graded[column] = [cache[i].get(column) for i in graded.item_id]
-    OUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    graded.to_parquet(OUT_FILE)
+    out_file, summary_file = outputs(sides)
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    graded.to_parquet(out_file)
 
     failed = [r for r in results if r.get("error")]
     print(f"  {len(results) - len(failed):,} graded this run · {ledger.requests:,} requests · "
@@ -152,7 +165,7 @@ def main(project: bool = False, sides: Sequence[str] = tuple(SIDES), workers: in
             return len(tok(reply).input_ids)
 
     summary = summarise(graded, judge, count_tokens)
-    SUMMARY_FILE.parent.mkdir(parents=True, exist_ok=True)
-    SUMMARY_FILE.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    summary_file.parent.mkdir(parents=True, exist_ok=True)
+    summary_file.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2))
     return 0

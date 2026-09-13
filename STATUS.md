@@ -23,10 +23,10 @@ and in the phase column of §4.
 | **Phase** | **Phase 5 — README, results dashboard and Gradio demo built; the demo is not deployed yet.** Phase 4 is recorded: M7 proven on real serving, M11 negative. |
 | **Spec** | PRD v2.6, published + in repo |
 | **Hours logged** | **not logged** / 180 — no per-session times were recorded, so no figure is claimed |
-| **Spend** | **~$10** / $50.00 — as reported; $5.93 itemised, the Phase 2 and Phase 4 GPU sessions not itemised |
+| **Spend** | **~$10.47** / $50.00 — ~$10 as reported plus $0.47 since; $6.40 itemised, the Phase 2 and Phase 4 GPU sessions not itemised |
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
 | **Blocking** | Deploying the demo (M8) needs a Hugging Face Space created and uploaded from the account owner's login. |
-| **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · judge distilled (**M5**, Spearman 0.73) · under judge labels the router equals a task-name lookup and **confidence routing captures 57%** of available gain · hard split rebuilt (470) · **M2** on one server: intent +0.356, PII +0.376, urgency within noise, drafting **+1.38 under GPT-4o** · **M7 proven**: shuffled adapter detected (drop 0.923), blocked, forced, rolled back · **M11 negative** · **README (F23)** rewritten around results and negatives · **dashboard (F17)** rendered from committed runs · **cost per 1K derived** (D41): local is cheaper only above 3.64 req/s sustained · **Gradio demo (F22)** built (D40) |
+| **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · judge distilled (**M5**, Spearman 0.73) · under judge labels the router equals a task-name lookup and **confidence routing captures 57%** of available gain · hard split rebuilt (470) · **M2** on one server: intent +0.356, PII +0.376, urgency within noise, drafting **+1.38 under GPT-4o** · **M7 proven**: shuffled adapter detected (drop 0.923), blocked, forced, rolled back · **M11 negative** · **README (F23)** rewritten around results and negatives · **dashboard (F17)** rendered from committed runs · **cost per 1K derived** (D41): local is cheaper only above 3.64 req/s sustained · **Gradio demo (F22)** built (D40) · **router v2 (D42)**: three pre-registered fixes, all lose to confidence · **rules baseline (F26)**: a task-lookup rule captures 38%, still below confidence · **judge cost** measured · **frontier reference** on the golden sets measured · **model cards** with eval scores published to all four adapter repos |
 | **Next action** | Deploy the demo to a Space and verify the URL from a clean browser (M8). No GPU work remains. |
 
 ### Milestone tracker
@@ -34,14 +34,14 @@ and in the phase column of §4.
 | ID | Milestone | State |
 |---|---|---|
 | M1 | 4 adapters served concurrently | **PASS** — 5,800 reqs, 0 errors, 23.6 rps |
-| M2 | Adapters vs prompted baseline | **measured, same server** — intent +0.356 over one-shot-per-class · PII +0.376 · urgency **+0.013, inside its own serving noise (0.0127)** · drafting **adapter wins under GPT-4o**, 4.24 vs 2.86, higher on 74% of pairs — the distilled judge had it the other way round (4.27 vs 4.70) |
-| M3 | Router operating curve vs 3 baselines | **measured** — under judge labels the confidence baseline captures **57%** of available gain; the learned router **−19%** (D3's negative) |
+| M2 | Adapters vs prompted baseline | **measured, same server** — intent +0.356 over one-shot-per-class · PII +0.376 · urgency **+0.013, inside its own serving noise (0.0127)** · drafting **adapter wins under GPT-4o**, 4.24 vs 2.86, higher on 74% of pairs — the distilled judge had it the other way round (4.27 vs 4.70) · **frontier reference (GPT-4o-mini, golden):** adapters higher on intent, urgency and PII; GPT-4o-mini higher on drafting, 4.52 vs 4.24 |
+| M3 | Router operating curve vs 3 baselines | **measured** — under judge labels the confidence baseline captures **57%** of available gain; the learned router **−19%** (D3's negative) · **v2 (D42): three pre-registered fixes, all lose** |
 | M4 | Within-task distribution shift | **measured** — same shape under shift: confidence 43%, learned router −31% · no degradation in local quality |
 | M5 | Judge calibration reported | **reported** — Spearman **0.73**, Pearson 0.71, exact 0.73, within ±1 0.99 (a constant 4 scores 0.99) · N3 (≥ 0.80) not reached · **holds on the adapter's golden replies (0.74), fails on another generator's (0.33)** |
 | M6 | Manifest drives serving | **partly** — serving materialises the pin files the manifest is built from (`adapters.json`, candidate sets) at their pinned revisions; it does not read `system.json` itself |
 | M7 | **detect → block → rollback proven** | **PROVEN on real serving** — shuffled-label intent adapter: drop 0.9234 vs threshold 0.0117 → blocked for that reason alone · forced as v3 with the override recorded · rolled back to v2 |
 | M8 | Live demo + public repo | repo public ✓ · README ✓ · demo built (`demo/app.py`) and its generation path verified locally, all four adapters at pinned revisions · **not deployed** |
-| M9 | Spend ≤ $50 | on track — ~$10 of $50 |
+| M9 | Spend ≤ $50 | on track — ~$10.47 of $50 |
 | M10 | Hard-cases split mined + adjudicated | **done, rebuilt** — 470 retained; drafting bucket from judge failures (113), intent quarantine 24.0% (D36, D38) |
 | M11 | **Gate sensitivity measured** | **measured — negative.** The hard split caught nothing the random set missed; on intent, urgency and drafting it *improved* for the under-trained checkpoints |
 
@@ -889,6 +889,43 @@ its own flag, its own record, and a rule that it never travels with a model chan
 **Why:** the multiple divides a per-request API price by a GPU cost that assumes every rented second is spent serving. That holds only at M1's burst throughput with no idle time — M1 ran for 246 seconds, and the $0.75/h rate is a budgeting figure, not an invoice. The break-even rate (3.64 req/s sustained) uses the same inputs but states the condition under which local serving wins, so it cannot be misread. The multiple is still recorded, with its assumption beside it. GPU memory, frontier latency and saturation throughput are not derived either: none was measured, and a stand-in would be a number nobody observed.
 **Interview angle:** "is it cheaper?" has an answer that depends on load, and saying so is the senior answer. A fixed multiple is the version that gets taken apart in the follow-up.
 
+### D42 · Router v2: three pre-registered fixes, and all three lose to confidence
+**Rejected:** trying router variants against the eval split until one beat confidence, then reporting
+that one.
+**Why:** the oracle leaves at most 0.040 of quality above confidence at a 20% budget, on 392 pairs.
+That is exactly the setting where variant-shopping manufactures a win. So the protocol was frozen in
+`evals/ROUTER_V2_PREREG.json` before anything was trained, and its hash (`421c96cd…`) is checked
+before scoring: three variants, one endpoint (quality at 20% escalation), a paired bootstrap
+stratified by task, and a decision rule. The file also discloses what had already been seen on the
+eval split while diagnosing v1, because that diagnosis is what chose the variants.
+
+| variant | fixes | in-distribution Δ vs confidence (95% CI) | gain captured | shift Δ | verdict |
+|---|---|---|---|---|---|
+| confidence per task | pooling across tasks | −0.043 [−0.069, −0.013] | 11% | −0.030 | **loses** |
+| logistic cascade on log-probabilities, rescue label | target and information | −0.041 [−0.066, −0.015] | 14% | −0.024 | **loses** |
+| DeBERTa, rescue label, seed 11 / 22 / 33 | target | −0.046 / −0.066 / −0.074 | 8% / −13% / −22% | −0.043 / −0.056 / −0.070 | **loses**, all seeds |
+| *confidence, pooled (the comparator)* | — | — | *57%* | — | — |
+
+Before anything new was scored, the evaluation recomputed the published confidence, oracle and v1
+router curves from the new frames and matched them. Disclosed after the run: `finish_reason` is
+`stop` on every pair, so the pre-registered hit-the-cap feature was constant and contributed nothing.
+
+**What the pre-registration got wrong: the label.** *Rescue* — the adapter fails and the frontier
+succeeds — counts the pairs escalation fixes and ignores the pairs it breaks. Urgency has the highest
+rescue rate (15.8% on train) and is also where GPT-4o-mini is worse than the adapter overall, so a
+good rescue ranker sends urgency first. The cascade ranked rescues best of anything tested (AUC
+**0.82**, against confidence-per-task 0.75 and v1's 0.48) and escalated half of urgency; confidence
+escalated 6% and the oracle 12%. The ranking metric improved and the decision got worse.
+
+**Not done, deliberately:** ranking by expected gain, P(frontier succeeds) − P(adapter succeeds), is
+the obvious fourth variant. The pre-registration forbids adding it after scoring, and the eval and
+shift splits have now carried four rounds of router comparison. A fair test needs a fresh split,
+frozen before it is read.
+
+**Interview angle:** a pre-registered negative is worth more than an unregistered win on a 392-pair
+split. And the lesson generalises: when an action can help or hurt, a classifier's AUC on "helps" is
+the wrong model-selection metric — the decision needs the expected value of acting.
+
 ---
 
 ## 3. Trade-offs consciously accepted
@@ -993,11 +1030,84 @@ Filled in as results arrive. **Empty is the correct state today.**
 | GPU memory at serving | — | Phase 5 |
 | Frontier latency | — | Phase 5 |
 | A10 maximum throughput (saturation sweep) | — | Phase 5 |
+| **Router v2, pre-registered (D42)** | all three **lose to confidence** at 20% escalation, 95% CI below 0: per-task confidence −0.043 [−0.069, −0.013] · cascade −0.041 [−0.066, −0.015] · rescue-label DeBERTa −0.046 / −0.066 / −0.074 by seed · every shift estimate negative | Phase 5 |
+| Rescue AUC vs gain captured, in-distribution | cascade **0.82** → 14% · confidence per task 0.75 → 11% · v1 router 0.48 → −19% · pooled confidence → **57%** | Phase 5 |
+| **Rules-based router (F26), reference only** | task order from train + ticket length: **38%** of gain in-distribution, 37% under shift — above the learned router (−19%) and every D42 variant, below confidence: −0.018 [−0.033, −0.003], shift −0.006 [−0.016, +0.008] · length alone **−54%** | Phase 5 |
+| **Judge cost per 1K evaluations** | distilled judge **59.3 s** on this Mac's CPU (arm64), $0 API, mean score matches the gated run · GPT-4o **$1.30**, token-derived over 2,800 recorded grades | Phase 5 |
+| **Frontier reference on golden sets (GPT-4o-mini, F8 prompts)** | intent **0.687** · urgency **0.382** macro-F1 · PII **0.666** strict · drafting **4.52** GPT-4o grade (96% ≥ 4) — adapters 0.929 · 0.410 · 0.946 · 4.24 · $0.473 for 1,670 calls and 300 grades · 0% at token cap | Phase 5 |
+| Distilled judge on GPT-4o-mini's golden replies | Spearman **0.575** with GPT-4o · means 4.49 vs 4.52 | Phase 5 |
+| Model cards on the Hub (PRD §9) | rendered from runs, pushed as README.md: intent `19b7e223` · urgency `26a15541` · PII `eeb4f6c3` · drafting `f7e0e286` · weights unchanged, `verify-pins` reports `main_moved_same_weights` for all four | Phase 5 |
 
 ### Findings log
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 5 · On the golden sets GPT-4o-mini is below the adapters on every classification task and
+above them on drafting.** The frontier arm's model, prompts and token caps, run on the same golden
+items every other system was scored on:
+
+| task (metric) | adapter | prompted base | GPT-4o-mini |
+|---|---|---|---|
+| intent (micro-accuracy) | **0.929** | 0.573 | 0.687 |
+| urgency (macro-F1) | **0.410** | 0.396 | 0.382 |
+| PII (strict span F1) | **0.946** | 0.570 | 0.666 |
+| drafting (GPT-4o grade) | 4.24 | 2.86 | **4.52** |
+
+No reply hit its token cap, and case-insensitive scoring changes nothing on intent or urgency. The
+distilled judge tracks GPT-4o at Spearman 0.575 on GPT-4o-mini's replies — between its 0.74 on the
+adapter's and 0.33 on the truncated prompted replies.
+
+*Means:* "frontier ceiling" is the wrong name for classification here. A 1.5B adapter clears
+GPT-4o-mini by 0.24 on intent and 0.28 on PII; on urgency every system is close to TF-IDF or below it.
+On drafting GPT-4o-mini leads by 0.28, but GPT-4o grades both sides, and a same-family preference cannot
+be separated from quality without human labels (the Phase 3 same-family check). It agrees with the
+router finding from the other side: escalation pays on drafting and nowhere else.
+
+*Changes the plan:* cards and scorecards call it a frontier *reference*. The pitch's "matching
+frontier-model accuracy" becomes a narrower claim that holds — above GPT-4o-mini on intent and PII.
+
+**Phase 5 · A two-line rule beats every learned router and still loses to confidence (F26).**
+Escalate tasks in the order escalation helped them on the train split (drafting +0.10, urgency −0.11,
+intent −0.21, PII −0.63), longest ticket first within a task. At a 20% budget it captures **38%** of
+the available gain in-distribution and 37% under shift, where the learned router scored −19% and
+D42's best variant 14%. It still loses to pooled confidence in-distribution, −0.018 [−0.033, −0.003];
+under shift the interval spans zero (−0.006 [−0.016, +0.008]). Length alone — the heuristic a support
+team reaches for first — scores **−54%**: long tickets are not where escalation helps.
+
+*Means:* most of what any policy captures here is *which task* to escalate, and a lookup table gets
+most of it; confidence adds the ranking within a task. It is a reference line, not a claim — the rule
+was written after D42's allocation table was read, even though its numbers come from the train split.
+No keyword rule was scored, because a hand-picked list could only be tuned on eval.
+
+*Changes the plan:* the PRD's case for a learned router was that it catches what rules miss. Here a
+rule caught more than the router did.
+
+**Phase 5 · The best-ranking router made worse escalation decisions than confidence — AUC 0.82 on
+rescues, 14% of the gain against 57% (D42).** Three pre-registered fixes for the learned router all
+lost to pooled confidence, with every 95% interval below zero in-distribution and every shift
+estimate negative. The mechanism is in the per-task allocation at a 20% budget:
+
+| policy, in-distribution | drafting | intent | PII | urgency | quality |
+|---|---|---|---|---|---|
+| escalating all of a task: GPT-4o-mini − adapter | **+0.21** | −0.27 | −0.68 | −0.09 | — |
+| oracle | 62% | 3% | 0% | 12% | 0.821 |
+| confidence, pooled | 69% | 2% | 0% | 6% | **0.781** |
+| logistic cascade (rescue) | 25% | 3% | 0% | 50% | 0.740 |
+| confidence per task | 34% | 12% | 13% | 19% | 0.737 |
+
+Escalation pays on drafting and costs quality on every other task, so the whole problem is spending
+the budget on drafting. Pooled confidence already does: whatever the reason, drafting's pairs sit at
+the bottom of its ranking. Standardising within each task — the variant meant to fix pooling —
+spreads the budget evenly and pays for it on PII and intent. The rescue-trained models see urgency's
+high rescue rate and not its losses when escalated.
+
+*Means:* confidence's win is partly about *which task* it escalates, not only which pairs within a
+task, and nothing guarantees that holds under a different task mix. And a rescue label is the wrong
+target wherever escalation can also break a pair.
+
+*Changes the plan:* the resume line stands and gets stronger. An expected-gain router is the next
+experiment, and it needs a freshly frozen split (D42).
 
 **Phase 5 · Local serving is cheaper than GPT-4o-mini only above about 3.6 requests a second — the 6.5× figure needs a GPU that is never idle.** Priced from committed data, with no new request: the F8 run's token counts for the same 5,800 pairs give **$0.0572 per 1K** at list price (the bill was $0.33, which matches), and M1's 23.6 req/s on an A10 at the budgeted $0.75/h gives **$0.0088 per 1K**. Dividing the two gives 6.5×, but a rented GPU bills by the hour whether or not requests arrive. An hour costs as much as 13,112 frontier calls, so below **3.64 req/s sustained** the API is cheaper. M1 was a 246-second burst, not a saturation test, so the local figure is not a ceiling either.
 
@@ -1800,6 +1910,8 @@ share-alike attribution still has to go in the README.
 2. **The baseline I added to make my own work look worse — and it won** (D3). Confidence routing
    captures 57% of the available gain at 20% escalation; the learned router scores −19%, and under
    judge labels its AUC equals a task-name lookup. Reporting that was committed to before the result.
+   Then three pre-registered fixes also lost (D42) — the best ranked rescues at AUC 0.82 and still
+   captured 14% of the gain, because it could not see the pairs escalation breaks.
 3. **The hard split that could not catch a regression** (M11). Mined from the incumbent's own
    failures, it measures difference from that model, not difficulty; under-trained checkpoints
    scored higher on it.
@@ -1822,30 +1934,50 @@ share-alike attribution still has to go in the README.
 | "What would you do differently?" | Mine hard cases from several models' failures; measure training variance for every task; D4 (an always-on GPU) |
 | "Where did fine-tuning not help?" | Urgency — loses to TF-IDF (0.41 vs 0.55 macro-F1) and sits within noise of prompting |
 | "Is it cheaper than calling an API?" | Only above ~3.6 req/s of sustained load (D41) |
+| "Tell me about a result that surprised you" | D42: the router with the best AUC made worse escalation decisions — its label ignored the pairs escalation breaks |
 | "How do you handle disagreement about a design?" | The v2.1 → v2.2 pass: nine defects found in my own prior spec, each logged with its reason |
 
 ### Resume lines
 
-Every number is in §4 and `runs/DASHBOARD.md`, and each caveat travels with its number.
+XYZ format — accomplishment, measurement, method — each opening with an action verb. Every number is
+in §4 or `runs/DASHBOARD.md`, and each caveat travels with its number. The first four are the set;
+the last three swap in for a role that weights evaluation, judging or cost.
 
-- Built a multi-task LoRA service: four QLoRA adapters on one Qwen2.5-1.5B base, served concurrently
-  with vLLM on a single A10 — 5,800 requests, 0 errors, P95 60–136 ms on the classification adapters.
-- Proved a regression gate end to end: a deliberately broken adapter was detected (accuracy drop 0.92
-  against a 0.012 threshold derived from measured run-to-run variance), blocked from promotion, and
-  rolled back through a versioned manifest.
-- Fine-tuned adapters beat prompting the same base model on three of four tasks (intent +0.36
-  accuracy, PII +0.38 span F1, drafting 4.24 vs 2.86 graded by GPT-4o); reported the fourth, which
-  lost to a TF-IDF baseline.
-- Showed a learned DeBERTa router lost to a free confidence baseline (−19% vs 57% of available gain
-  at 20% escalation) and published the negative result.
-- Showed a failure-mined hard-case eval set cannot detect regressions in the model it was mined from,
-  and measured label noise at 24% of mined intent cases.
-- Delivered the project for about $10 of a $50 budget.
+- Served four QLoRA adapters from one Qwen2.5-1.5B base on a single A10 with vLLM multi-LoRA –
+  5,800 requests at concurrency 16, 0 errors, P95 60–136 ms on classification; 3.38 GB of weights on
+  disk vs 12.35 GB for per-task models.
+- Proved a detect → block → rollback release gate on live serving – a deliberately label-shuffled
+  adapter's 0.923 accuracy drop tripped a 0.0117 threshold set at 3× measured training variance;
+  promotion was blocked, and the forced release rolled back via a versioned manifest.
+- Lifted intent accuracy 0.573 → 0.929 (77 classes) and PII span F1 0.57 → 0.946 over prompting the
+  same base by QLoRA fine-tuning, measured on one vLLM server; drafting 2.86 → 4.24 GPT-4o-graded;
+  disclosed urgency losing to TF-IDF (0.41 vs 0.55 macro-F1).
+- Disproved a learned DeBERTa escalation router against free adapter confidence – −19% vs 57% of
+  oracle headroom at 20% escalation; pre-registered three fixes (hash-frozen protocol, paired
+  bootstrap), all lost with 95% CIs below zero, the best-ranking (AUC 0.82) capturing 14%.
+
+Alternates:
+
+- Outscored GPT-4o-mini with fine-tuned 1.5B adapters on the same golden sets – intent 0.929 vs
+  0.687 accuracy, PII 0.946 vs 0.666 span F1 – via per-task QLoRA; GPT-4o-mini still led on
+  open-ended drafting (4.52 vs 4.24, GPT-4o-graded).
+- Exposed that a failure-mined hard-case eval split cannot catch regressions in its source model –
+  under-trained checkpoints scored higher on 3 of 4 tasks while the random golden set flagged all 4;
+  quarantined 24% of mined intent cases as label noise via independent adjudication.
+- Caught a distilled DeBERTa judge (Spearman 0.73 in-distribution, 0.33 cross-generator) rewarding
+  truncated replies and reversing a drafting result; GPT-4o re-grading of 600 paired replies showed
+  adapter 4.24 vs prompted 2.86.
+- Derived a 3.64 req/s break-even for self-hosted serving vs GPT-4o-mini ($0.0088 vs $0.0572 per 1K
+  over 5,800 identical requests, A10 at an assumed $0.75/h), reporting load-conditional cost instead
+  of a 6.5× ratio that assumes a never-idle GPU; whole project ≈$10 of a $50 budget.
 
 ### Framing to avoid
 - Don't lead with "I fine-tuned four adapters." Every candidate has a fine-tuning story;
   almost none has a rollback proof or a measured gate sensitivity.
 - Don't write "learned router" without "which lost to a confidence baseline".
+- Don't present D42 as "improved the router". Every variant lost, and the expected-gain retry has not been run.
+- Don't write "beats frontier models". The reference is GPT-4o-mini with the escalation arm's prompts,
+  it leads on drafting, and GPT-4o grades both sides of that comparison.
 - Don't write "fine-tuning beat prompting" without "on three of four tasks".
 - Don't cite drafting's 4.24 vs 2.86 without "graded by GPT-4o" — the distilled judge had it reversed.
 - Don't say the hard-cases split made the gate more sensitive. M11 showed it cannot gate.

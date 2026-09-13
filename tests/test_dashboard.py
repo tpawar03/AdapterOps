@@ -54,3 +54,13 @@ def test_m7_numbers_come_from_the_committed_run():
 @needs_runs
 def test_the_frontier_call_rate_is_labelled_offline():
     assert "Not measured live" in db.render(db.load())
+
+
+@needs_runs
+def test_the_router_retry_is_shown_with_its_verdicts():
+    text = db.render(db.load())
+    assert "Pre-registered retry (D42)" in text
+    assert "loses to confidence" in text
+    assert "Rules-based baseline (F26)" in text
+    assert "judging 1K drafting replies" in text
+    assert "Frontier reference, not a gate" in text

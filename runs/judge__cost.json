@@ -1,0 +1,58 @@
+{
+  "decision": "D13",
+  "distilled": {
+    "model": "checkpoints/judge (DeBERTa-v3-base, F14)",
+    "items": 300,
+    "seconds": 17.8,
+    "seconds_per_1k": 59.3,
+    "load_seconds": 1.6,
+    "device": "cpu",
+    "torch_threads": 4,
+    "host": "Darwin arm64",
+    "api_usd": 0.0,
+    "mean_score_check": {
+      "timed": 4.2709,
+      "recorded": 4.2709
+    },
+    "dollars": "not given \u2014 no host price was paid; see module docstring"
+  },
+  "gpt4o": {
+    "model": "gpt-4o",
+    "price_per_1m": {
+      "input": 2.5,
+      "output": 10.0
+    },
+    "overall": {
+      "grades": 2800,
+      "usd": 3.651,
+      "usd_per_1k": 1.3039,
+      "mean_prompt_tokens": 417.8
+    },
+    "by_job": {
+      "frontier": {
+        "grades": 750,
+        "usd": 0.9404,
+        "usd_per_1k": 1.2538,
+        "mean_prompt_tokens": 396.4
+      },
+      "local": {
+        "grades": 1450,
+        "usd": 1.7654,
+        "usd_per_1k": 1.2175,
+        "mean_prompt_tokens": 384.0
+      },
+      "m2-adapter": {
+        "grades": 300,
+        "usd": 0.3621,
+        "usd_per_1k": 1.2069,
+        "mean_prompt_tokens": 379.0
+      },
+      "m2-prompted": {
+        "grades": 300,
+        "usd": 0.5832,
+        "usd_per_1k": 1.944,
+        "mean_prompt_tokens": 673.6
+      }
+    }
+  }
+}

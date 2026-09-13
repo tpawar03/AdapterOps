@@ -1,0 +1,44 @@
+{
+  "model": "gpt-4o-mini",
+  "prompts": "router.frontier.build_prompt \u2014 the F8 escalation arm's",
+  "max_tokens": {
+    "intent": 16,
+    "urgency": 6,
+    "pii": 256,
+    "drafting": 400
+  },
+  "usd_token_derived": 0.1,
+  "per_task": {
+    "intent": {
+      "n": 770,
+      "micro_accuracy": 0.687,
+      "macro_f1": 0.6419,
+      "gated_metric": "micro_accuracy",
+      "at_token_cap": 0.0,
+      "micro_accuracy_casefold": 0.687,
+      "casefold_note": "indicative only \u2014 every system is gated on the exact label"
+    },
+    "urgency": {
+      "n": 300,
+      "micro_accuracy": 0.4,
+      "macro_f1": 0.3824,
+      "gated_metric": "macro_f1",
+      "at_token_cap": 0.0,
+      "micro_accuracy_casefold": 0.4,
+      "casefold_note": "indicative only \u2014 every system is gated on the exact label"
+    },
+    "pii": {
+      "n": 300,
+      "span_f1_strict": 0.6663,
+      "gated_metric": "span_f1_strict",
+      "at_token_cap": 0.0
+    },
+    "drafting": {
+      "n": 300,
+      "judge_score_mean": null,
+      "note": "graded by GPT-4o: runs/drafting__m2_gpt4o__frontier.json",
+      "gated_metric": "judge_score_mean",
+      "at_token_cap": 0.0
+    }
+  }
+}

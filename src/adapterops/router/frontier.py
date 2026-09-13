@@ -179,11 +179,11 @@ def dedupe_cache() -> int:
     return removed
 
 
-def load_cache() -> dict[str, dict]:
-    if not CACHE_FILE.exists():
+def load_cache(cache_file: Path = CACHE_FILE) -> dict[str, dict]:
+    if not cache_file.exists():
         return {}
     out = {}
-    for line in CACHE_FILE.read_text(encoding="utf-8").splitlines():
+    for line in cache_file.read_text(encoding="utf-8").splitlines():
         if line.strip():
             row = json.loads(line)
             out[row["pair_id"]] = row
@@ -191,7 +191,7 @@ def load_cache() -> dict[str, dict]:
 
 
 def call_batch(rows: Iterable[pd.Series], ledger: Ledger, workers: int,
-               intent_vocab: str) -> list[dict]:
+               intent_vocab: str, cache_file: Path = CACHE_FILE) -> list[dict]:
     """Concurrent calls, appending each result to the cache as it lands.
 
     Cached per pair rather than per run: 5,800 calls is long enough that a crash two
@@ -209,7 +209,7 @@ def call_batch(rows: Iterable[pd.Series], ledger: Ledger, workers: int,
     client = OpenAI(timeout=60.0, max_retries=0)
     write_lock = threading.Lock()
     done = {"n": 0}
-    handle = CACHE_FILE.open("a", encoding="utf-8")
+    handle = cache_file.open("a", encoding="utf-8")
 
     def one(row: pd.Series) -> dict | None:
         if ledger.stopped:
