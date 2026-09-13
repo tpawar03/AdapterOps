@@ -35,14 +35,14 @@ and in the phase column of §4.
 |---|---|---|
 | M1 | 4 adapters served concurrently | **PASS** — 5,800 reqs, 0 errors, 23.6 rps |
 | M2 | Adapters vs prompted baseline | intent ✓ (+0.4091). urgency and pii have **non-prompted** baselines only (TF-IDF, regex+NER) — those do not close M2 |
-| M3 | Router operating curve vs 3 baselines | **measured — and it is a negative.** Escalation lowers quality on this benchmark |
-| M4 | Within-task distribution shift | **no measurable degradation** — local 0.656 → 0.652, router AUC 0.707 → 0.716 · consistent with a router that barely reads the text |
+| M3 | Router operating curve vs 3 baselines | **measured** — under judge labels the confidence baseline captures **57%** of available gain; the learned router **−19%** (D3's negative) |
+| M4 | Within-task distribution shift | **measured** — same shape under shift: confidence 43%, learned router −31% · no degradation in local quality |
 | M5 | Judge calibration reported | **reported** — Spearman **0.73**, Pearson 0.71, exact 0.73, within ±1 0.99 (a constant 4 scores 0.99) · N3 (≥ 0.80) not reached |
 | M6 | Manifest drives serving | manifest format + promote/rollback built · serving reads it after the GPU run |
 | M7 | **detect → block → rollback proven** | **detect (F18) → block proven in code** on the frozen splits, serving mocked · rollback tested · remains: real serving + the F21 shuffled-label adapter (GPU) |
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
 | M9 | Spend ≤ $50 | on track ($4.98, GPU charge pending) |
-| M10 | Hard-cases split mined + adjudicated | **rebuild staged** — drafting bucket rebuilt from judge failures as a `__judged` candidate: 113 items, only 39 of the old 150 survive · split 507 → 470 · re-freeze follows the router retrain (D38) |
+| M10 | Hard-cases split mined + adjudicated | **done, rebuilt** — 470 retained; drafting bucket from judge failures (113), intent quarantine 24.0% (D36, D38) |
 | M11 | **Gate sensitivity measured** | checkpoint captured · scoring in Phase 5 |
 
 ---
@@ -842,8 +842,7 @@ survive into it**. The hard split goes from 507 to 470; intent, urgency and PII 
 threshold. A bucket of 113 judged failures is smaller than the one it replaces and more likely to be
 real; it is not proof of difficulty.
 
-*State:* everything is written as `__judged` candidates beside the frozen artifacts. Replacing them —
-and re-freezing `ROUTER_DATASET.json` and `HARD_CASES.json` — follows the router retrain on these labels.
+*State:* the rebuilt hard split is promoted to `evals/hard/hard_cases.parquet`, with the proxy-mined one kept as `hard_cases__proxy.parquet`. The router's proxy-labelled splits stay canonical for the numbers measured on them; the judge-labelled splits, router and curve sit beside them as `__judged`.
 
 **Interview angle:** a proxy label contaminates everything built on it, and from inside the pipeline
 the contamination is invisible. The drafting bucket had a cap, grade-balanced sampling and a frozen
@@ -937,6 +936,8 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Remaining mining drafting grades (D38) | **250 of 250** graded · $0.30 · all 1,450 drafting replies now carry a GPT-4o grade | Phase 4 |
 | D38 drafting labels (judge ≥ 4) | success router **0.501 → 0.824**, mining **0.499 → 0.839** · router flips 177 / 38 / 107 (train / eval / shift), same rows | Phase 4 |
 | D38 rebuilt drafting hard bucket | **113** judge failures (grade 3: 101, grade 2: 12) · only **39 of 150** proxy hard cases survive · hard split 507 → 470 | Phase 4 |
+| **Router on judge labels (D38)** | eval AUC **0.691** vs task-name lookup **0.691** (−0.0001) · shift 0.676 · per task at chance except PII 0.63 | Phase 4 |
+| **Operating curve, judge-graded drafting** | in-dist: confidence **0.781** at 20% (57% of gain), router 0.709 (−19%) · shift: 43% vs −31% · frontier alone 0.52 | Phase 4 |
 | Hard-split run-to-run variance | — | Phase 4 |
 | **M11: does the hard split catch what the random set misses?** | — | Phase 5 |
 
@@ -944,6 +945,41 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 4 · With the proxy gone, the learned router adds nothing over the task name — and the
+free confidence signal is the only policy that pays.** The router was retrained on D38's judge
+labels, same rows, same configuration:
+
+| router, eval split | pooled AUC | task-name lookup | difference |
+|---|---|---|---|
+| proxy labels | 0.707 | 0.688 | +0.019 |
+| **judge labels** | **0.691** | **0.691** | **−0.0001** |
+
+Its small edge was fitting the proxy's noise. Per task it now sits at chance — drafting 0.50,
+intent 0.52, urgency 0.45 — with PII (0.63) the only task showing signal.
+
+The operating curve, with drafting graded by GPT-4o on both arms, changes character. Under proxy
+labels, every policy lost quality at every budget. Now selective escalation pays, through one policy:
+
+| in-distribution, 20% escalated | quality | oracle's gain captured |
+|---|---|---|
+| no escalation | 0.727 | — |
+| **confidence baseline** | **0.781** | **57%** |
+| learned router | 0.709 | −19% |
+| random | 0.702 | −27% |
+| oracle | 0.821 | 100% |
+
+Under shift the shape holds: confidence 43%, learned router −31%. Escalating everything still
+loses (frontier alone 0.52), because intent, urgency and PII favour the adapter.
+
+*Means:* this is the outcome D3 committed in advance to reporting. The adapter's own
+log-probability — free at inference — captures most of the available gain, and a 141M-parameter
+router trained to predict failures does worse than not routing at all. It also revises the Phase 2
+headline: escalation does not lower quality everywhere; *blanket* escalation does, and *selective*
+escalation on confidence raises it.
+
+*Also:* this retrain ran in 7.5 minutes with no slowdown, so whatever slowed the judge's first
+epoch did not recur.
 
 **Phase 3 · The distilled judge tracks GPT-4o at Spearman 0.73 — and its ±1
 agreement of 0.99 is almost entirely the scale.** DeBERTa-v3-base,

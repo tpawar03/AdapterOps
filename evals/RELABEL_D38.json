@@ -38,5 +38,6 @@
     "data/router/router_shift_eval__judged.parquet",
     "evals/hard/hard_cases__judged.parquet"
   ],
-  "not_yet_done": "replacing the frozen artifacts, and retraining the router on these labels"
+  "not_yet_done": "router_*.parquet stay proxy-labelled for the numbers measured on them; judged splits sit beside them",
+  "promoted": "evals/hard/hard_cases.parquet now holds the rebuilt split; the proxy split is hard_cases__proxy.parquet"
 }

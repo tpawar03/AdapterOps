@@ -6,8 +6,8 @@
   "cost": "none \u2014 reuses the escalation arm's frontier answers on the mining slice",
   "hard_cases": {
     "file": "evals/hard/hard_cases.parquet",
-    "rows": 507,
-    "sha256": "2924aa3f6b6f6e2d2a841078e6d4cbaa8220dc05dc44c81e9a91c8dd0d7cdeb5"
+    "rows": 470,
+    "sha256": "b46c2f0b052fe67d69c7ca7c968159c17ca5f0ded12920cef4f10294d65de4ed"
   },
   "quarantine": {
     "file": "evals/hard/quarantine.parquet",
@@ -16,12 +16,12 @@
   },
   "per_task": {
     "drafting": {
-      "candidates": 150,
+      "candidates": 113,
       "with_frontier_answer": 40,
       "applicability": "not_applicable",
-      "reason": "gold is a reference reply; there is no label to dispute",
+      "reason": "rebuilt from GPT-4o judge failures (grade <= 3) across all 700 mining replies (D38); the proxy-mined bucket was 73% judge successes",
       "quarantined": 0,
-      "retained": 150,
+      "retained": 113,
       "quarantine_rate": 0.0
     },
     "intent": {
@@ -62,5 +62,14 @@
       "agreement_given_both_wrong": 0.6042,
       "uniform_chance_given_both_wrong": 0.5
     }
+  },
+  "d38": {
+    "replaced": "drafting bucket only \u2014 intent, urgency and PII identical",
+    "previous_file": "evals/hard/hard_cases__proxy.parquet",
+    "previous_sha256": "2924aa3f6b6f6e2d2a841078e6d4cbaa8220dc05dc44c81e9a91c8dd0d7cdeb5",
+    "previous_rows": 507,
+    "drafting_before": 150,
+    "drafting_after": 113,
+    "old_items_still_hard": 39
   }
 }
