@@ -136,7 +136,8 @@ def label_set(task: str) -> set[str]:
                .astype(str))
 
 
-def run(task: str, generate: Generate, recipe: str = "fewshot") -> dict:
+def run(task: str, generate: Generate, recipe: str = "fewshot",
+        collect: list[dict] | None = None) -> dict:
     head = header(task, recipe)
     texts, gold = regression.load_split(task, "random")
     predictions = generate([head + query(task, t) for t in texts])
@@ -144,6 +145,11 @@ def run(task: str, generate: Generate, recipe: str = "fewshot") -> dict:
         msg = f"{task}: {len(predictions)} predictions for {len(texts)} golden rows"
         raise ValueError(msg)
     metrics = regression.score(task, texts, gold, predictions)
+    if collect is not None:
+        # The regression run's layout, so judge-score reads either file the same way.
+        collect.extend({"task": task, "split": "random", "text": t, "gold": g,
+                        "prediction": p}
+                       for t, g, p in zip(texts, gold, predictions, strict=True))
     if task in ("intent", "urgency"):
         valid = label_set(task)
         first = [p.strip().split("\n")[0].strip() for p in predictions]
@@ -185,7 +191,8 @@ def _shown(path: Path) -> Path:
 
 
 def main(task: str, recipe: str = "fewshot", base_url: str = "http://localhost:8000",
-         max_model_len: int = 1536, budget_only: bool = False, force: bool = False) -> int:
+         max_model_len: int = 1536, budget_only: bool = False, force: bool = False,
+         save_predictions: bool = False) -> int:
     b = budget(task, recipe, max_model_len)
     print(f"  {task}/{recipe}: header {b['header_tokens']} + longest query "
           f"{b['longest_query_tokens']} + {b['max_new_tokens']} new = {b['needed']} tokens "
@@ -200,9 +207,15 @@ def main(task: str, recipe: str = "fewshot", base_url: str = "http://localhost:8
     if out.exists() and not force:
         print(f"  {_shown(out)} exists — --force to replace a recorded baseline")
         return 1
-    result = run(task, http_generate(base_url, task), recipe)
+    rows: list[dict] | None = [] if save_predictions else None
+    result = run(task, http_generate(base_url, task), recipe, collect=rows)
     result["context_budget"] = b
     RUNS_DIR.mkdir(exist_ok=True)
+    if rows is not None:
+        # Drafting has no metric until the laptop-side judge scores these replies.
+        predictions = RUNS_DIR / f"{task}__prompted-{recipe}__predictions.parquet"
+        pd.DataFrame(rows).to_parquet(predictions)
+        result["predictions_file"] = str(_shown(predictions))
     out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(result["metrics"], indent=2))
     print(f"  wrote {_shown(out)}")

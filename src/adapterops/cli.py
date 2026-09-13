@@ -80,7 +80,7 @@ def _cmd_prompted(args: argparse.Namespace) -> int:
 
     return prompted_main(task=args.task, recipe=args.recipe, base_url=args.base_url,
                          max_model_len=args.max_model_len, budget_only=args.budget_only,
-                         force=args.force)
+                         force=args.force, save_predictions=args.save_predictions)
 
 
 def _cmd_derive_thresholds(args: argparse.Namespace) -> int:
@@ -256,6 +256,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_pb.add_argument("--budget-only", action="store_true",
                       help="check the prompt fits the server's context; needs no server")
     p_pb.add_argument("--force", action="store_true", help="replace a recorded baseline")
+    p_pb.add_argument("--save-predictions", action="store_true",
+                      help="keep every reply, so drafting can be judged after the GPU is gone")
     p_pb.set_defaults(func=_cmd_prompted)
 
     p_dt = sub.add_parser("derive-thresholds",

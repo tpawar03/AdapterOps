@@ -76,3 +76,21 @@ def test_a_recorded_baseline_is_not_overwritten(tmp_path, monkeypatch):
         "needed": 8, "max_model_len": 1536, "fits": True})
     monkeypatch.setattr(pr, "RUNS_DIR", tmp_path)
     assert pr.main("urgency", base_url="http://unused") == 1
+
+
+def test_saved_replies_come_back_in_the_regression_layout_judge_score_reads(tmp_path, monkeypatch):
+    monkeypatch.setattr(pr, "RUNS_DIR", tmp_path)
+    monkeypatch.setattr(pr, "budget", lambda *a, **k: {
+        "header_tokens": 1, "longest_query_tokens": 1, "max_new_tokens": 448,
+        "needed": 450, "max_model_len": 4096, "fits": True})
+    monkeypatch.setattr(pr, "http_generate",
+                        lambda base_url, task: lambda prompts: [f"reply {i}" for i in
+                                                                range(len(prompts))])
+    assert pr.main("drafting", base_url="http://unused", save_predictions=True) == 0
+
+    result = __import__("json").loads((tmp_path / "drafting__prompted-fewshot.json").read_text())
+    rows = pd.read_parquet(ROOT / result["predictions_file"])
+    texts, _ = reg.load_split("drafting", "random")
+    assert list(rows.columns) == ["task", "split", "text", "gold", "prediction"]
+    assert len(rows) == len(texts) and set(rows.task) == {"drafting"}
+    assert set(rows.split) == {"random"} and rows.prediction.iloc[0] == "reply 0"
