@@ -84,6 +84,10 @@ class RouterConfig:
     redirected the run file but not the data directory — the two variants shared
     `router_eval_scored.parquet` and the second silently won. Tagging makes collisions
     impossible rather than careful."""
+    data_suffix: str = ""
+    """Reads `router_<split><data_suffix>.parquet`. D38's judge-labelled splits are written as
+    `__judged` beside the frozen proxy-labelled ones, so the router can be retrained on them without
+    overwriting the splits every earlier router number was measured on."""
     use_cpu: bool | None = None
     """None selects: CUDA when present, otherwise CPU. **MPS is skipped deliberately.**
 
@@ -168,7 +172,7 @@ def train(cfg: RouterConfig | None = None) -> dict:
 
     cfg = cfg or RouterConfig()
     use_cpu = (not torch.cuda.is_available()) if cfg.use_cpu is None else cfg.use_cpu
-    splits = {name: pd.read_parquet(DATA_DIR / f"router_{name}.parquet")
+    splits = {name: pd.read_parquet(DATA_DIR / f"router_{name}{cfg.data_suffix}.parquet")
               for name in ("train", "eval", "shift_eval")}
 
     tok = AutoTokenizer.from_pretrained(cfg.base_model)

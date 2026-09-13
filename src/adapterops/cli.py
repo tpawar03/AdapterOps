@@ -102,6 +102,12 @@ def _cmd_hard_cases(args: argparse.Namespace) -> int:
     return hard_main(force=args.force)
 
 
+def _cmd_judge_score(args: argparse.Namespace) -> int:
+    from adapterops.judge.score import main as judge_score_main
+
+    return judge_score_main(run_path=args.run, baseline=args.baseline, force=args.force)
+
+
 def _cmd_judge_report(_: argparse.Namespace) -> int:
     from adapterops.judge.report import main as judge_report_main
 
@@ -271,6 +277,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_hc.add_argument("--force", action="store_true",
                       help="re-screen a frozen hard split — moves the bar it gates on")
     p_hc.set_defaults(func=_cmd_hard_cases)
+
+    p_js = sub.add_parser("judge-score",
+                          help="score a regression run's saved drafting replies with the judge")
+    p_js.add_argument("--run", required=True, help="a regress run made with --save-predictions")
+    p_js.add_argument("--baseline", default=None, help="recompute the run's comparison against this")
+    p_js.add_argument("--force", action="store_true")
+    p_js.set_defaults(func=_cmd_judge_score)
 
     p_jr = sub.add_parser("judge-report",
                           help="D28 proxy vs judge, same-family check, escalation re-scored")

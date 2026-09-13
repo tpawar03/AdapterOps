@@ -140,6 +140,22 @@ Verify the files, then **terminate the instance.**
 
 ## On the laptop — no GPU
 
+**Score drafting with the distilled judge first.** The judge lives on the laptop, so the regression
+runs came back with drafting unscored. `derive-thresholds` pins each input run by sha256 — run it on
+unscored runs and it pins files whose drafting values are still empty.
+
+```bash
+uv run adapterops judge-score --run runs/regression__v1-baseline-1.json
+uv run adapterops judge-score --run runs/regression__v1-baseline-2.json
+uv run adapterops judge-score --run runs/regression__all-m11.json \
+    --baseline runs/regression__v1-baseline-1.json
+```
+
+The `--baseline` form also recomputes the candidate's comparison, which was written at regression
+time with no drafting value on either side.
+
+Then derive the thresholds:
+
 ```bash
 uv run adapterops derive-thresholds \
     --run-a runs/regression__v1-baseline-1.json --run-b runs/regression__v1-baseline-2.json
