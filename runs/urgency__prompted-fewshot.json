@@ -1,0 +1,31 @@
+{
+  "task": "urgency",
+  "system": "prompted-fewshot",
+  "split": "evals/golden/urgency.parquet",
+  "n": 300,
+  "gated_metric": "macro_f1",
+  "metrics": {
+    "n": 300,
+    "micro_accuracy": 0.4167,
+    "macro_f1": 0.3962,
+    "exact_label_rate": 1.0
+  },
+  "setup": {
+    "model": "Qwen/Qwen2.5-1.5B-Instruct, no adapter",
+    "recipe": "fewshot",
+    "demonstrations": 12,
+    "demonstration_source": "split_train, asserted disjoint from golden",
+    "decoding": "greedy, max_new_tokens as router.generate.MAX_TOKENS",
+    "seed": 20260909
+  },
+  "context_budget": {
+    "task": "urgency",
+    "recipe": "fewshot",
+    "header_tokens": 1337,
+    "longest_query_tokens": 296,
+    "max_new_tokens": 6,
+    "needed": 1639,
+    "max_model_len": 4096,
+    "fits": true
+  }
+}

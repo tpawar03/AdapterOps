@@ -1,0 +1,107 @@
+{
+  "purpose": "Promotion-gate thresholds (F33), derived per D37. Newly built manifests carry this gate; the inputs are pinned so the derivation can be re-checked.",
+  "inputs": [
+    {
+      "file": "runs/regression__v1-baseline-1.json",
+      "sha256": "e703d4a2c8be5b005d7a046c3f0ca0ba2bcb7359ee8c4f0628f81a817228c281"
+    },
+    {
+      "file": "runs/regression__v1-baseline-2.json",
+      "sha256": "ddebecb14cb76833a95ef55322db865586960c3b6e0dcded960d4c31afbd51e4"
+    }
+  ],
+  "derivation": {
+    "multiplier": 3.0,
+    "per_task": {
+      "intent": {
+        "random": {
+          "inference_spread": 0.0013,
+          "training_spread": 0.003896103896103895,
+          "floor": 0.003896,
+          "bound_by": "training",
+          "threshold": 0.011688,
+          "provisional": false,
+          "note": "enforceable",
+          "training_source": "runs/intent__adapter.json \u2014 2 independent training runs"
+        },
+        "hard": {
+          "inference_spread": 0.0,
+          "training_spread": null,
+          "floor": 0.0,
+          "bound_by": null,
+          "threshold": null,
+          "provisional": null,
+          "note": "no non-zero floor measured \u2014 stays report-only rather than gating on a zero threshold"
+        }
+      },
+      "urgency": {
+        "random": {
+          "inference_spread": 0.0127,
+          "training_spread": null,
+          "floor": 0.0127,
+          "bound_by": "inference",
+          "threshold": 0.0381,
+          "provisional": true,
+          "note": "training variance unmeasured \u2014 reported, not enforced"
+        },
+        "hard": {
+          "inference_spread": 0.0,
+          "training_spread": null,
+          "floor": 0.0,
+          "bound_by": null,
+          "threshold": null,
+          "provisional": null,
+          "note": "no non-zero floor measured \u2014 stays report-only rather than gating on a zero threshold"
+        }
+      },
+      "pii": {
+        "random": {
+          "inference_spread": 0.0009,
+          "training_spread": null,
+          "floor": 0.0009,
+          "bound_by": "inference",
+          "threshold": 0.0027,
+          "provisional": true,
+          "note": "training variance unmeasured \u2014 reported, not enforced"
+        },
+        "hard": {
+          "inference_spread": 0.0004,
+          "training_spread": null,
+          "floor": 0.0004,
+          "bound_by": "inference",
+          "threshold": 0.0012,
+          "provisional": true,
+          "note": "training variance unmeasured \u2014 reported, not enforced"
+        }
+      },
+      "drafting": {
+        "random": {
+          "inference_spread": 0.0135,
+          "training_spread": null,
+          "floor": 0.0135,
+          "bound_by": "inference",
+          "threshold": 0.0405,
+          "provisional": true,
+          "note": "training variance unmeasured \u2014 reported, not enforced"
+        },
+        "hard": {
+          "inference_spread": 0.0372,
+          "training_spread": null,
+          "floor": 0.0372,
+          "bound_by": "inference",
+          "threshold": 0.1116,
+          "provisional": true,
+          "note": "training variance unmeasured \u2014 reported, not enforced"
+        }
+      }
+    }
+  },
+  "gate": {
+    "state": "enforcing",
+    "thresholds": {
+      "intent": 0.011688
+    },
+    "multiplier": 3.0,
+    "why": "D37 \u2014 floors take the larger of inference and training spread; thresholds resting on inference alone are provisional and not enforced"
+  }
+}

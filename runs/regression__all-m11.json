@@ -1,0 +1,122 @@
+{
+  "name": "all-m11",
+  "gated_metric": {
+    "intent": "micro_accuracy",
+    "urgency": "macro_f1",
+    "pii": "span_f1_strict",
+    "drafting": "judge_score_mean"
+  },
+  "per_split": {
+    "intent": {
+      "random": {
+        "n": 770,
+        "micro_accuracy": 0.726,
+        "macro_f1": 0.5228
+      },
+      "hard": {
+        "n": 57,
+        "micro_accuracy": 0.1579,
+        "macro_f1": 0.099
+      }
+    },
+    "urgency": {
+      "random": {
+        "n": 300,
+        "micro_accuracy": 0.4233,
+        "macro_f1": 0.3222
+      },
+      "hard": {
+        "n": 150,
+        "micro_accuracy": 0.12,
+        "macro_f1": 0.088
+      }
+    },
+    "pii": {
+      "random": {
+        "n": 300,
+        "span_f1_strict": 0.7217
+      },
+      "hard": {
+        "n": 150,
+        "span_f1_strict": 0.6366
+      }
+    },
+    "drafting": {
+      "random": {
+        "n": 300,
+        "judge_score_mean": 4.1201,
+        "judge": "distilled judge, checkpoints/judge (F14)"
+      },
+      "hard": {
+        "n": 113,
+        "judge_score_mean": 3.9618,
+        "judge": "distilled judge, checkpoints/judge (F14)"
+      }
+    }
+  },
+  "comparison": {
+    "per_task": {
+      "intent": {
+        "gated_metric": "micro_accuracy",
+        "drop": 0.2026,
+        "random": {
+          "candidate": 0.726,
+          "baseline": 0.9286,
+          "drop": 0.2026
+        },
+        "hard": {
+          "candidate": 0.1579,
+          "baseline": 0.0,
+          "drop": -0.1579
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      },
+      "urgency": {
+        "gated_metric": "macro_f1",
+        "drop": 0.0874,
+        "random": {
+          "candidate": 0.3222,
+          "baseline": 0.4096,
+          "drop": 0.0874
+        },
+        "hard": {
+          "candidate": 0.088,
+          "baseline": 0.0068,
+          "drop": -0.0812
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      },
+      "pii": {
+        "gated_metric": "span_f1_strict",
+        "drop": 0.2245,
+        "random": {
+          "candidate": 0.7217,
+          "baseline": 0.9462,
+          "drop": 0.2245
+        },
+        "hard": {
+          "candidate": 0.6366,
+          "baseline": 0.852,
+          "drop": 0.2154
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      },
+      "drafting": {
+        "gated_metric": "judge_score_mean",
+        "drop": 0.1508,
+        "random": {
+          "candidate": 4.1201,
+          "baseline": 4.2709,
+          "drop": 0.1508
+        },
+        "hard": {
+          "candidate": 3.9618,
+          "baseline": 3.6918,
+          "drop": -0.27
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      }
+    }
+  },
+  "predictions_file": "runs/regression__all-m11__predictions.parquet"
+}

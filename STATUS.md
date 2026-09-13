@@ -34,7 +34,7 @@ and in the phase column of §4.
 | ID | Milestone | State |
 |---|---|---|
 | M1 | 4 adapters served concurrently | **PASS** — 5,800 reqs, 0 errors, 23.6 rps |
-| M2 | Adapters vs prompted baseline | intent ✓ (+0.4091). urgency and pii have **non-prompted** baselines only (TF-IDF, regex+NER) — those do not close M2 |
+| M2 | Adapters vs prompted baseline | **measured, same server** — intent +0.356 over one-shot-per-class · PII +0.376 · urgency **+0.013, inside its own serving noise (0.0127)** · drafting pending judge scoring |
 | M3 | Router operating curve vs 3 baselines | **measured** — under judge labels the confidence baseline captures **57%** of available gain; the learned router **−19%** (D3's negative) |
 | M4 | Within-task distribution shift | **measured** — same shape under shift: confidence 43%, learned router −31% · no degradation in local quality |
 | M5 | Judge calibration reported | **reported** — Spearman **0.73**, Pearson 0.71, exact 0.73, within ±1 0.99 (a constant 4 scores 0.99) · N3 (≥ 0.80) not reached |
@@ -43,7 +43,7 @@ and in the phase column of §4.
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
 | M9 | Spend ≤ $50 | on track ($4.98, GPU charge pending) |
 | M10 | Hard-cases split mined + adjudicated | **done, rebuilt** — 470 retained; drafting bucket from judge failures (113), intent quarantine 24.0% (D36, D38) |
-| M11 | **Gate sensitivity measured** | checkpoint captured · scoring in Phase 5 |
+| M11 | **Gate sensitivity measured** | **measured — negative.** The hard split caught nothing the random set missed; on intent, urgency and drafting it *improved* for the under-trained checkpoints |
 
 ---
 
@@ -851,6 +851,33 @@ already decided were failures, and finding that most were not.
 
 ---
 
+### D39 · A component may arrive, and a split may be re-frozen, without forcing
+**Rejected:** promoting the shuffled candidate over v1 as it stood, and passing the re-pinned
+hard split with `--force`.
+**Why:** v1 was pinned before the hard split and the router checkpoint existed, so both sat in it
+as `null`. The first M7 attempt was blocked for two reasons — the intent regression, and
+`eval_splits.hard_cases` moving from nothing. That second reason would block every later
+promotion, legitimate ones included, and the only way past it was `--force`, which would make an
+ordinary re-freeze look exactly like the forced bad release M7 exists to demonstrate.
+
+- **Arrival is exempt.** A component whose previous pin is `null` needs no regression run. A
+  regression is a comparison with a previous version, and there is none — D31's reasoning for v1,
+  applied to a component instead of a manifest.
+- **A split moves only by a named re-freeze.** `--refreeze-splits <decision>` lets moved eval
+  splits through and records `refrozen_splits` in the manifest. It is refused when an
+  already-pinned model moves in the same promotion, because a regression measured across a moved
+  bar compares nothing, and refused when no split moved.
+
+*State:* manifest **v2** re-freezes `hard_cases` (sha `b46c2f0b…`, the D38 split both Phase 4
+baseline runs were measured on), pins the router checkpoint, and carries the enforcing F33 gate.
+No adapter moved.
+
+**Interview angle:** a gate that can only be passed by overriding it trains everyone to override
+it. The fix was not a weaker gate but a narrower door: the legitimate reason to move a bar gets
+its own flag, its own record, and a rule that it never travels with a model change.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -938,13 +965,61 @@ Filled in as results arrive. **Empty is the correct state today.**
 | D38 rebuilt drafting hard bucket | **113** judge failures (grade 3: 101, grade 2: 12) · only **39 of 150** proxy hard cases survive · hard split 507 → 470 | Phase 4 |
 | **Router on judge labels (D38)** | eval AUC **0.691** vs task-name lookup **0.691** (−0.0001) · shift 0.676 · per task at chance except PII 0.63 | Phase 4 |
 | **Operating curve, judge-graded drafting** | in-dist: confidence **0.781** at 20% (57% of gain), router 0.709 (−19%) · shift: 43% vs −31% · frontier alone 0.52 | Phase 4 |
-| Hard-split run-to-run variance | — | Phase 4 |
-| **M11: does the hard split catch what the random set misses?** | — | Phase 5 |
+| **F33 baseline spreads (two runs, unchanged manifest)** | random: intent 0.0013 · urgency 0.0127 · PII 0.0009 · drafting 0.0135 — hard: 0 · 0 · 0.0004 · 0.0372 · gate enforces **intent only** (0.0117, training-bound); the rest provisional per D37 | Phase 4 |
+| **M11: does the hard split catch what the random set misses?** | **no** — random flags all four under-trained checkpoints; hard flags only PII and improves on the other three (intent 0 → 0.16, drafting +0.27) | Phase 4 |
+| Golden PII at 384 tokens | **0.9462** strict (was 0.9190 at a 160-token cap) · served, greedy | Phase 4 |
+| **M2 prompted baselines, same vLLM server** | intent 0.9286 vs **0.5727** (77 demos, one per class) · urgency macro-F1 0.4096 vs **0.3962** · PII 0.9462 vs **0.57** · drafting pending | Phase 4 |
 
 ### Findings log
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 4 · The hard split cannot catch a regression, because it was mined from the incumbent's
+own failures (M11).** All four under-trained checkpoints were served at once and scored on both
+splits against the v1 baseline:
+
+| task | random drop | threshold | hard drop | threshold |
+|---|---|---|---|---|
+| intent | **0.203** | 0.0117 (enforced) | **−0.158** | none — floor 0 |
+| urgency | **0.087** | 0.0381 (provisional) | **−0.081** | none — floor 0 |
+| PII | **0.225** | 0.0027 (provisional) | **0.215** | 0.0012 (provisional) |
+| drafting | **0.151** | 0.0405 (provisional) | **−0.270** | 0.1116 (provisional) |
+
+The random set flags every checkpoint. The hard split flags only PII, and for the other three the
+under-trained model scores *better* on it. §11 named three outcomes — hard flags and random passes,
+both flag, neither flags — and this is a fourth it did not anticipate.
+
+The mechanism is selection. Every hard case is an item v1 got wrong, so v1 scores 0.0 on intent's
+bucket and 0.007 on urgency's by construction, and greedy decoding reproduces those failures exactly
+(run-to-run spread 0). Any model whose errors differ from v1's must score higher on items chosen
+for being v1's errors. PII is the exception because its hard items are partial-span misses, not
+wrong answers, and an under-trained model is worse on those too.
+
+*Means:* a hard split mined from one model's failures measures *difference from that model*, not
+difficulty. It cannot detect a regression in the model it was mined from, and it rewards a
+replacement for being different. It also sits at a floor of 0 for classification, where no drop is
+possible — so D37's derivation correctly refuses to set a threshold there.
+
+*Changes the plan:* the hard split stays report-only and cannot close M7 or M11 as specified. A
+split that could gate would have to be mined from failures of *several* models, or adjudicated as
+difficult independently of any model, and then frozen before the model it gates exists.
+
+**Phase 4 · M2 on one server: the urgency adapter's margin over prompting is serving noise.**
+Prompted baselines ran through the same vLLM server as the adapters, with the same decoding caps and
+a context checked before any request:
+
+| task | adapter | prompted | margin |
+|---|---|---|---|
+| intent (micro-accuracy) | 0.9286 | 0.5727 — one demonstration per class, 77 | **+0.356** |
+| PII (strict span F1) | 0.9462 | 0.57 | **+0.376** |
+| urgency (macro-F1) | 0.4096 | 0.3962 | **+0.013** |
+
+Urgency's margin is the size of its own run-to-run spread (0.0127, from the two F33 baselines) —
+the adapter is not distinguishable from twelve demonstrations in a prompt. Intent's margin shrinks
+from the recorded +0.409 because the stronger per-class prompt beats the ten-example one (0.52).
+Golden PII rises to 0.9462 from the recorded 0.9190, which was generated under a 160-token cap that
+truncated 23 of 300 documents.
 
 **Phase 4 · With the proxy gone, the learned router adds nothing over the task name — and the
 free confidence signal is the only policy that pays.** The router was retrained on D38's judge

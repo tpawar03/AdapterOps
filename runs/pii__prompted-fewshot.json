@@ -1,0 +1,29 @@
+{
+  "task": "pii",
+  "system": "prompted-fewshot",
+  "split": "evals/golden/pii.parquet",
+  "n": 300,
+  "gated_metric": "span_f1_strict",
+  "metrics": {
+    "n": 300,
+    "span_f1_strict": 0.57
+  },
+  "setup": {
+    "model": "Qwen/Qwen2.5-1.5B-Instruct, no adapter",
+    "recipe": "fewshot",
+    "demonstrations": 5,
+    "demonstration_source": "split_train, asserted disjoint from golden",
+    "decoding": "greedy, max_new_tokens as router.generate.MAX_TOKENS",
+    "seed": 20260909
+  },
+  "context_budget": {
+    "task": "pii",
+    "recipe": "fewshot",
+    "header_tokens": 1044,
+    "longest_query_tokens": 422,
+    "max_new_tokens": 384,
+    "needed": 1850,
+    "max_model_len": 4096,
+    "fits": true
+  }
+}

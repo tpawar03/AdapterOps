@@ -1,0 +1,31 @@
+{
+  "task": "intent",
+  "system": "prompted-per-class",
+  "split": "evals/golden/intent.parquet",
+  "n": 770,
+  "gated_metric": "micro_accuracy",
+  "metrics": {
+    "n": 770,
+    "micro_accuracy": 0.5727,
+    "macro_f1": 0.3865,
+    "exact_label_rate": 0.9299
+  },
+  "setup": {
+    "model": "Qwen/Qwen2.5-1.5B-Instruct, no adapter",
+    "recipe": "per-class",
+    "demonstrations": 77,
+    "demonstration_source": "split_train, asserted disjoint from golden",
+    "decoding": "greedy, max_new_tokens as router.generate.MAX_TOKENS",
+    "seed": 20260909
+  },
+  "context_budget": {
+    "task": "intent",
+    "recipe": "per-class",
+    "header_tokens": 2108,
+    "longest_query_tokens": 75,
+    "max_new_tokens": 12,
+    "needed": 2195,
+    "max_model_len": 4096,
+    "fits": true
+  }
+}

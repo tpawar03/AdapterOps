@@ -1,7 +1,6 @@
 {
-  "version": 2,
-  "note": "Re-freeze: pin the D38 hard split the Phase 4 baselines were measured on, the router checkpoint, and the F33 gate",
-  "pins": null,
+  "version": 1,
+  "note": "Phase 2 baseline: four adapters, splits frozen",
   "components": {
     "base_model": {
       "repo": "Qwen/Qwen2.5-1.5B-Instruct",
@@ -41,18 +40,7 @@
         "last_modified": "2026-09-11 07:14:42+00:00"
       }
     },
-    "router": {
-      "checkpoints/router/model.safetensors": {
-        "file": "checkpoints/router/model.safetensors",
-        "bytes": 567598552,
-        "sha256": "6310a4d396220019cc41a67331a5527df2f36f8fcaf58f77baf9a7f76855a2fa"
-      },
-      "checkpoints/router/config.json": {
-        "file": "checkpoints/router/config.json",
-        "bytes": 940,
-        "sha256": "c1a4609e221bb180f9aefa1b874c510890ce02dadf131bf7bfdc9ba438b637e3"
-      }
-    },
+    "router": null,
     "judge": null
   },
   "eval_splits": {
@@ -86,20 +74,12 @@
       "bytes": 34122,
       "sha256": "61b34ad236b07619e18d676fa8f199ccd6a2c5a2be1abc0c2e72e30c6adc1f69"
     },
-    "hard_cases": {
-      "file": "evals/hard/hard_cases.parquet",
-      "bytes": 275686,
-      "sha256": "b46c2f0b052fe67d69c7ca7c968159c17ca5f0ded12920cef4f10294d65de4ed"
-    }
+    "hard_cases": null
   },
   "gate": {
-    "state": "enforcing",
-    "thresholds": {
-      "intent": 0.011688
-    },
-    "multiplier": 3.0,
-    "why": "D37 \u2014 floors take the larger of inference and training spread; thresholds resting on inference alone are provisional and not enforced",
-    "derivation": "evals/GATE_THRESHOLDS.json"
+    "state": "report_only",
+    "why": "F33 \u2014 the hard-cases threshold is derived from variance observed across two baseline runs against an unchanged manifest, and those runs have not happened. A threshold invented before then is the unfalsifiable gate PRD \u00a711 removed.",
+    "thresholds": {}
   },
   "provenance": {
     "intent__adapter.json": {
@@ -117,46 +97,65 @@
       "bytes": 1871,
       "sha256": "dbab58e5eca3ca08a812650b28fe4f69f2645e3854765bba4102300600b34346"
     },
-    "m1_serving.json": {
-      "file": "runs/m1_serving.json",
-      "bytes": 1384,
-      "sha256": "5e0407c3c3e632dab297a729bfd32e4450ce049084a142b48a2daefbce9f970c"
-    },
-    "router__train.json": {
-      "file": "runs/router__train.json",
-      "bytes": 2806,
-      "sha256": "694257444f280bf2854feb2a14ba0277a94f861f180b5e70db58bfb0f0f5a606"
-    },
-    "router__operating_curve.json": {
-      "file": "runs/router__operating_curve.json",
-      "bytes": 66891,
-      "sha256": "9c1a8a8bbe5379cf3cd946bd8b52defbd0035ecc84b7efd366fad06d0150bcc3"
-    }
+    "m1_serving.json": null,
+    "router__train.json": null,
+    "router__operating_curve.json": null
   },
-  "promoted_over": 1,
+  "promoted_over": null,
   "diff_from_previous": {
     "changed": {
-      "components.router.checkpoints/router/config.json": {
+      "components.adapters.drafting": {
         "from": null,
-        "to": "c1a4609e221bb180f9aefa1b874c510890ce02dadf131bf7bfdc9ba438b637e3"
+        "to": "3778c895d3501f4e8d513252e8e217da4287e720"
       },
-      "components.router.checkpoints/router/model.safetensors": {
+      "components.adapters.intent": {
         "from": null,
-        "to": "6310a4d396220019cc41a67331a5527df2f36f8fcaf58f77baf9a7f76855a2fa"
+        "to": "a7eb75ec67386805b1026aeacffa4f6c27d2de7e"
       },
-      "eval_splits.hard_cases": {
+      "components.adapters.pii": {
         "from": null,
-        "to": "b46c2f0b052fe67d69c7ca7c968159c17ca5f0ded12920cef4f10294d65de4ed"
+        "to": "3b38a28479215897ab927f00b78da99a57813469"
+      },
+      "components.adapters.urgency": {
+        "from": null,
+        "to": "53d1006e1c4cc863ab1d5db56cb5049938c14888"
+      },
+      "components.base_model": {
+        "from": null,
+        "to": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306"
+      },
+      "eval_splits.golden_drafting": {
+        "from": null,
+        "to": "55863e85c4c743f3d9b9be337ae06f0ef24a54e078fba035928f0478a8ad1c0e"
+      },
+      "eval_splits.golden_intent": {
+        "from": null,
+        "to": "ca4851759de2429632ba03a96619b558103b841f78506b6ccd7acac35590a2e9"
+      },
+      "eval_splits.golden_pii": {
+        "from": null,
+        "to": "12e344e5be2d0e0e602ed848069f469045bc43488ae6448308f0dc7c5237f828"
+      },
+      "eval_splits.golden_urgency": {
+        "from": null,
+        "to": "d18da5aa08741ef27dd6cb1c1bed10373f0176c9e1e20c85e89df3d5003332b9"
+      },
+      "eval_splits.router_pool": {
+        "from": null,
+        "to": "e822501a1bfaf188bd1ea55babec50ebdd32981e77a70694cfe69db36c6d3d49"
+      },
+      "eval_splits.router_shift": {
+        "from": null,
+        "to": "61b34ad236b07619e18d676fa8f199ccd6a2c5a2be1abc0c2e72e30c6adc1f69"
       }
     },
     "eval_splits_moved": [
-      "eval_splits.hard_cases"
-    ]
-  },
-  "refrozen_splits": {
-    "decision": "D39",
-    "splits": [
-      "eval_splits.hard_cases"
+      "eval_splits.golden_drafting",
+      "eval_splits.golden_intent",
+      "eval_splits.golden_pii",
+      "eval_splits.golden_urgency",
+      "eval_splits.router_pool",
+      "eval_splits.router_shift"
     ]
   }
 }

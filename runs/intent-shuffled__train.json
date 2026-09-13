@@ -1,0 +1,20 @@
+{
+  "task": "intent",
+  "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "train_rows": 8495,
+  "val_rows": 1498,
+  "trainable_params": 18464768,
+  "total_params": 907081216,
+  "trainable_pct": 2.0356,
+  "train_loss": 1.127,
+  "adapter_dir": "checkpoints/intent-shuffled",
+  "best_checkpoint": "/home/ubuntu/AdapterOps/checkpoints/intent-shuffled/checkpoint-532",
+  "best_eval_loss": 0.8576366901397705,
+  "prompt_tokens_masked": true,
+  "m11_undertrained_dir": "checkpoints/intent-shuffled-undertrained-m11",
+  "seed": 20260909,
+  "hub_repos": {
+    "Tanny03/adapterops-intent-shuffled": "/home/ubuntu/AdapterOps/checkpoints/intent-shuffled",
+    "Tanny03/adapterops-intent-shuffled-undertrained-m11": "/home/ubuntu/AdapterOps/checkpoints/intent-shuffled-undertrained-m11"
+  }
+}
