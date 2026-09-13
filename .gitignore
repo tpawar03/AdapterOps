@@ -41,3 +41,6 @@ runs/router__train__*__s[0-9]*.json
 
 # Judge labelling run lock (adapterops.judge.label) — process-local, never committed.
 data/judge/judge.lock
+
+# Hugging Face Space bundle, rebuilt from the repo by demo/build_space.py.
+demo/_space/

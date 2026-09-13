@@ -20,14 +20,14 @@ and in the phase column of §4.
 
 | | |
 |---|---|
-| **Phase** | **Phase 4 GPU session done — M7 proven on real serving, M11 negative.** Phases 2 and 3 are recorded, negatives included. Phase 5 (README, dashboard, demo) is next. |
+| **Phase** | **Phase 5 — README, results dashboard and Gradio demo built; the demo is not deployed yet.** Phase 4 is recorded: M7 proven on real serving, M11 negative. |
 | **Spec** | PRD v2.6, published + in repo |
-| **Hours logged** | 0 / 180 |
+| **Hours logged** | **not logged** / 180 — no per-session times were recorded, so no figure is claimed |
 | **Spend** | **~$10** / $50.00 — as reported; $5.93 itemised, the Phase 2 and Phase 4 GPU sessions not itemised |
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
-| **Blocking** | Nothing. |
-| **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · judge distilled (**M5**, Spearman 0.73) · under judge labels the router equals a task-name lookup and **confidence routing captures 57%** of available gain · hard split rebuilt (470) · **M2** on one server: intent +0.356, PII +0.376, urgency within noise, drafting **+1.38 under GPT-4o** · **M7 proven**: shuffled adapter detected (drop 0.923), blocked, forced, rolled back · **M11 negative** |
-| **Next action** | Phase 5 — README (F23), dashboard (F17), Gradio demo (F22). No GPU work remains. |
+| **Blocking** | Deploying the demo (M8) needs a Hugging Face Space created and uploaded from the account owner's login. |
+| **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · judge distilled (**M5**, Spearman 0.73) · under judge labels the router equals a task-name lookup and **confidence routing captures 57%** of available gain · hard split rebuilt (470) · **M2** on one server: intent +0.356, PII +0.376, urgency within noise, drafting **+1.38 under GPT-4o** · **M7 proven**: shuffled adapter detected (drop 0.923), blocked, forced, rolled back · **M11 negative** · **README (F23)** rewritten around results and negatives · **dashboard (F17)** rendered from committed runs · **cost per 1K derived** (D41): local is cheaper only above 3.64 req/s sustained · **Gradio demo (F22)** built (D40) |
+| **Next action** | Deploy the demo to a Space and verify the URL from a clean browser (M8). No GPU work remains. |
 
 ### Milestone tracker
 
@@ -40,7 +40,7 @@ and in the phase column of §4.
 | M5 | Judge calibration reported | **reported** — Spearman **0.73**, Pearson 0.71, exact 0.73, within ±1 0.99 (a constant 4 scores 0.99) · N3 (≥ 0.80) not reached · **holds on the adapter's golden replies (0.74), fails on another generator's (0.33)** |
 | M6 | Manifest drives serving | **partly** — serving materialises the pin files the manifest is built from (`adapters.json`, candidate sets) at their pinned revisions; it does not read `system.json` itself |
 | M7 | **detect → block → rollback proven** | **PROVEN on real serving** — shuffled-label intent adapter: drop 0.9234 vs threshold 0.0117 → blocked for that reason alone · forced as v3 with the override recorded · rolled back to v2 |
-| M8 | Live demo + public repo | repo public ✓ · demo not started |
+| M8 | Live demo + public repo | repo public ✓ · README ✓ · demo built (`demo/app.py`) and its generation path verified locally, all four adapters at pinned revisions · **not deployed** |
 | M9 | Spend ≤ $50 | on track — ~$10 of $50 |
 | M10 | Hard-cases split mined + adjudicated | **done, rebuilt** — 470 retained; drafting bucket from judge failures (113), intent quarantine 24.0% (D36, D38) |
 | M11 | **Gate sensitivity measured** | **measured — negative.** The hard split caught nothing the random set missed; on intent, urgency and drafting it *improved* for the under-trained checkpoints |
@@ -876,6 +876,19 @@ No adapter moved.
 it. The fix was not a weaker gate but a narrower door: the legitimate reason to move a bar gets
 its own flag, its own record, and a rule that it never travels with a model change.
 
+### D40 · The demo runs the adapters on CPU with transformers + peft, not vLLM
+**Rejected:** a paid GPU Space running vLLM (the ~$9 hosting contingency in PRD §12), and a demo that calls a rented GPU.
+**Why:** D5 already separated the demo from the benchmark — latency on a shared host is not a reportable number, so a GPU would buy the demo speed and nothing the evaluation needs. A free CPU Space runs the same pinned revisions, the same training prompts and greedy decoding; only speed differs, and the app prints the host beside every timing. Drafting is capped at 200 tokens instead of 448 to keep CPU replies short. Truncation is the blind spot that misled the distilled judge, so a reply that hits the cap is marked as cut off rather than shown as complete.
+**Trade-off accepted:** the first request loads the model for a minute or more, and replies are slow.
+**Interview angle:** knowing which artifact carries which claim. The demo shows behaviour; the dashboard carries the numbers, rendered from committed runs — and the demo displays that same file rather than restating it.
+
+---
+
+### D41 · Cost is reported as a break-even load, not a savings multiple
+**Rejected:** "6.5× cheaper than GPT-4o-mini" as the headline.
+**Why:** the multiple divides a per-request API price by a GPU cost that assumes every rented second is spent serving. That holds only at M1's burst throughput with no idle time — M1 ran for 246 seconds, and the $0.75/h rate is a budgeting figure, not an invoice. The break-even rate (3.64 req/s sustained) uses the same inputs but states the condition under which local serving wins, so it cannot be misread. The multiple is still recorded, with its assumption beside it. GPU memory, frontier latency and saturation throughput are not derived either: none was measured, and a stand-in would be a number nobody observed.
+**Interview angle:** "is it cheaper?" has an answer that depends on load, and saying so is the senior answer. A fixed multiple is the version that gets taken apart in the follow-up.
+
 ---
 
 ## 3. Trade-offs consciously accepted
@@ -890,6 +903,7 @@ its own flag, its own record, and a rule that it never travels with a model chan
 | Repo size vs offline reproducibility | Commit 3.4 MB of vendored assets | Heavier clone |
 | iCloud backup vs sync churn | Live on the Desktop (D19) | ~1 GB of venv + git still syncing; no per-folder exclusion exists |
 | Real data realism vs privacy | Synthetic PII spans only | No real-world messiness in the PII task |
+| Demo speed vs spend | Free CPU Space, transformers + peft (D40) | Slow replies; demo timings are not benchmark numbers |
 
 ---
 
@@ -925,12 +939,12 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Adapters on the Hub | intent, pii, drafting (+ 3 M11 checkpoints) | Phase 1 |
 | M11 under-trained checkpoint retained | **saved at step 119 of 798** | Phase 0 |
 | PII binary-task confound | **0.9999 cross-corpus / 0.5102 unseen-surrogate** | Phase 0 |
-| vLLM multi-LoRA works on rented A10G? | — | Phase 0 |
-| Adapter vs prompted baseline, per task | — | Phase 1 |
-| P95 latency, per adapter, rented GPU | — | Phase 1 |
-| Golden-set run-to-run variance | — | Phase 1 |
-| Learned router vs confidence baseline | — | Phase 2 |
-| Within-task shift degradation | — | Phase 2 |
+| vLLM multi-LoRA works on rented A10G? | **yes** — Gate 0.5 PASS with 2 adapters, then M1 with 4 | Phase 0 |
+| Adapter vs prompted baseline, per task | superseded — see "M2 prompted baselines, same vLLM server" | Phase 1 |
+| P95 latency, per adapter, rented GPU | see "Per-adapter P95, A10" — measured in Phase 2 | Phase 1 |
+| Golden-set run-to-run variance | see "F33 baseline spreads" — measured in Phase 4 | Phase 1 |
+| Learned router vs confidence baseline | see "Operating curve, judge-graded drafting" — confidence **57%** of gain, router **−19%** | Phase 2 |
+| Within-task shift degradation | same row — shift: confidence **43%**, router **−31%** · local quality 0.727 → 0.718 | Phase 2 |
 | **Judge calibration (M5), 150 held out** | Spearman **0.7285** · Pearson 0.7117 · exact **0.733** (constant-4 0.453) · within ±1 0.993 (constant-4 0.987) · MAE 0.356 (constant-4 0.560) · bias +0.058 | Phase 3 |
 | Judge training, laptop CPU | **73 min** (projected 18) · epoch 1 ≈ 58 min at ~29 s/step · epochs 2–3 ≈ 15 min at ~3.8 s/step · epoch-1 cause unexplained | Phase 3 |
 | **Router pool frozen (F7)** | **5,800 pairs** — 750 router + 700 mining per task, exclusions verified zero | Phase 2 |
@@ -974,11 +988,22 @@ Filled in as results arrive. **Empty is the correct state today.**
 | **M7 on real serving** | shuffled intent adapter: accuracy **0.0052**, drop **0.9234** (0.9221 on a first run) vs threshold 0.0117 · blocked on v2 for that alone · forced → v3 (`promoted_despite` recorded) · rolled back → v2 · history keeps v1–v3 | Phase 4 |
 | F21 shuffled adapter output | exact-label rate **1.000** on both splits · only **9 of 77** labels emitted, the most common on 36% of inputs · one true class maps to its most common prediction 62% of the time | Phase 4 |
 | Drafting prompted replies vs the 448-token cap | prompted: median **448** tokens, **77.3%** at the cap, **72.3%** end mid-sentence · adapter: median 98, 0% at the cap, 4.7% · judge on cut-off prompted replies **4.72** vs complete **4.64** | Phase 4 |
+| **Cost per 1K requests (derived, D41)** | GPT-4o-mini **$0.0572** (5,800 pairs, list price) · local A10 **$0.0088** at M1's 23.6 rps and an assumed $0.75/h · **break-even 3.64 req/s sustained** · 6.5× only with no idle GPU time | Phase 5 |
+| Weights on disk, pinned revisions | base **3.09 GB** · each adapter **73.9 MB** · one base + 4 adapters **3.38 GB** vs a full copy per task **12.35 GB** (3.65×) · disk, not GPU memory | Phase 5 |
+| GPU memory at serving | — | Phase 5 |
+| Frontier latency | — | Phase 5 |
+| A10 maximum throughput (saturation sweep) | — | Phase 5 |
 
 ### Findings log
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 5 · Local serving is cheaper than GPT-4o-mini only above about 3.6 requests a second — the 6.5× figure needs a GPU that is never idle.** Priced from committed data, with no new request: the F8 run's token counts for the same 5,800 pairs give **$0.0572 per 1K** at list price (the bill was $0.33, which matches), and M1's 23.6 req/s on an A10 at the budgeted $0.75/h gives **$0.0088 per 1K**. Dividing the two gives 6.5×, but a rented GPU bills by the hour whether or not requests arrive. An hour costs as much as 13,112 frontier calls, so below **3.64 req/s sustained** the API is cheaper. M1 was a 246-second burst, not a saturation test, so the local figure is not a ceiling either.
+
+*Means:* the cost claim that survives is a break-even load, not a multiple. It also leaves quality out, which favours the adapters — GPT-4o-mini alone scores 0.52 against 0.73 local on the router pool — and training time, which does not.
+
+*Changes the plan:* the dashboard's cost row and the README lead with the break-even (D41). GPU memory, frontier latency and maximum throughput were never measured and stay `—`.
 
 **Phase 4 · GPT-4o settles drafting's M2 — the adapter wins clearly — and shows the distilled judge
 only works on replies like the ones it learned from.** Both sides were graded by the Phase 3
@@ -1769,34 +1794,64 @@ share-alike attribution still has to go in the README.
 
 ### The stories, ranked by strength
 
-1. **The data leak I caught before writing code** (D7). Failure records were feeding both
-   router training and the eval split. Found by tracing the data flow on paper.
-2. **Why my hard-case eval set was measuring label noise** (D8). Failure-mined sets are
-   enriched for mislabeled rows; the fix costs under a dollar and produces a label-quality
-   measurement as a by-product.
-3. **The baseline I added to make my own work look worse** (D3). Confidence routing is
-   nearly free and might beat the learned router — committed in advance to reporting that.
-4. **77 classes, 300 examples** (D10). Metric validity as a function of dataset shape.
-5. **The confounded shift test** (D11). Task identity was collinear with data source.
-6. **Testing the test** (D12). Two injected regressions; sensitivity measured, not assumed.
+1. **Proving the gate by breaking it** (M7, F21). A shuffled-label adapter served as the real one:
+   accuracy drop 0.923 against a 0.0117 threshold derived from measured variance; promotion refused,
+   forced with the override on record, rolled back.
+2. **The baseline I added to make my own work look worse — and it won** (D3). Confidence routing
+   captures 57% of the available gain at 20% escalation; the learned router scores −19%, and under
+   judge labels its AUC equals a task-name lookup. Reporting that was committed to before the result.
+3. **The hard split that could not catch a regression** (M11). Mined from the incumbent's own
+   failures, it measures difference from that model, not difficulty; under-trained checkpoints
+   scored higher on it.
+4. **The judge that preferred cut-off replies** (M5, M2). Spearman 0.73 in distribution, 0.33 on
+   another generator's replies; it reversed drafting's M2 until GPT-4o re-graded both sides.
+5. **The data leak I caught before writing code** (D7). Failure records were feeding both router
+   training and the eval split. Found by tracing the data flow on paper.
+6. **Why a hard-case eval set measures label noise** (D8, D36). 24% of intent's mined cases were
+   quarantined as disputed labels.
+7. **77 classes, 300 examples** (D10) and **the confounded shift test** (D11).
 
 ### Mapping to common questions
 
 | Question | Use |
 |---|---|
-| "Tell me about a fine-tuning project" | The architecture, then pivot fast to evaluation — 100 of 180 hours went there |
-| "How did you evaluate it?" | D6 two splits → D3 baseline choice → D9 threshold from measured variance |
-| "Tell me about a bug you found in your own work" | D7, then D11 |
-| "How do you know the model is good?" | D9 + D12 — the honest answer is "I measured the smallest regression I can detect" |
-| "What would you do differently?" | D4 (needs an always-on GPU) and D13 (judge unjustified at this volume) |
-| "Where did fine-tuning not help?" | Whatever Phase 1 shows — commit to answering from data, not from hope |
+| "Tell me about a fine-tuning project" | The architecture in one sentence, then evaluation: M7, then the negatives |
+| "How did you evaluate it?" | D6 two splits → D3 baseline choice → D9/D37 threshold from variance → M11, which showed the hard split cannot gate |
+| "Tell me about a bug you found in your own work" | D7, then the judge that could not see truncation |
+| "How do you know the model is good?" | Intent's smallest detectable regression is 0.0117, from two measured training runs — and the other tasks' gates are provisional because their training variance was never measured |
+| "What would you do differently?" | Mine hard cases from several models' failures; measure training variance for every task; D4 (an always-on GPU) |
+| "Where did fine-tuning not help?" | Urgency — loses to TF-IDF (0.41 vs 0.55 macro-F1) and sits within noise of prompting |
+| "Is it cheaper than calling an API?" | Only above ~3.6 req/s of sustained load (D41) |
 | "How do you handle disagreement about a design?" | The v2.1 → v2.2 pass: nine defects found in my own prior spec, each logged with its reason |
+
+### Resume lines
+
+Every number is in §4 and `runs/DASHBOARD.md`, and each caveat travels with its number.
+
+- Built a multi-task LoRA service: four QLoRA adapters on one Qwen2.5-1.5B base, served concurrently
+  with vLLM on a single A10 — 5,800 requests, 0 errors, P95 60–136 ms on the classification adapters.
+- Proved a regression gate end to end: a deliberately broken adapter was detected (accuracy drop 0.92
+  against a 0.012 threshold derived from measured run-to-run variance), blocked from promotion, and
+  rolled back through a versioned manifest.
+- Fine-tuned adapters beat prompting the same base model on three of four tasks (intent +0.36
+  accuracy, PII +0.38 span F1, drafting 4.24 vs 2.86 graded by GPT-4o); reported the fourth, which
+  lost to a TF-IDF baseline.
+- Showed a learned DeBERTa router lost to a free confidence baseline (−19% vs 57% of available gain
+  at 20% escalation) and published the negative result.
+- Showed a failure-mined hard-case eval set cannot detect regressions in the model it was mined from,
+  and measured label noise at 24% of mined intent cases.
+- Delivered the project for about $10 of a $50 budget.
 
 ### Framing to avoid
 - Don't lead with "I fine-tuned four adapters." Every candidate has a fine-tuning story;
   almost none has a rollback proof or a measured gate sensitivity.
-- Don't claim the router beats the baseline until it does. The PRD commits to reporting
-  the negative — that commitment is worth more than the win would be.
+- Don't write "learned router" without "which lost to a confidence baseline".
+- Don't write "fine-tuning beat prompting" without "on three of four tasks".
+- Don't cite drafting's 4.24 vs 2.86 without "graded by GPT-4o" — the distilled judge had it reversed.
+- Don't say the hard-cases split made the gate more sensitive. M11 showed it cannot gate.
+- Don't claim "6.5× cheaper" (D41), and don't claim a GPU-memory saving — only disk was measured.
+- Don't state hours spent — none were logged.
+- Don't cite Phase 0's intent M2 margin (+0.409); the same-server figure (+0.356) superseded it.
 - Don't inflate the judge's cost rationale (D13). Naming where a technique isn't
   justified reads as senior; repeating the marketing line doesn't.
 

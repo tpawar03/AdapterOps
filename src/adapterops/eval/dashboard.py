@@ -1,0 +1,223 @@
+"""Six-metric results dashboard (F17), rendered from committed runs — quality rows never blended (F32).
+
+Every number in `runs/DASHBOARD.md` is read from a file already in the repo; none is typed by hand,
+so the dashboard cannot drift from the evidence it summarises. The six rows are PRD §11's:
+
+    quality retained (random set) · quality retained (hard cases) · frontier-call rate
+    cost per 1K requests · P95 latency · fallback rate
+
+A row the project never measured in the form §11 describes says so in place, rather than being
+filled with the nearest available number. The frontier-call rate is the main case: no router runs
+in the serving path, so what exists is the offline operating curve, and it is labelled as that.
+
+The failure-demo section (M7, M11) sits below a fixed heading so the Gradio demo can show it on its
+own tab.
+
+    uv run adapterops economics      # first — the cost row reads runs/economics.json
+    uv run adapterops dashboard
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from adapterops.eval.regression import GATED, TASKS
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+OUT_FILE = REPO_ROOT / "runs" / "DASHBOARD.md"
+FAILURE_HEADING = "## Failure demo"
+
+INPUTS = {
+    "baseline_a": "runs/regression__v1-baseline-1.json",
+    "baseline_b": "runs/regression__v1-baseline-2.json",
+    "thresholds": "evals/GATE_THRESHOLDS.json",
+    "serving": "runs/m1_serving.json",
+    "economics": "runs/economics.json",
+    "curve": "runs/router__operating_curve__judged.json",
+    "shuffled": "runs/regression__intent-shuffled.json",
+    "m11": "runs/regression__all-m11.json",
+    "system": "manifests/system.json",
+}
+HISTORY_GLOB = "manifests/history/system-*.json"
+OPERATING_BUDGET = 0.2
+
+
+def load(root: Path = REPO_ROOT) -> dict:
+    data = {k: json.loads((root / p).read_text()) for k, p in INPUTS.items()}
+    data["history"] = [json.loads(p.read_text()) for p in sorted(root.glob(HISTORY_GLOB))]
+    return data
+
+
+def fmt(v: float | None, dp: int = 4) -> str:
+    return "—" if v is None else f"{v:.{dp}f}"
+
+
+def gain_captured(quality: float, local: float, oracle: float) -> float | None:
+    """Share of the gain available at a budget that a policy realises: 0 is no better than never
+    escalating, 1 is the oracle, negative is worse than never escalating."""
+    return None if oracle == local else (quality - local) / (oracle - local)
+
+
+def at_budget(curve: list[dict], policy: str, budget: float) -> dict:
+    return next(r for r in curve if r["policy"] == policy and r["budget"] == budget)
+
+
+def gate_state(row: dict) -> str:
+    if row["threshold"] is None:
+        return "report-only — floor 0, no threshold"
+    if row["provisional"]:
+        return "provisional, not enforced"
+    return f"**enforced** ({row['bound_by']} variance)"
+
+
+def quality_rows(data: dict, split: str) -> list[str]:
+    derivation = data["thresholds"]["derivation"]["per_task"]
+    lines = [("| task | gated metric | baseline run 1 | baseline run 2 | spread | "
+             "threshold | gate |"), "|---|---|---|---|---|---|---|"]
+    for task in TASKS:
+        metric = GATED[task]
+        a = data["baseline_a"]["per_split"][task][split]
+        b = data["baseline_b"]["per_split"][task][split]
+        row = derivation[task][split]
+        lines.append(
+            f"| {task} | {metric} (n={a['n']}) | {fmt(a[metric])} | {fmt(b[metric])} | "
+            f"{fmt(row['inference_spread'])} | {fmt(row['threshold'])} | {gate_state(row)} |")
+    return lines
+
+
+def routing_rows(data: dict) -> list[str]:
+    lines = [("| population | never escalate | GPT-4o-mini alone | policy | escalated | quality | "
+             "share of available gain |"), "|---|---|---|---|---|---|---|"]
+    for name, pop in data["curve"]["populations"].items():
+        pooled = pop["all_tasks"]
+        oracle = at_budget(pooled["curve"], "oracle", OPERATING_BUDGET)["quality"]
+        for policy in ("confidence", "router_p_fail", "random"):
+            r = at_budget(pooled["curve"], policy, OPERATING_BUDGET)
+            gain = gain_captured(r["quality"], pooled["local_quality"], oracle)
+            lines.append(
+                f"| {name} | {fmt(pooled['local_quality'], 3)} | "
+                f"{fmt(pooled['frontier_quality'], 3)} | {policy} | "
+                f"{r['escalation_rate']:.1%} | {fmt(r['quality'], 3)} | "
+                f"{'—' if gain is None else f'{gain:.0%}'} |")
+    return lines
+
+
+def failure_demo(data: dict) -> list[str]:
+    derivation = data["thresholds"]["derivation"]["per_task"]
+    intent = data["shuffled"]["comparison"]["per_task"]["intent"]
+    enforced = data["system"]["gate"]["thresholds"]["intent"]
+    out = [
+        FAILURE_HEADING, "",
+        "### M7 — detect → block → rollback, on real serving", "",
+        ("A shuffled-label intent adapter (F21) was served *as* `intent` and scored against the "
+        "last known-good manifest."), "",
+        "| step | record |", "|---|---|",
+        (f"| detect | intent micro-accuracy {fmt(intent['random']['candidate'])} vs baseline "
+        f"{fmt(intent['random']['baseline'])} — drop **{fmt(intent['random']['drop'])}** "
+        f"against an enforced threshold of {fmt(enforced)} |"),
+    ]
+    for m in data["history"]:
+        despite = m.get("promoted_despite")
+        if despite:
+            out.append(f"| block → force | promotion refused for: `{'; '.join(despite)}` — "
+                       f"forced as v{m['version']} with the override recorded in the manifest |")
+    out += [
+        (f"| rollback | current manifest is v{data['system']['version']}, rolled back from "
+        f"v{data['system'].get('rolled_back_from', '—')} |"), "",
+        "Manifest history:", "",
+        "| version | note | gate | promoted despite |", "|---|---|---|---|",
+    ]
+    for m in data["history"]:
+        despite = "; ".join(m.get("promoted_despite") or []) or "—"
+        out.append(f"| v{m['version']} | {m['note']} | {m['gate']['state']} | {despite} |")
+
+    out += [
+        "", "### M11 — does the hard split catch what the random set misses?", "",
+        ("All four under-trained checkpoints (15% of training steps) scored on both splits against "
+        "the v1 baseline. A positive drop is a regression."), "",
+        "| task | random drop | random threshold | hard drop | hard threshold |",
+        "|---|---|---|---|---|",
+    ]
+    for task in TASKS:
+        c = data["m11"]["comparison"]["per_task"][task]
+        r, h = derivation[task]["random"], derivation[task]["hard"]
+        out.append(f"| {task} | **{fmt(c['random']['drop'])}** | {fmt(r['threshold'])} "
+                   f"({gate_state(r)}) | **{fmt(c['hard']['drop'])}** | {fmt(h['threshold'])} "
+                   f"({gate_state(h)}) |")
+    base_hard = data["baseline_a"]["per_split"]
+    out += [
+        "",
+        ("**Answer: no.** The random set flags every checkpoint; the hard split flags only PII and "
+        "*improves* on the others. The hard split was mined from the v1 adapter's own failures, so "
+        f"v1 scores {fmt(base_hard['intent']['hard'][GATED['intent']])} on intent's hard cases and "
+        f"{fmt(base_hard['urgency']['hard'][GATED['urgency']])} on urgency's by construction. Any "
+        "model whose errors differ from v1's scores higher there. A split mined from one model's "
+        "failures measures difference from that model, not difficulty — it stays report-only."),
+    ]
+    return out
+
+
+def render(data: dict) -> str:
+    econ = data["economics"]
+    work = econ["same_workload"]
+    serving = data["serving"]
+    lines = [
+        "# Results dashboard", "",
+        ("Generated by `uv run adapterops dashboard` from committed runs — no number here is typed "
+        "by hand. Six metrics (PRD §11). **The two quality rows are separate tables and are never "
+        "averaged together** (F32)."), "",
+        "Sources: " + " · ".join(f"`{p}`" for p in INPUTS.values()), "",
+        "## 1 · Quality retained — random golden set", "",
+        ("Two runs of the unchanged v1 manifest. A threshold is 3× the larger of inference and "
+        "training spread (D37); only intent has a measured training spread, so only intent is "
+        "enforced."), "",
+        *quality_rows(data, "random"), "",
+        "## 2 · Quality retained — hard cases", "",
+        ("Mined from v1's failures and adjudicated for label noise. **Scores near 0 are expected "
+        "by construction**, which is why this split cannot gate — see M11 below."), "",
+        *quality_rows(data, "hard"), "",
+        "## 3 · Frontier-call rate", "",
+        ("**Not measured live — no router runs in the serving path.** What exists is the offline "
+        f"operating curve over the router pool, read at a {OPERATING_BUDGET:.0%} escalation "
+        "budget. Drafting is graded by GPT-4o on both arms."), "",
+        *routing_rows(data), "",
+        ("The adapter's own confidence is the only policy that pays. The learned router is worse "
+        "than never escalating, and GPT-4o-mini on its own scores below the local adapters."), "",
+        "## 4 · Cost per 1K requests — derived, not billed", "",
+        "| | value |", "|---|---|",
+        (f"| GPT-4o-mini, same {work['pairs']:,} pairs, list price | "
+        f"${work['frontier_usd_per_1k']:.4f} |"),
+        (f"| local A10 at M1 throughput ({econ['assumptions']['local_throughput_rps']} rps), "
+        f"${econ['assumptions']['gpu_usd_per_hour']}/h assumed | "
+        f"${work['local_usd_per_1k']:.4f} |"),
+        (f"| **break-even sustained load** | **{work['break_even_rps']} req/s** "
+        f"({work['break_even_requests_per_hour']:,} req/h) |"),
+        f"| ratio, only if the GPU is never idle | {work['ratio_if_gpu_fully_busy']}× |",
+        (f"| weights on disk: one base + {len(econ['footprint']['adapter_bytes'])} adapters vs a "
+        f"full copy per task | {econ['footprint']['one_base_plus_adapters_bytes'] / 1e9:.2f} GB "
+        f"vs {econ['footprint']['full_copy_per_task_bytes'] / 1e9:.2f} GB |"), "",
+        "Not measured: " + "; ".join(f"{k.replace('_', ' ')} ({v})"
+                                     for k, v in econ["not_measured"].items()) + ".", "",
+        ("## 5 · P95 latency — M1, A10, four adapters at once, concurrency "
+        f"{serving['concurrency']}"), "",
+        "| adapter | requests | P50 ms | P95 ms | max new tokens | mean generated |",
+        "|---|---|---|---|---|---|",
+    ]
+    for task, r in serving["per_adapter"].items():
+        lines.append(f"| {task} | {r['requests']:,} | {r['p50_ms']:,.0f} | {r['p95_ms']:,.0f} | "
+                     f"{r['max_new_tokens']} | {r['mean_generated_tokens']} |")
+    lines += [
+        "", "## 6 · Fallback rate", "",
+        (f"**{serving['fallback_rate']:.1%}** — {serving['errors']} errors in "
+        f"{serving['requests']:,} requests during M1. Measured once, on that run; the regression "
+        "runs did not record it."), "",
+        *failure_demo(data), "",
+    ]
+    return "\n".join(lines)
+
+
+def main() -> int:
+    OUT_FILE.write_text(render(load()))
+    print(f"wrote {OUT_FILE.relative_to(REPO_ROOT)}")
+    return 0

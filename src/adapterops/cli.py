@@ -165,6 +165,18 @@ def _cmd_pin_candidate(args: argparse.Namespace) -> int:
     return pin_candidate(task=args.task, repo=args.repo, name=args.name, force=args.force)
 
 
+def _cmd_economics(_: argparse.Namespace) -> int:
+    from adapterops.eval.economics import main as economics_main
+
+    return economics_main()
+
+
+def _cmd_dashboard(_: argparse.Namespace) -> int:
+    from adapterops.eval.dashboard import main as dashboard_main
+
+    return dashboard_main()
+
+
 def _cmd_train(args: argparse.Namespace) -> int:
     from adapterops.train.qlora import config_for, train
 
@@ -365,6 +377,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--system", default="majority",
                         help="majority (floor) | adapter | prompted | frontier")
     p_eval.set_defaults(func=_cmd_eval)
+
+    p_econ = sub.add_parser("economics",
+                            help="derived cost per 1K requests and weight footprint (D41)")
+    p_econ.set_defaults(func=_cmd_economics)
+
+    p_dash = sub.add_parser("dashboard",
+                            help="render runs/DASHBOARD.md from committed runs (F17, F32)")
+    p_dash.set_defaults(func=_cmd_dashboard)
     return parser
 
 

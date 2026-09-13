@@ -1,0 +1,90 @@
+{
+  "purpose": "Derived cost per 1K requests and weight footprint (D41). No request was made.",
+  "assumptions": {
+    "gpu_usd_per_hour": 0.75,
+    "gpu_rate_source": "the A10 rate the GPU sessions were budgeted at \u2014 not an invoice",
+    "local_throughput_rps": 23.6,
+    "local_throughput_source": "runs/m1_serving.json \u2014 a 246 s burst at concurrency 16 over the same 5,800 pairs, not a saturation test",
+    "frontier_price_per_1m": {
+      "input": 0.15,
+      "output": 0.6
+    },
+    "frontier_source": "data/router/frontier_cache.jsonl \u2014 token counts of the F8 run, one row per pair, priced at list"
+  },
+  "frontier": {
+    "per_task": {
+      "drafting": {
+        "requests": 1450,
+        "prompt_tokens": 54598,
+        "completion_tokens": 191676,
+        "usd": 0.1232,
+        "usd_per_1k": 0.085
+      },
+      "intent": {
+        "requests": 1450,
+        "prompt_tokens": 627124,
+        "completion_tokens": 5963,
+        "usd": 0.0976,
+        "usd_per_1k": 0.0673
+      },
+      "pii": {
+        "requests": 1450,
+        "prompt_tokens": 261928,
+        "completion_tokens": 78901,
+        "usd": 0.0866,
+        "usd_per_1k": 0.0597
+      },
+      "urgency": {
+        "requests": 1450,
+        "prompt_tokens": 157265,
+        "completion_tokens": 1450,
+        "usd": 0.0245,
+        "usd_per_1k": 0.0169
+      }
+    },
+    "pooled": {
+      "requests": 5800,
+      "prompt_tokens": 1100915,
+      "completion_tokens": 277990,
+      "usd": 0.3319,
+      "usd_per_1k": 0.0572
+    }
+  },
+  "local": {
+    "usd_per_1k_at_m1_throughput": 0.0088,
+    "per_task": null,
+    "per_task_note": "M1 measured pooled throughput only; per-task GPU cost is not separable from it"
+  },
+  "same_workload": {
+    "pairs": 5800,
+    "frontier_usd_per_1k": 0.0572,
+    "local_usd_per_1k": 0.0088,
+    "ratio_if_gpu_fully_busy": 6.5,
+    "break_even_rps": 3.64,
+    "break_even_requests_per_hour": 13112,
+    "reading": "local is cheaper only while sustained load exceeds break_even_rps; the ratio holds only at M1's throughput with no idle time",
+    "not_included": [
+      "adapter training GPU time",
+      "idle rented time",
+      "the quality difference \u2014 GPT-4o-mini scores lower on these tasks"
+    ]
+  },
+  "footprint": {
+    "base_bytes": 3087467144,
+    "adapter_bytes": {
+      "intent": 73911112,
+      "urgency": 73911112,
+      "pii": 73911112,
+      "drafting": 73911112
+    },
+    "one_base_plus_adapters_bytes": 3383111592,
+    "full_copy_per_task_bytes": 12349868576,
+    "ratio": 3.65,
+    "note": "safetensors file sizes at the pinned revisions; not GPU memory"
+  },
+  "not_measured": {
+    "gpu_memory_at_serving": "no nvidia-smi or vLLM memory figure was recorded",
+    "frontier_latency": "the F8 run recorded tokens, not timings",
+    "max_local_throughput": "no saturation sweep was run"
+  }
+}
