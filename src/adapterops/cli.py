@@ -63,10 +63,10 @@ def _cmd_router_train(_: argparse.Namespace) -> int:
     return rtrain_main()
 
 
-def _cmd_router_report(_: argparse.Namespace) -> int:
+def _cmd_router_report(args: argparse.Namespace) -> int:
     from adapterops.router.report import main as report_main
 
-    return report_main()
+    return report_main(judged=args.judged)
 
 
 def _cmd_frontier(args: argparse.Namespace) -> int:
@@ -237,6 +237,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_rt.set_defaults(func=_cmd_router_train)
 
     p_rr = sub.add_parser("router-report", help="operating curve vs all baselines (F11/M3)")
+    p_rr.add_argument("--judged", action="store_true",
+                      help="D38: drafting graded by GPT-4o on both arms, from the __judged files")
     p_rr.set_defaults(func=_cmd_router_report)
 
     p_fr = sub.add_parser("frontier", help="measure frontier success on the pool (F8/F11)")

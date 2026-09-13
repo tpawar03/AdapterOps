@@ -152,3 +152,47 @@ def test_populations_split_by_side_when_only_the_router_scores_carry_it():
     assert set(pops["router_shift"].side) == {"shift"}
     assert set(pops["router_in_distribution"].side) == {"in_distribution"}
     assert not set(pops["router_shift"].pair_id) & set(pops["router_in_distribution"].pair_id)
+
+
+def judged_inputs():
+    local, front = synthetic()
+    local = local.copy()
+    local["success"] = local.pair_id.str.endswith(("0", "2", "4", "6", "8"))
+    local["label_is_proxy"] = False
+    ids = local[local.task == "drafting"].pair_id
+    grades = pd.Series([5.0 if i % 3 else 2.0 for i in range(len(ids))], index=ids.to_numpy())
+    return local, front, grades
+
+
+def test_judged_join_grades_drafting_by_the_judge_on_both_arms():
+    """D28's invariant under D38: one bar for both arms, and it is the judge, not token-F1."""
+    local, front, grades = judged_inputs()
+    judged = report.join_judged(local, front, grades)
+    d = judged[judged.task == "drafting"].set_index("pair_id")
+    assert d.success.to_dict() == local[local.task == "drafting"].set_index("pair_id").success.to_dict()
+    assert (d.frontier_success == (grades.loc[d.index] >= 4)).all()
+    plain = report.join(local, front)
+    others = judged.task != "drafting"
+    assert judged.loc[others, "success"].tolist() == plain.loc[others, "success"].tolist()
+    assert judged.loc[others, "frontier_success"].tolist() == plain.loc[others, "frontier_success"].tolist()
+
+
+def test_judged_join_refuses_a_pool_still_on_the_proxy():
+    local, front, grades = judged_inputs()
+    local.loc[local.task == "drafting", "label_is_proxy"] = True
+    with pytest.raises(ValueError, match="still the token-F1 proxy"):
+        report.join_judged(local, front, grades)
+
+
+def test_judged_join_refuses_a_frontier_draft_without_a_grade():
+    local, front, grades = judged_inputs()
+    with pytest.raises(ValueError, match="no GPT-4o grade"):
+        report.join_judged(local, front, grades.iloc[1:])
+
+
+def test_with_no_proxy_task_the_real_labels_view_keeps_drafting():
+    local, front, grades = judged_inputs()
+    built = report.build_report(report.join_judged(local, front, grades), None,
+                                ("random", "confidence", "oracle"), proxy_tasks=())
+    view = built["populations"]["router_slice__no_router_yet"]["real_labels_only"]
+    assert "drafting" in view["tasks"]

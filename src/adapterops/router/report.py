@@ -30,6 +30,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from adapterops.judge.report import JUDGE_SUCCESS_MIN
 from adapterops.router.baselines import (
     DEFAULT_BUDGETS,
     compare,
@@ -42,6 +43,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = REPO_ROOT / "data" / "router"
 OUT_JSON = REPO_ROOT / "runs" / "router__operating_curve.json"
 OUT_CSV = REPO_ROOT / "runs" / "router__operating_curve.csv"
+JUDGMENTS = REPO_ROOT / "data" / "judge" / "judgments.parquet"
 
 
 def join(local: pd.DataFrame, frontier: pd.DataFrame,
@@ -89,11 +91,12 @@ def populations(joined: pd.DataFrame,
 
 
 def curves(frame: pd.DataFrame, policies: tuple[str, ...],
-           budgets=DEFAULT_BUDGETS) -> dict:
+           budgets=DEFAULT_BUDGETS,
+           proxy_tasks: tuple[str, ...] = PROXY_LABELLED_TASKS) -> dict:
     """The comparison over one population, computed twice: all tasks, and real labels only."""
     out: dict = {}
     for view, rows in (("all_tasks", frame),
-                       ("real_labels_only", frame[~frame.task.isin(PROXY_LABELLED_TASKS)])):
+                       ("real_labels_only", frame[~frame.task.isin(proxy_tasks)])):
         if rows.empty or rows.success.nunique() < 2:
             out[view] = {"pairs": len(rows),
                          "note": "too few rows, or no failures — no curve to draw"}
@@ -115,7 +118,8 @@ def curves(frame: pd.DataFrame, policies: tuple[str, ...],
 
 
 def build_report(joined: pd.DataFrame, router_scores: pd.DataFrame | None,
-                 policies: tuple[str, ...]) -> dict:
+                 policies: tuple[str, ...],
+                 proxy_tasks: tuple[str, ...] = PROXY_LABELLED_TASKS) -> dict:
     return {
         "note": "Escalation quality is measured, not assumed — frontier_success comes from "
                 "an actual GPT-4o-mini run over the same pairs (F8).",
@@ -125,29 +129,72 @@ def build_report(joined: pd.DataFrame, router_scores: pd.DataFrame | None,
         "policies": list(policies),
         "pairs_joined": len(joined),
         "populations": {
-            name: curves(frame, policies)
+            name: curves(frame, policies, proxy_tasks=proxy_tasks)
             for name, frame in populations(joined, router_scores).items()
         },
     }
 
 
-def main() -> int:
-    local_path = DATA_DIR / "scored.parquet"
+def join_judged(local: pd.DataFrame, frontier: pd.DataFrame, frontier_grades: pd.Series,
+                router_scores: pd.DataFrame | None = None) -> pd.DataFrame:
+    """D38: drafting success from GPT-4o grades on **both** arms; every other task as `join`.
+
+    `join` re-derives every label with the proxy rule, so handing it D38's relabelled pool would
+    quietly put drafting back on token-F1. Worse, it would grade the frontier's drafts by the proxy
+    and the adapter's by the judge — two bars on one chart, the thing D28's invariant exists to
+    prevent. So drafting is overwritten after the join from the one source both arms share: the
+    GPT-4o grade.
+    """
+    drafting = local.task == "drafting"
+    if "label_is_proxy" not in local or local.loc[drafting, "label_is_proxy"].astype(bool).any():
+        msg = "local drafting labels are still the token-F1 proxy — pass the D38 __judged pool"
+        raise ValueError(msg)
+    judged_local = local.loc[drafting].set_index("pair_id").success.astype(bool)
+
+    base = join(local, frontier, router_scores)
+    rows = base.task == "drafting"
+    missing = set(base.loc[rows, "pair_id"]) - set(frontier_grades.index)
+    if missing:
+        msg = f"{len(missing)} frontier drafting replies have no GPT-4o grade"
+        raise ValueError(msg)
+    base.loc[rows, "success"] = base.loc[rows, "pair_id"].map(judged_local)
+    base.loc[rows, "frontier_success"] = (
+        base.loc[rows, "pair_id"].map(frontier_grades) >= JUDGE_SUCCESS_MIN)
+    base["success"] = base.success.astype(bool)
+    base["frontier_success"] = base.frontier_success.astype(bool)
+    base.loc[rows, "label_is_proxy"] = False
+    base.attrs["drafting_labels"] = (f"GPT-4o grade >= {JUDGE_SUCCESS_MIN} on both arms (D38)")
+    return base
+
+
+def _shown(path: Path) -> str:
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def main(judged: bool = False) -> int:
+    """`judged=True` reads D38's __judged pool and router scores and grades drafting by the judge."""
+    suffix = "__judged" if judged else ""
+    local_path = DATA_DIR / f"scored{suffix}.parquet"
     frontier_path = DATA_DIR / "frontier.parquet"
-    if not local_path.exists():
-        print(f"  no {local_path.relative_to(REPO_ROOT)} — the pool has not been scored "
-              f"through the adapters yet (GPU session).")
-        return 2
-    if not frontier_path.exists():
-        print(f"  no {frontier_path.relative_to(REPO_ROOT)} — run `adapterops frontier`.")
-        return 2
+    hints = {
+        local_path: ("run `python -m adapterops.router.relabel` (D38)" if judged
+                     else "the pool has not been scored through the adapters (GPU session)"),
+        frontier_path: "run `adapterops frontier`",
+    }
+    for path, hint in hints.items():
+        if not path.exists():
+            print(f"  no {_shown(path)} — {hint}")
+            return 2
 
     local = pd.read_parquet(local_path)
     local = local[local.purpose == "router"]
     frontier = pd.read_parquet(frontier_path)
 
     # Both router eval splits, so M3 (in-distribution) and M4 (shift) are one report.
-    frames = [DATA_DIR / f"router_{n}_scored.parquet" for n in ("eval", "shift_eval")]
+    frames = [DATA_DIR / f"router_{n}_scored{suffix}.parquet" for n in ("eval", "shift_eval")]
     present = [pd.read_parquet(f) for f in frames if f.exists()]
     router_scores = pd.concat(present, ignore_index=True) if present else None
 
@@ -155,17 +202,29 @@ def main() -> int:
     if router_scores is not None:
         policies = ("random", "confidence", "router_p_fail", "oracle")
 
-    joined = join(local, frontier, router_scores)
-    report = build_report(joined, router_scores, policies)
+    if judged:
+        grades = pd.read_parquet(JUDGMENTS)
+        grades = (grades[(grades.source == "frontier") & grades.parsed_ok.astype(bool)]
+                  .drop_duplicates("pair_id").set_index("pair_id").score.astype(float))
+        joined = join_judged(local, frontier, grades, router_scores)
+        proxy_tasks: tuple[str, ...] = ()
+    else:
+        joined = join(local, frontier, router_scores)
+        proxy_tasks = PROXY_LABELLED_TASKS
+    report = build_report(joined, router_scores, policies, proxy_tasks=proxy_tasks)
+    report["drafting_labels"] = joined.attrs.get("drafting_labels", "token-F1 proxy (D28)")
 
-    OUT_JSON.parent.mkdir(exist_ok=True)
-    OUT_JSON.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    out_json = OUT_JSON.with_name(f"router__operating_curve{suffix}.json")
+    out_csv = OUT_CSV.with_name(f"router__operating_curve{suffix}.csv")
+    out_json.parent.mkdir(exist_ok=True)
+    out_json.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     rows = [{"population": pop, **r}
             for pop, views in report["populations"].items()
             for r in views.get("all_tasks", {}).get("curve", [])]
     if rows:
-        pd.DataFrame(rows).to_csv(OUT_CSV, index=False)
+        pd.DataFrame(rows).to_csv(out_csv, index=False)
 
+    print(f"  drafting labels: {report['drafting_labels']}")
     for pop, views in report["populations"].items():
         print(f"\n  === {pop} ===")
         for view, block in views.items():
@@ -178,5 +237,5 @@ def main() -> int:
             table = pd.DataFrame(block["curve"])
             print(table.pivot(index="budget", columns="policy", values="quality").to_string())
             print(f"  headroom captured at 20%: {block['headroom_captured_at_0.20']}")
-    print(f"\n  wrote {OUT_JSON.relative_to(REPO_ROOT)}")
+    print(f"\n  wrote {_shown(out_json)}")
     return 0
