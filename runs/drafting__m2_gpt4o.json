@@ -1,0 +1,36 @@
+{
+  "model": "gpt-4o",
+  "success_min": 4,
+  "sides": {
+    "adapter": {
+      "n": 300,
+      "graded": 300,
+      "gpt4o_mean": 4.2367,
+      "gpt4o_success": 0.8733,
+      "at_cap_share": 0.0,
+      "gpt4o_mean_at_cap": null,
+      "gpt4o_mean_complete": 4.2367,
+      "distilled_mean": 4.2709,
+      "distilled_vs_gpt4o_spearman": 0.7438
+    },
+    "prompted": {
+      "n": 300,
+      "graded": 300,
+      "gpt4o_mean": 2.8567,
+      "gpt4o_success": 0.3033,
+      "at_cap_share": 0.7733,
+      "gpt4o_mean_at_cap": 2.7069,
+      "gpt4o_mean_complete": 3.3676,
+      "distilled_mean": 4.7018,
+      "distilled_vs_gpt4o_spearman": 0.3253
+    }
+  },
+  "paired": {
+    "n": 300,
+    "prompted_higher": 0.05,
+    "adapter_higher": 0.7367,
+    "tied": 0.2133,
+    "mean_difference": -1.38
+  },
+  "cost_usd_from_tokens": 0.9453
+}

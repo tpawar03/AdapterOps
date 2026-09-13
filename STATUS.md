@@ -23,10 +23,10 @@ and in the phase column of §4.
 | **Phase** | **Phase 4 GPU session done — M7 proven on real serving, M11 negative.** Phases 2 and 3 are recorded, negatives included. Phase 5 (README, dashboard, demo) is next. |
 | **Spec** | PRD v2.6, published + in repo |
 | **Hours logged** | 0 / 180 |
-| **Spend** | **$4.98** / $50.00 — excluding two GPU charges not yet reported (Phase 2, Phase 4) |
+| **Spend** | **$5.93** / $50.00 — excluding two GPU charges not yet reported (Phase 2, Phase 4) |
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
-| **Blocking** | Nothing. Open inputs: the Phase 2 and Phase 4 GPU charges, for the cost log. Optional paid check awaiting approval: GPT-4o grades for the 300 prompted drafting replies (~$0.37), to settle drafting's M2. |
-| **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · judge distilled (**M5**, Spearman 0.73) · under judge labels the router equals a task-name lookup and **confidence routing captures 57%** of available gain · hard split rebuilt (470) · **M2** on one server: intent +0.356, PII +0.376, urgency within noise, drafting inconclusive · **M7 proven**: shuffled adapter detected (drop 0.923), blocked, forced, rolled back · **M11 negative** |
+| **Blocking** | Nothing. Open inputs: the Phase 2 and Phase 4 GPU charges, for the cost log. |
+| **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · judge distilled (**M5**, Spearman 0.73) · under judge labels the router equals a task-name lookup and **confidence routing captures 57%** of available gain · hard split rebuilt (470) · **M2** on one server: intent +0.356, PII +0.376, urgency within noise, drafting **+1.38 under GPT-4o** · **M7 proven**: shuffled adapter detected (drop 0.923), blocked, forced, rolled back · **M11 negative** |
 | **Next action** | Phase 5 — README (F23), dashboard (F17), Gradio demo (F22). No GPU work remains. |
 
 ### Milestone tracker
@@ -34,14 +34,14 @@ and in the phase column of §4.
 | ID | Milestone | State |
 |---|---|---|
 | M1 | 4 adapters served concurrently | **PASS** — 5,800 reqs, 0 errors, 23.6 rps |
-| M2 | Adapters vs prompted baseline | **measured, same server** — intent +0.356 over one-shot-per-class · PII +0.376 · urgency **+0.013, inside its own serving noise (0.0127)** · drafting **inconclusive**: prompted 4.70 vs 4.27, but 77% of its replies are cut off at the token cap and the distilled judge scores those higher |
+| M2 | Adapters vs prompted baseline | **measured, same server** — intent +0.356 over one-shot-per-class · PII +0.376 · urgency **+0.013, inside its own serving noise (0.0127)** · drafting **adapter wins under GPT-4o**, 4.24 vs 2.86, higher on 74% of pairs — the distilled judge had it the other way round (4.27 vs 4.70) |
 | M3 | Router operating curve vs 3 baselines | **measured** — under judge labels the confidence baseline captures **57%** of available gain; the learned router **−19%** (D3's negative) |
 | M4 | Within-task distribution shift | **measured** — same shape under shift: confidence 43%, learned router −31% · no degradation in local quality |
-| M5 | Judge calibration reported | **reported** — Spearman **0.73**, Pearson 0.71, exact 0.73, within ±1 0.99 (a constant 4 scores 0.99) · N3 (≥ 0.80) not reached |
+| M5 | Judge calibration reported | **reported** — Spearman **0.73**, Pearson 0.71, exact 0.73, within ±1 0.99 (a constant 4 scores 0.99) · N3 (≥ 0.80) not reached · **holds on the adapter's golden replies (0.74), fails on another generator's (0.33)** |
 | M6 | Manifest drives serving | **partly** — serving materialises the pin files the manifest is built from (`adapters.json`, candidate sets) at their pinned revisions; it does not read `system.json` itself |
 | M7 | **detect → block → rollback proven** | **PROVEN on real serving** — shuffled-label intent adapter: drop 0.9234 vs threshold 0.0117 → blocked for that reason alone · forced as v3 with the override recorded · rolled back to v2 |
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
-| M9 | Spend ≤ $50 | on track ($4.98, two GPU charges pending) |
+| M9 | Spend ≤ $50 | on track ($5.93, two GPU charges pending) |
 | M10 | Hard-cases split mined + adjudicated | **done, rebuilt** — 470 retained; drafting bucket from judge failures (113), intent quarantine 24.0% (D36, D38) |
 | M11 | **Gate sensitivity measured** | **measured — negative.** The hard split caught nothing the random set missed; on intent, urgency and drafting it *improved* for the under-trained checkpoints |
 
@@ -968,7 +968,9 @@ Filled in as results arrive. **Empty is the correct state today.**
 | **F33 baseline spreads (two runs, unchanged manifest)** | random: intent 0.0013 · urgency 0.0127 · PII 0.0009 · drafting 0.0135 — hard: 0 · 0 · 0.0004 · 0.0372 · gate enforces **intent only** (0.0117, training-bound); the rest provisional per D37 | Phase 4 |
 | **M11: does the hard split catch what the random set misses?** | **no** — random flags all four under-trained checkpoints; hard flags only PII and improves on the other three (intent 0 → 0.16, drafting +0.27) | Phase 4 |
 | Golden PII at 384 tokens | **0.9462** strict (was 0.9190 at a 160-token cap) · served, greedy | Phase 4 |
-| **M2 prompted baselines, same vLLM server** | intent 0.9286 vs **0.5727** (77 demos, one per class) · urgency macro-F1 0.4096 vs **0.3962** · PII 0.9462 vs **0.57** · drafting judge 4.27 vs **4.70** — confounded by truncation | Phase 4 |
+| **M2 prompted baselines, same vLLM server** | intent 0.9286 vs **0.5727** (77 demos, one per class) · urgency macro-F1 0.4096 vs **0.3962** · PII 0.9462 vs **0.57** · drafting, GPT-4o: 4.24 vs **2.86** (distilled judge said 4.27 vs 4.70) | Phase 4 |
+| **Drafting M2 under GPT-4o (golden, paired)** | adapter **4.24**, success 87.3% · prompted **2.86**, success 30.3% · adapter higher on **73.7%**, prompted 5.0%, tied 21.3% · prompted cut-off **2.71** vs complete 3.37 · $0.95 | Phase 4 |
+| **Distilled judge vs GPT-4o, by generator** | adapter replies Spearman **0.744**, means 4.27 vs 4.24 · prompted replies Spearman **0.325**, means 4.70 vs 2.86 | Phase 4 |
 | **M7 on real serving** | shuffled intent adapter: accuracy **0.0052**, drop **0.9234** (0.9221 on a first run) vs threshold 0.0117 · blocked on v2 for that alone · forced → v3 (`promoted_despite` recorded) · rolled back → v2 · history keeps v1–v3 | Phase 4 |
 | F21 shuffled adapter output | exact-label rate **1.000** on both splits · only **9 of 77** labels emitted, the most common on 36% of inputs · one true class maps to its most common prediction 62% of the time | Phase 4 |
 | Drafting prompted replies vs the 448-token cap | prompted: median **448** tokens, **77.3%** at the cap, **72.3%** end mid-sentence · adapter: median 98, 0% at the cap, 4.7% · judge on cut-off prompted replies **4.72** vs complete **4.64** | Phase 4 |
@@ -977,6 +979,33 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 4 · GPT-4o settles drafting's M2 — the adapter wins clearly — and shows the distilled judge
+only works on replies like the ones it learned from.** Both sides were graded by the Phase 3
+teacher on the same 300 golden requests:
+
+| golden drafting, paired | adapter | prompted base model |
+|---|---|---|
+| GPT-4o mean (success, grade ≥ 4) | **4.24** (87.3%) | **2.86** (30.3%) |
+| distilled judge mean | 4.27 | **4.70** |
+| distilled vs GPT-4o, Spearman | **0.744** | **0.325** |
+
+GPT-4o prefers the adapter's reply on **73.7%** of requests and the prompted one on 5.0%, a mean gap
+of **1.38** points. It also does what the distilled judge did not: cut-off prompted replies score
+**2.71** against 3.37 for the ones that finished. Even the finished ones trail the adapter. Neither
+side is GPT-family output, so the §10 same-family concern does not apply to this comparison.
+
+*Means:* drafting's M2 is a clear win for fine-tuning. The more durable finding is about the judge.
+On the adapter's own replies it tracks the teacher as M5 said — rank correlation 0.74, means within
+0.03. On a different generator's replies it is close to useless (0.33), and its mean is off by nearly
+two points **in the wrong direction**. Calibration measured on one model's outputs said nothing
+about another model's, and nothing in the M5 numbers could have shown that.
+
+*Changes the plan:* the distilled judge is a valid drafting gate only for candidates that write
+like the adapter it was trained on — retrains and under-trained checkpoints, not a new base model
+or prompt. A candidate from a different generator needs a GPT-4o spot check before its drafting
+number is believed, and a truncation check belongs in front of the judge either way. The M11 drafting
+numbers stand, since those checkpoints are the same adapter family.
 
 **Phase 4 · M7 holds on real serving: a shuffled-label adapter is detected, blocked, forced and
 rolled back.** The F21 adapter was trained on intent's split with labels permuted (1.5% of rows
@@ -1016,9 +1045,8 @@ preference it may have learned from its training data, where the longer frontier
 graded higher. That is a hypothesis, not yet tested. The drafting gate inherits the same judge,
 though adapter-vs-adapter comparisons stay closer to its training distribution.
 
-*Changes the plan:* drafting's M2 is recorded as inconclusive. Settling it needs either GPT-4o
-grades on the 300 prompted replies (about $0.37, awaiting approval) or a prompted re-run with a
-larger cap (GPU). Either way, a truncation check belongs in front of the judge.
+*Changes the plan:* settled by GPT-4o grades on both sides — see the entry above. The adapter wins,
+and the hypothesis held: the judge does not see truncation.
 
 **Phase 4 · The hard split cannot catch a regression, because it was mined from the incumbent's
 own failures (M11).** All four under-trained checkpoints were served at once and scored on both
