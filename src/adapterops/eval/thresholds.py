@@ -36,6 +36,16 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 INTENT_RUN = REPO_ROOT / "runs" / "intent__adapter.json"
 OUT = REPO_ROOT / "evals" / "GATE_THRESHOLDS.json"
 
+
+def _shown(path: Path) -> str:
+    """Repo-relative when possible, absolute otherwise. A label must never crash the derivation:
+    relative_to raises whenever the two paths do not share a root, which is exactly what happens
+    when the run record and the repo root are resolved separately."""
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
 MULTIPLIER = 3.0
 """A stated choice: three times the larger measured spread. With two runs a spread is a single
 range rather than a variance estimate, and three ranges is a conservative margin over it. It is
@@ -50,7 +60,7 @@ def training_spreads() -> dict[tuple[str, str], dict]:
         if record.get("spread_micro") is not None:
             out[("intent", "random")] = {
                 "spread": float(record["spread_micro"]),
-                "source": f"{INTENT_RUN.relative_to(REPO_ROOT)} — "
+                "source": f"{_shown(INTENT_RUN)} — "
                           f"{record.get('independent_runs', 2)} independent training runs",
             }
     return out
@@ -113,7 +123,7 @@ def gate_from(derivation: dict) -> dict:
 def main(run_a: str, run_b: str, force: bool = False) -> int:
     """Derive thresholds from two baseline regression runs and write them where manifests read."""
     if OUT.exists() and not force:
-        print(f"  {OUT.relative_to(REPO_ROOT)} exists — thresholds are derived. --force to redo.")
+        print(f"  {_shown(OUT)} exists — thresholds are derived. --force to redo.")
         return 1
     runs = [Path(p) for p in (run_a, run_b)]
     derivation = derive(*(json.loads(p.read_text()) for p in runs))
