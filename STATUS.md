@@ -23,9 +23,9 @@ and in the phase column of §4.
 | **Phase** | **Phase 2 complete, and its results are negative and recorded.** M1 passed on real hardware; the router was trained and the operating curve measured. The Phase 4 manifest, promotion blocking and rollback were built ahead while waiting on paid runs. Phase 3 (judge) is next. |
 | **Spec** | PRD v2.6, published + in repo |
 | **Hours logged** | 0 / 180 |
-| **Spend** | **$4.96** / $50.00 — excluding the Phase 2 GPU charge, not yet reported |
+| **Spend** | **$4.98** / $50.00 — excluding the Phase 2 GPU charge, not yet reported |
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
-| **Blocking** | Nothing. Two open inputs, neither blocking: the **actual GPU charge** for the Phase 2 session (the cost log is missing it), and the frontier arm's last mining-slice pairs, running unattended against the daily request quota. |
+| **Blocking** | Nothing. One open input: the actual Phase 2 GPU charge, for the cost log. The Phase 4–5 GPU session (`PHASE-4-RUN.md`) is ready and needs approval before renting. |
 | **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · intent **0.9312** (+0.4091 over prompted) · PII **0.9190** strict · urgency **loses to TF-IDF** · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · router pool scored · **525 hard cases mined** · router measured as **0.02–0.03 over a task-name lookup, across six runs** · escalation measured as a **quality loss** on every task · system manifest v1 with blocking and rollback |
 | **Next action** | M5 reported (Spearman 0.73). Now: retrain the router on D38's judge labels, build laptop judge scoring for saved drafting predictions, then the GPU session in `PHASE-4-RUN.md` — $1.50, approved before renting. |
 
@@ -41,7 +41,7 @@ and in the phase column of §4.
 | M6 | Manifest drives serving | manifest format + promote/rollback built · serving reads it after the GPU run |
 | M7 | **detect → block → rollback proven** | **detect (F18) → block proven in code** on the frozen splits, serving mocked · rollback tested · remains: real serving + the F21 shuffled-label adapter (GPU) |
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
-| M9 | Spend ≤ $50 | on track ($4.96, GPU charge pending) |
+| M9 | Spend ≤ $50 | on track ($4.98, GPU charge pending) |
 | M10 | Hard-cases split mined + adjudicated | **rebuild staged** — drafting bucket rebuilt from judge failures as a `__judged` candidate: 113 items, only 39 of the old 150 survive · split 507 → 470 · re-freeze follows the router retrain (D38) |
 | M11 | **Gate sensitivity measured** | checkpoint captured · scoring in Phase 5 |
 
@@ -928,7 +928,7 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Same-family check, GPT-4o grading both | frontier higher on **39.5%**, lower on 10.9%, tied 49.6% · mean +0.37 · p < 0.001 · quality and preference inseparable | Phase 3 |
 | Router training path verified end to end | **works**, on synthetic labels · ~14 s / 25 steps on laptop MPS — **F10 needs no GPU** | Phase 2 |
 | System manifest v1 promoted (F16) | 4 adapters + base + 6 splits pinned · gate `report_only` | Phase 4 |
-| Frontier escalation arm measured (F8) | **3,954 of 5,800 pairs** · $0.21 · blocked on a daily request quota, resumes free | Phase 2 |
+| Frontier escalation arm measured (F8) | **5,800 of 5,800** pairs · $0.33 · resumer finished after ~5 h of daily-quota polling | Phase 2 |
 | Drafting val rows sharing an instruction with train | **467 of 3,982 (11.7%)** — D24 | Phase 1 |
 | **Label-noise quarantine rate, per task** | intent **24.0%** (18/75) · urgency measured, not applied (60.4% vs 50.0% chance) · PII and drafting not applicable | Phase 4 |
 | Hard-cases split frozen (F31) | **507 retained** — drafting 150, PII 150, urgency 150, intent 57 · 18 quarantined · **$0** | Phase 4 |
