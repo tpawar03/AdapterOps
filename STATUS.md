@@ -42,7 +42,7 @@ and in the phase column of §4.
 | M7 | **detect → block → rollback proven** | **detect (F18) → block proven in code** on the frozen splits, serving mocked · rollback tested · remains: real serving + the F21 shuffled-label adapter (GPU) |
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
 | M9 | Spend ≤ $50 | on track ($4.96, GPU charge pending) |
-| M10 | Hard-cases split mined + adjudicated | **partly invalid** — 507 retained, but the 150-item drafting bucket was mined on the token-F1 proxy and **73%** of its graded items pass the judge · intent, urgency and PII buckets stand · drafting bucket to be rebuilt (D38) |
+| M10 | Hard-cases split mined + adjudicated | **rebuild staged** — drafting bucket rebuilt from judge failures as a `__judged` candidate: 113 items, only 39 of the old 150 survive · split 507 → 470 · re-freeze follows the router retrain (D38) |
 | M11 | **Gate sensitivity measured** | checkpoint captured · scoring in Phase 5 |
 
 ---
@@ -817,6 +817,41 @@ very different magnitudes, and the spec named the one that is nearly zero.
 
 ---
 
+### D38 · Drafting is labelled by the judge now — router membership frozen, hard bucket rebuilt
+**Rejected:** (a) re-running `router-dataset` on the relabelled pool, and (b) keeping the
+proxy-mined drafting hard bucket and screening it.
+**Why:** D28 closed with the token-F1 proxy at Spearman 0.28 and κ 0.14, and that proxy had
+labelled two things. Under GPT-4o teacher grades, with a grade of 4 or more as success:
+
+| | proxy | judge |
+|---|---|---|
+| drafting success, router slice | 0.501 | **0.824** |
+| drafting success, mining slice | 0.499 | **0.839** |
+
+(a) Re-stratifying on the new labels would move rows between train, eval and shift, and any
+before-and-after difference would then have two causes. So split membership stays exactly as
+frozen and only drafting's label changes: **177** training, **38** eval and **107** shift rows flip,
+on identical rows, with the old label kept beside the new one as `proxy_success`.
+
+(b) D36's screen cannot fix a bucket whose *failures* were defined by a proxy. Rebuilt from judge
+failures across all 700 mining replies, the drafting bucket holds **113** (grade 3: 101; grade 2:
+12) against the old 150, the cap no longer binds, and **only 39 of the 150 proxy "hard cases"
+survive into it**. The hard split goes from 507 to 470; intent, urgency and PII are untouched.
+
+*Caveat carried forward:* the new failures are defined by a lenient, same-family judge at a stated
+threshold. A bucket of 113 judged failures is smaller than the one it replaces and more likely to be
+real; it is not proof of difficulty.
+
+*State:* everything is written as `__judged` candidates beside the frozen artifacts. Replacing them —
+and re-freezing `ROUTER_DATASET.json` and `HARD_CASES.json` — follows the router retrain on these labels.
+
+**Interview angle:** a proxy label contaminates everything built on it, and from inside the pipeline
+the contamination is invisible. The drafting bucket had a cap, grade-balanced sampling and a frozen
+hash — every mark of a curated hard-cases set. What exposed it was grading the items the pipeline had
+already decided were failures, and finding that most were not.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -899,6 +934,8 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Drafting hard cases under the judge | **74 of 102** graded items grade ≥ 4 (73%) — mostly not failures | Phase 4 |
 | Drafting router labels under the judge | **322 of 750** flip (43%) · frozen router dataset: 44% train, 37% eval, 44% shift | Phase 4 |
 | Remaining mining drafting grades (D38) | **250 of 250** graded · $0.30 · all 1,450 drafting replies now carry a GPT-4o grade | Phase 4 |
+| D38 drafting labels (judge ≥ 4) | success router **0.501 → 0.824**, mining **0.499 → 0.839** · router flips 177 / 38 / 107 (train / eval / shift), same rows | Phase 4 |
+| D38 rebuilt drafting hard bucket | **113** judge failures (grade 3: 101, grade 2: 12) · only **39 of 150** proxy hard cases survive · hard split 507 → 470 | Phase 4 |
 | Hard-split run-to-run variance | — | Phase 4 |
 | **M11: does the hard split catch what the random set misses?** | — | Phase 5 |
 

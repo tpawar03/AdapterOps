@@ -1,0 +1,42 @@
+{
+  "decision": "D38 \u2014 drafting labels from GPT-4o teacher grades; router membership fixed",
+  "label_rule": "GPT-4o teacher grade >= 4 (reference-free judge, D34; replaces the token-F1 proxy, D38)",
+  "drafting_success_rate": {
+    "mining": {
+      "proxy": 0.4986,
+      "judge": 0.8386
+    },
+    "router": {
+      "proxy": 0.5013,
+      "judge": 0.824
+    }
+  },
+  "router_split_flips": {
+    "train": 177,
+    "eval": 38,
+    "shift_eval": 107
+  },
+  "hard_split": {
+    "drafting_bucket_before": 150,
+    "drafting_bucket_after": 113,
+    "cap": 150,
+    "cap_bound": false,
+    "judge_failures_in_mining_slice": 113,
+    "grades_in_new_bucket": {
+      "judge_grade_2": 12,
+      "judge_grade_3": 101
+    },
+    "old_proxy_hard_cases_still_hard": 39,
+    "other_tasks_unchanged": 1,
+    "total_before": 507,
+    "total_after": 470
+  },
+  "written": [
+    "data/router/scored__judged.parquet",
+    "data/router/router_train__judged.parquet",
+    "data/router/router_eval__judged.parquet",
+    "data/router/router_shift_eval__judged.parquet",
+    "evals/hard/hard_cases__judged.parquet"
+  ],
+  "not_yet_done": "replacing the frozen artifacts, and retraining the router on these labels"
+}
