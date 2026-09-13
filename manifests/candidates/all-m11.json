@@ -1,0 +1,58 @@
+{
+  "purpose": "Combined candidate pin set \u2014 several swaps served together on one server.",
+  "candidate": "all-m11",
+  "replaces": [
+    "intent",
+    "urgency",
+    "pii",
+    "drafting"
+  ],
+  "combined_from": [
+    "intent-m11",
+    "urgency-m11",
+    "pii-m11",
+    "drafting-m11"
+  ],
+  "base_pins": "manifests/adapters.json",
+  "components": {
+    "base_model": {
+      "repo": "Qwen/Qwen2.5-1.5B-Instruct",
+      "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+      "weight_file": "adapter_model.safetensors",
+      "weight_sha256": null,
+      "last_modified": "2024-09-25 12:32:50+00:00"
+    },
+    "intent": {
+      "repo": "Tanny03/adapterops-intent-undertrained-m11",
+      "revision": "15183753530386b879c8e625fe69e981b8874b8f",
+      "weight_file": "adapter_model.safetensors",
+      "weight_sha256": "732f7a843d1fd3be01807543fb7d70f8b40a14de3c2ae25821509eb0a3e63d1a",
+      "last_modified": "2026-09-11 05:06:53+00:00",
+      "candidate_of": "Tanny03/adapterops-intent"
+    },
+    "urgency": {
+      "repo": "Tanny03/adapterops-urgency-undertrained-m11",
+      "revision": "04af6b1c941ece481faaa53d3fc8c41f0404ea43",
+      "weight_file": "adapter_model.safetensors",
+      "weight_sha256": "9407b498cdeff0f882b851ed585813ed59d8274a38fbe95ee4ab9e744f696575",
+      "last_modified": "2026-09-11 17:22:49+00:00",
+      "candidate_of": "Tanny03/adapterops-urgency"
+    },
+    "pii": {
+      "repo": "Tanny03/adapterops-pii-undertrained-m11",
+      "revision": "24445b22e792ebfdc4415a9317b4b9fe20279317",
+      "weight_file": "adapter_model.safetensors",
+      "weight_sha256": "753a0d900a07e7253cd36b657524b8262bc8ed8058041ecfd014e3c9e5f5f1ea",
+      "last_modified": "2026-09-11 16:35:16+00:00",
+      "candidate_of": "Tanny03/adapterops-pii"
+    },
+    "drafting": {
+      "repo": "Tanny03/adapterops-drafting-undertrained-m11",
+      "revision": "5d37d96a98e6101a6be9bdcf7dd287a3e9ec7c3f",
+      "weight_file": "adapter_model.safetensors",
+      "weight_sha256": "835263bc484d5f012bad9cf7dbf3ad8eed2585a68a9e49516eeb47b30d8a3e54",
+      "last_modified": "2026-09-11 07:14:45+00:00",
+      "candidate_of": "Tanny03/adapterops-drafting"
+    }
+  }
+}

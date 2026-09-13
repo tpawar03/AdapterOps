@@ -131,6 +131,12 @@ def _cmd_verify_pins(args: argparse.Namespace) -> int:
     return verify(Path(args.pins) if args.pins else None)[0]
 
 
+def _cmd_combine_candidates(args: argparse.Namespace) -> int:
+    from adapterops.manifest.registry import combine_candidates
+
+    return combine_candidates(names=args.sources, name=args.name, force=args.force)
+
+
 def _cmd_pin_candidate(args: argparse.Namespace) -> int:
     from adapterops.manifest.registry import pin_candidate
 
@@ -288,6 +294,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_cand.add_argument("--name", required=True, help="names manifests/candidates/<name>.json")
     p_cand.add_argument("--force", action="store_true")
     p_cand.set_defaults(func=_cmd_pin_candidate)
+
+    p_comb = sub.add_parser("combine-candidates",
+                            help="merge pinned candidates to serve several swaps at once")
+    p_comb.add_argument("--from", dest="sources", nargs="+", required=True,
+                        help="candidate names under manifests/candidates/")
+    p_comb.add_argument("--name", required=True)
+    p_comb.add_argument("--force", action="store_true")
+    p_comb.set_defaults(func=_cmd_combine_candidates)
 
     p_train = sub.add_parser("train", help="QLoRA-train a task adapter (needs CUDA)")
     p_train.add_argument("--task", required=True, choices=["intent", "urgency", "pii", "drafting"])

@@ -176,3 +176,53 @@ def pin_candidate(task: str, repo: str, name: str, force: bool = False) -> int:
     print(f"  {name}: {task} -> {repo} @ {resolved['revision'][:8]} "
           f"weights {str(resolved['weight_sha256'])[:12]}")
     return 0
+
+
+def _rel(path: Path) -> str:
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def combine_candidates(names: list[str], name: str, force: bool = False) -> int:
+    """Merge already-pinned candidates into one set, so several swaps share one server.
+
+    Each GPU-session restart costs minutes of load time, and the four M11 checkpoints can be
+    served together because the regression run scores every task independently. The merge reads
+    the revisions already pinned in each candidate file rather than re-resolving the Hub, so the
+    combined set serves exactly the weights the individual pins recorded — and it refuses a file
+    built against different base pins, or two files that replace the same task.
+    """
+    path = CANDIDATES_DIR / f"{name}.json"
+    if path.exists() and not force:
+        print(f"  {_rel(path)} exists — --force to rebuild it")
+        return 1
+    base = json.loads(MANIFEST.read_text())["components"]
+    combined = copy.deepcopy(base)
+    replaced: list[str] = []
+    for candidate in names:
+        doc = json.loads((CANDIDATES_DIR / f"{candidate}.json").read_text())
+        tasks = doc["replaces"] if isinstance(doc["replaces"], list) else [doc["replaces"]]
+        for task in tasks:
+            if task in replaced:
+                msg = f"{task} is replaced by more than one candidate"
+                raise ValueError(msg)
+        for key, component in doc["components"].items():
+            if key not in tasks and component != base.get(key):
+                msg = f"{candidate} was built against different pins for {key}"
+                raise ValueError(msg)
+        for task in tasks:
+            combined[task] = doc["components"][task]
+            replaced.append(task)
+    CANDIDATES_DIR.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({
+        "purpose": "Combined candidate pin set — several swaps served together on one server.",
+        "candidate": name,
+        "replaces": replaced,
+        "combined_from": names,
+        "base_pins": _rel(MANIFEST),
+        "components": combined,
+    }, indent=2) + "\n", encoding="utf-8")
+    print(f"  {name}: replaces {', '.join(replaced)} — from {', '.join(names)}")
+    return 0

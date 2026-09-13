@@ -46,3 +46,54 @@ def test_the_serve_script_passes_a_candidate_pin_set_through():
     script = (ROOT / "scripts" / "phase2_serve.sh").read_text()
     assert '${PINS:+--pins "$PINS"}' in script
     assert "PIN_SET" in script
+
+
+
+def _workspace(tmp_path, monkeypatch):
+    import json
+
+    monkeypatch.setattr(registry, "MANIFEST", tmp_path / "adapters.json")
+    monkeypatch.setattr(registry, "CANDIDATES_DIR", tmp_path / "candidates")
+    (tmp_path / "adapters.json").write_text(json.dumps({"components": BASE}))
+    (tmp_path / "candidates").mkdir()
+
+    def add(name, task, revision, base=BASE):
+        comps = registry.candidate_components(
+            base, task, {"repo": f"x/{task}-m11", "revision": revision, "weight_sha256": revision})
+        (tmp_path / "candidates" / f"{name}.json").write_text(
+            json.dumps({"replaces": task, "components": comps}))
+    return add
+
+
+def test_combining_candidates_swaps_each_task_and_keeps_the_rest(tmp_path, monkeypatch):
+    import json
+
+    add = _workspace(tmp_path, monkeypatch)
+    add("intent-m11", "intent", "m1")
+    add("pii-m11", "pii", "m2")
+    assert registry.combine_candidates(["intent-m11", "pii-m11"], "all-m11") == 0
+    out = json.loads((tmp_path / "candidates" / "all-m11.json").read_text())
+    assert out["components"]["intent"]["revision"] == "m1"
+    assert out["components"]["pii"]["revision"] == "m2"
+    assert out["components"]["base_model"] == BASE["base_model"]
+    assert sorted(out["replaces"]) == ["intent", "pii"]
+
+
+def test_two_candidates_replacing_the_same_task_cannot_combine(tmp_path, monkeypatch):
+    add = _workspace(tmp_path, monkeypatch)
+    add("a", "intent", "m1")
+    add("b", "intent", "m2")
+    with pytest.raises(ValueError, match="more than one candidate"):
+        registry.combine_candidates(["a", "b"], "clash")
+
+
+def test_a_candidate_built_against_different_pins_cannot_combine(tmp_path, monkeypatch):
+    """Merging it would silently serve a base the individual pin never recorded."""
+    import copy
+
+    add = _workspace(tmp_path, monkeypatch)
+    drifted = copy.deepcopy(BASE)
+    drifted["pii"]["revision"] = "moved"
+    add("stale", "intent", "m1", base=drifted)
+    with pytest.raises(ValueError, match="different pins"):
+        registry.combine_candidates(["stale"], "bad")
