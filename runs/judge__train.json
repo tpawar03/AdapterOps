@@ -1,0 +1,35 @@
+{
+  "config": {
+    "base_model": "microsoft/deberta-v3-base",
+    "max_length": 512,
+    "epochs": 3.0,
+    "batch_size": 8,
+    "grad_accum": 1,
+    "learning_rate": 2e-05,
+    "weight_decay": 0.01,
+    "warmup_fraction": 0.1,
+    "val_fraction": 0.1,
+    "min_fit": 200,
+    "seed": 20260909,
+    "use_cpu": null,
+    "tag": "",
+    "output_dir": "/Users/tanmay/Desktop/AdapterOps/checkpoints/judge"
+  },
+  "device": "cpu",
+  "rows": {
+    "fit": 945,
+    "validation": 105,
+    "calibration": 150
+  },
+  "selection": "checkpoint chosen on a validation split carved from training items; the calibration holdout is scored once, after training",
+  "target_scaling": "trained on (score - 3) / 2; predictions mapped back to the 1-5 scale",
+  "calibration": {
+    "n": 150,
+    "spearman": 0.7285,
+    "pearson": 0.7117,
+    "exact_agreement": 0.7333,
+    "within_1_agreement": 0.9933,
+    "mean_absolute_error": 0.3563,
+    "mean_bias_student_minus_teacher": 0.0575
+  }
+}
