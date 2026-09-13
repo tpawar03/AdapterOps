@@ -20,14 +20,14 @@ and in the phase column of §4.
 
 | | |
 |---|---|
-| **Phase** | **Phase 5 — README, results dashboard and Gradio demo built; the demo is not deployed yet.** Phase 4 is recorded: M7 proven on real serving, M11 negative. |
+| **Phase** | **Phase 5 done — README, results dashboard, model cards, and a public recorded demo at [huggingface.co/spaces/Tanny03/adapterops-demo](https://huggingface.co/spaces/Tanny03/adapterops-demo).** Phase 4 is recorded: M7 proven on real serving, M11 negative. |
 | **Spec** | PRD v2.6, published + in repo |
 | **Hours logged** | **not logged** / 180 — no per-session times were recorded, so no figure is claimed |
 | **Spend** | **~$10.47** / $50.00 — ~$10 as reported plus $0.47 since; $6.40 itemised, the Phase 2 and Phase 4 GPU sessions not itemised |
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
-| **Blocking** | Deploying the demo (M8) needs a Hugging Face Space created and uploaded from the account owner's login. |
-| **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · judge distilled (**M5**, Spearman 0.73) · under judge labels the router equals a task-name lookup and **confidence routing captures 57%** of available gain · hard split rebuilt (470) · **M2** on one server: intent +0.356, PII +0.376, urgency within noise, drafting **+1.38 under GPT-4o** · **M7 proven**: shuffled adapter detected (drop 0.923), blocked, forced, rolled back · **M11 negative** · **README (F23)** rewritten around results and negatives · **dashboard (F17)** rendered from committed runs · **cost per 1K derived** (D41): local is cheaper only above 3.64 req/s sustained · **Gradio demo (F22)** built (D40) · **router v2 (D42)**: three pre-registered fixes, all lose to confidence · **rules baseline (F26)**: a task-lookup rule captures 38%, still below confidence · **judge cost** measured · **frontier reference** on the golden sets measured · **model cards** with eval scores published to all four adapter repos |
-| **Next action** | Deploy the demo to a Space and verify the URL from a clean browser (M8). No GPU work remains. |
+| **Blocking** | Nothing. |
+| **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · judge distilled (**M5**, Spearman 0.73) · under judge labels the router equals a task-name lookup and **confidence routing captures 57%** of available gain · hard split rebuilt (470) · **M2** on one server: intent +0.356, PII +0.376, urgency within noise, drafting **+1.38 under GPT-4o** · **M7 proven**: shuffled adapter detected (drop 0.923), blocked, forced, rolled back · **M11 negative** · **README (F23)** rewritten around results and negatives · **dashboard (F17)** rendered from committed runs · **cost per 1K derived** (D41): local is cheaper only above 3.64 req/s sustained · **Gradio demo (F22)** built (D40) · **router v2 (D42)**: three pre-registered fixes, all lose to confidence · **rules baseline (F26)**: a task-lookup rule captures 38%, still below confidence · **judge cost** measured · **frontier reference** on the golden sets measured · **model cards** with eval scores published to all four adapter repos · **demo live** as a static Space of recorded outputs (D43) |
+| **Next action** | None required. Optional: a live Gradio Space needs Hugging Face PRO (D43); the tested bundle is ready in `demo/build_space.py`. |
 
 ### Milestone tracker
 
@@ -40,8 +40,8 @@ and in the phase column of §4.
 | M5 | Judge calibration reported | **reported** — Spearman **0.73**, Pearson 0.71, exact 0.73, within ±1 0.99 (a constant 4 scores 0.99) · N3 (≥ 0.80) not reached · **holds on the adapter's golden replies (0.74), fails on another generator's (0.33)** |
 | M6 | Manifest drives serving | **partly** — serving materialises the pin files the manifest is built from (`adapters.json`, candidate sets) at their pinned revisions; it does not read `system.json` itself |
 | M7 | **detect → block → rollback proven** | **PROVEN on real serving** — shuffled-label intent adapter: drop 0.9234 vs threshold 0.0117 → blocked for that reason alone · forced as v3 with the override recorded · rolled back to v2 |
-| M8 | Live demo + public repo | repo public ✓ · README ✓ · demo built (`demo/app.py`) and its generation path verified locally, all four adapters at pinned revisions · **not deployed** |
-| M9 | Spend ≤ $50 | on track — ~$10.47 of $50 |
+| M8 | Live demo + public repo | **done** — recorded demo live at [huggingface.co/spaces/Tanny03/adapterops-demo](https://huggingface.co/spaces/Tanny03/adapterops-demo), verified in a browser · repo public · README · the live Gradio app runs locally (D43) |
+| M9 | Spend ≤ $50 | **met** — ~$10.47 of $50, with no further spend planned |
 | M10 | Hard-cases split mined + adjudicated | **done, rebuilt** — 470 retained; drafting bucket from judge failures (113), intent quarantine 24.0% (D36, D38) |
 | M11 | **Gate sensitivity measured** | **measured — negative.** The hard split caught nothing the random set missed; on intent, urgency and drafting it *improved* for the under-trained checkpoints |
 
@@ -928,6 +928,22 @@ the wrong model-selection metric — the decision needs the expected value of ac
 
 ---
 
+### D43 · The public demo is a static page of recorded outputs, not a live model
+**Rejected:** a live Gradio Space — Hugging Face now requires a PRO subscription to host Gradio on its
+free CPU tier, and creating one returned 402 — and moving the live app to another host.
+**Why:** D5 already separated the demo from the benchmark. What the public page has to show is what
+each adapter does and what was measured, and recorded outputs show both, free. They can also be held
+to a stricter standard than a live app: the build recomputes every system's score from the exact rows
+it publishes and refuses to publish if any differs from the recorded run. A live CPU app would show
+fresh outputs on inputs nobody scored, slowly. This supersedes D40's hosting plan; D40's app stays.
+**Trade-off accepted:** visitors cannot type their own input on the public page. The live app runs
+locally (`demo/app.py`), and its Space bundle is ready for a PRO account (`demo/build_space.py`).
+PRD §12's ~$9 hosting contingency stays unspent.
+**Interview angle:** a demo that cannot drift from the evidence — every example on the page adds up
+to the published number, and the page says plainly that it is recorded.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -940,7 +956,7 @@ the wrong model-selection metric — the decision needs the expected value of ac
 | Repo size vs offline reproducibility | Commit 3.4 MB of vendored assets | Heavier clone |
 | iCloud backup vs sync churn | Live on the Desktop (D19) | ~1 GB of venv + git still syncing; no per-folder exclusion exists |
 | Real data realism vs privacy | Synthetic PII spans only | No real-world messiness in the PII task |
-| Demo speed vs spend | Free CPU Space, transformers + peft (D40) | Slow replies; demo timings are not benchmark numbers |
+| Live demo vs spend | Static Space of recorded outputs (D43); live app runs locally (D40) | No custom input on the public page |
 
 ---
 
@@ -1037,6 +1053,7 @@ Filled in as results arrive. **Empty is the correct state today.**
 | **Frontier reference on golden sets (GPT-4o-mini, F8 prompts)** | intent **0.687** · urgency **0.382** macro-F1 · PII **0.666** strict · drafting **4.52** GPT-4o grade (96% ≥ 4) — adapters 0.929 · 0.410 · 0.946 · 4.24 · $0.473 for 1,670 calls and 300 grades · 0% at token cap | Phase 5 |
 | Distilled judge on GPT-4o-mini's golden replies | Spearman **0.575** with GPT-4o · means 4.49 vs 4.52 | Phase 5 |
 | Model cards on the Hub (PRD §9) | rendered from runs, pushed as README.md: intent `19b7e223` · urgency `26a15541` · PII `eeb4f6c3` · drafting `f7e0e286` · weights unchanged, `verify-pins` reports `main_moved_same_weights` for all four | Phase 5 |
+| **Public demo (M8)** | static Space, commit `a6f80552`: 1,670 golden items browsable with adapter and GPT-4o-mini outputs, 300 drafting requests with three GPT-4o-graded replies · the build reproduces every published score before writing · verified in a browser, no console errors | Phase 5 |
 
 ### Findings log
 > Append entries as things are learned — especially the surprising and the negative.

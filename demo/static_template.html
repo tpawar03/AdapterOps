@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AdapterOps — recorded demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f6f2; --panel: #ffffff; --ink: #1d2327; --muted: #5b646b; --line: #dcdad3;
+  --accent: #0f766e; --accent-soft: #e2f1ee; --good: #166534; --good-soft: #e6f4ea;
+  --bad: #b42318; --bad-soft: #fbebe9; --code: #efeee8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111415; --panel: #191e20; --ink: #e5e8e6; --muted: #9ba5a9; --line: #2c3437;
+    --accent: #5eead4; --accent-soft: #12302c; --good: #86efac; --good-soft: #13291c;
+    --bad: #fca5a5; --bad-soft: #321b1b; --code: #21282b;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 "Source Serif 4", Georgia, serif; }
+h1, h2, h3, button, select, input, .label, .who, .head, summary { font-family: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif; }
+code, .mono, .metric, .meta, .badge, .grade, .out { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 64px; }
+.eyebrow { font: 500 13px "IBM Plex Mono", monospace; color: var(--accent); letter-spacing: .05em; text-transform: uppercase; }
+h1 { font-size: 40px; font-weight: 600; margin: 4px 0 8px; line-height: 1.1; }
+.lede { max-width: 780px; color: var(--muted); margin: 0 0 14px; }
+.notice { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 10px 14px; margin: 0 0 14px; max-width: 880px; }
+.links a { color: var(--accent); margin-right: 18px; }
+nav { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin: 22px 0 20px; overflow-x: auto; }
+.tab { background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 14px; font-size: 16px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.chip { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 6px 14px; cursor: pointer; font-size: 15px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chip:disabled { opacity: .45; cursor: default; }
+select, input[type="search"] { font-size: 15px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); }
+input[type="search"] { min-width: 200px; flex: 1; }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 0 0 8px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.stat .label { font-size: 14px; color: var(--muted); }
+.stat .metric { font-size: 22px; }
+.stat .note { font-size: 13px; color: var(--muted); }
+.caption { color: var(--muted); font-size: 15px; margin: 0 0 16px; max-width: 880px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
+.meta { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.input { margin: 0 0 12px; white-space: pre-wrap; word-break: break-word; }
+.rows { display: grid; gap: 6px; }
+.row { display: grid; grid-template-columns: 140px 1fr auto; gap: 12px; align-items: start; padding: 7px 10px; border-radius: 6px; }
+.row.good { background: var(--good-soft); }
+.row.bad { background: var(--bad-soft); }
+.row.gold { background: var(--code); }
+.who { color: var(--muted); font-size: 15px; }
+.out { font-size: 14px; white-space: pre-wrap; word-break: break-word; }
+.badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.good .badge { color: var(--good); }
+.bad .badge { color: var(--bad); }
+.replies { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.reply { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.grade { font-weight: 500; }
+.reply .text { font-size: 15px; white-space: pre-wrap; word-break: break-word; max-height: 280px; overflow: auto; }
+.reason { font-size: 14px; color: var(--muted); font-style: italic; }
+details { margin-top: 10px; }
+summary { cursor: pointer; color: var(--muted); }
+.pager { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 12px; color: var(--muted); }
+.empty { color: var(--muted); padding: 24px 0; }
+.prose h1 { font-size: 30px; }
+.prose h2 { font-size: 24px; margin-top: 30px; }
+.prose h3 { font-size: 20px; }
+.prose .scroll { overflow-x: auto; margin: 10px 0 18px; }
+.prose table { border-collapse: collapse; font-size: 14px; }
+.prose th, .prose td { border-bottom: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+.prose code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size: .9em; }
+.prose a { color: var(--accent); }
+.licences li { margin-bottom: 8px; }
+[hidden] { display: none !important; }
+@media (max-width: 640px) {
+  h1 { font-size: 30px; }
+  .row { grid-template-columns: 1fr; gap: 4px; }
+  .badge { justify-self: start; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">AdapterOps · recorded demo</div>
+    <h1>Four adapters, one base model, the negative results kept</h1>
+    <p class="lede">Four LoRA adapters over one Qwen2.5-1.5B base, served together with vLLM multi-LoRA,
+      scored against a prompted base model and GPT-4o-mini on the same frozen golden sets.</p>
+    <p class="notice"><strong>Recorded outputs, not live inference.</strong> Every output below was saved
+      during a run whose score is in the repository — the adapters on vLLM (A10, greedy, pinned revisions),
+      GPT-4o-mini with the escalation arm's prompts — and the page refuses to build if these rows do not
+      reproduce the published scores. The live Gradio app is in the repository as <code>demo/app.py</code>.</p>
+    <p class="links">
+      <a href="https://github.com/tpawar03/AdapterOps">Repository</a>
+      <a href="https://github.com/tpawar03/AdapterOps/blob/main/STATUS.md">Decisions &amp; findings</a>
+      <a href="https://huggingface.co/Tanny03">Adapters on the Hub</a>
+    </p>
+  </header>
+
+  <nav role="tablist">
+    <button class="tab" role="tab" data-tab="browse" aria-selected="true">Browse outputs</button>
+    <button class="tab" role="tab" data-tab="results" aria-selected="false">Results</button>
+    <button class="tab" role="tab" data-tab="failure" aria-selected="false">Failure demo</button>
+    <button class="tab" role="tab" data-tab="about" aria-selected="false">Data &amp; licences</button>
+  </nav>
+
+  <section data-panel="browse">
+    <div class="controls" id="tasks"></div>
+    <div class="summary" id="summary"></div>
+    <p class="caption" id="caption"></p>
+    <div class="controls">
+      <select id="filter" aria-label="Filter"></select>
+      <input type="search" id="search" placeholder="Search input text" aria-label="Search input text">
+      <button class="chip" id="random">Random example</button>
+    </div>
+    <div id="count" class="meta"></div>
+    <div id="cards"></div>
+    <div class="pager">
+      <button class="chip" id="prev">Previous</button>
+      <span id="page"></span>
+      <button class="chip" id="next">Next</button>
+    </div>
+  </section>
+
+  <section data-panel="results" class="prose" hidden>%%RESULTS%%</section>
+  <section data-panel="failure" class="prose" hidden>%%FAILURE%%</section>
+
+  <section data-panel="about" hidden>
+    <h2>Data &amp; licences</h2>
+    <p>The inputs shown are items from each task's frozen golden split, drawn from these public datasets.</p>
+    <ul class="licences">
+      <li><strong>Intent</strong> — Banking77 via <code>mteb/banking77</code>, MIT.</li>
+      <li><strong>Urgency</strong> — <code>Tobi-Bueck/customer-support-tickets</code> by Tobi Bueck, <strong>CC BY-NC 4.0</strong>: non-commercial use only, attribution required. The urgency adapter inherits that restriction.</li>
+      <li><strong>PII</strong> — <code>ai4privacy/pii-masking-openpii-1m</code>, CC BY 4.0. Synthetic personal data only; no real person is described.</li>
+      <li><strong>Drafting</strong> — <code>bitext/Bitext-customer-support-llm-chatbot-training-dataset</code>, CDLA-Sharing-1.0. The reference replies and <code>{{placeholder}}</code> slots come from this dataset.</li>
+    </ul>
+    <p>Portfolio project: no real users, no real customer data.</p>
+  </section>
+</div>
+
+<script type="application/json" id="data">%%DATA%%</script>
+<script>
+(function () {
+  "use strict";
+  const DATA = JSON.parse(document.getElementById("data").textContent);
+  const PAGE = 10;
+  const state = { task: "intent", filter: "all", q: "", page: 0, only: null };
+
+  const FILTERS = {
+    classification: [["all", "All items"], ["adapter_only", "Adapter right, GPT-4o-mini wrong"],
+                     ["frontier_only", "GPT-4o-mini right, adapter wrong"], ["both_wrong", "Both wrong"]],
+    pii: [["all", "All items"], ["adapter_imperfect", "Adapter below a perfect score"],
+          ["frontier_better", "GPT-4o-mini scored higher"]],
+    drafting: [["all", "All items"], ["frontier_higher", "GPT-4o-mini graded higher"],
+               ["adapter_higher", "Adapter graded higher than GPT-4o-mini"], ["adapter_low", "Adapter graded below 4"]],
+  };
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined && text !== null) n.textContent = String(text);
+    return n;
+  }
+  function kind(task) { return task === "pii" ? "pii" : task === "drafting" ? "drafting" : "classification"; }
+
+  function passes(item, task, f) {
+    if (f === "all") return true;
+    const k = kind(task);
+    if (k === "classification") {
+      const a = item.adapter_ok, b = item.frontier_ok;
+      if (f === "adapter_only") return a && !b;
+      if (f === "frontier_only") return !a && b;
+      return !a && !b;
+    }
+    if (k === "pii") return f === "adapter_imperfect" ? item.adapter_f1 < 1 : item.frontier_f1 > item.adapter_f1;
+    const s = item.sides;
+    if (f === "frontier_higher") return s.frontier.grade > s.adapter.grade;
+    if (f === "adapter_higher") return s.adapter.grade > s.frontier.grade;
+    return s.adapter.grade < 4;
+  }
+
+  function visible() {
+    const q = state.q.trim().toLowerCase();
+    return DATA.tasks[state.task].items.filter(function (it) {
+      if (state.only !== null) return it.id === state.only;
+      return passes(it, state.task, state.filter) && (!q || it.text.toLowerCase().indexOf(q) !== -1);
+    });
+  }
+
+  function pairsText(pairs) {
+    return pairs.length ? pairs.map(function (p) { return p[0] + ": " + p[1]; }).join("\n") : "(nothing found)";
+  }
+
+  function row(cls, who, out, badge) {
+    const r = el("div", "row " + cls);
+    r.appendChild(el("div", "who", who));
+    r.appendChild(el("div", "out", out));
+    r.appendChild(badge ? el("span", "badge", badge) : el("span"));
+    return r;
+  }
+
+  function classificationCard(it) {
+    const c = el("article", "card");
+    c.appendChild(el("div", "meta", "golden item #" + it.id));
+    c.appendChild(el("p", "input", it.text));
+    const rows = el("div", "rows");
+    rows.appendChild(row("gold", "Gold label", it.gold));
+    rows.appendChild(row(it.adapter_ok ? "good" : "bad", "Adapter", it.adapter, it.adapter_ok ? "correct" : "wrong"));
+    rows.appendChild(row(it.frontier_ok ? "good" : "bad", "GPT-4o-mini", it.frontier, it.frontier_ok ? "correct" : "wrong"));
+    c.appendChild(rows);
+    return c;
+  }
+
+  function piiCard(it) {
+    const c = el("article", "card");
+    c.appendChild(el("div", "meta", "golden item #" + it.id + " · synthetic data"));
+    c.appendChild(el("p", "input", it.text));
+    const rows = el("div", "rows");
+    rows.appendChild(row("gold", "Gold spans", pairsText(it.gold)));
+    rows.appendChild(row(it.adapter_f1 === 1 ? "good" : "bad", "Adapter", pairsText(it.adapter), "strict F1 " + it.adapter_f1.toFixed(2)));
+    rows.appendChild(row(it.frontier_f1 === 1 ? "good" : "bad", "GPT-4o-mini", pairsText(it.frontier), "strict F1 " + it.frontier_f1.toFixed(2)));
+    c.appendChild(rows);
+    return c;
+  }
+
+  function draftingCard(it) {
+    const c = el("article", "card");
+    c.appendChild(el("div", "meta", "golden item #" + it.id + " · grades by GPT-4o, 1–5"));
+    c.appendChild(el("p", "input", it.text));
+    const grid = el("div", "replies");
+    [["adapter", "Adapter"], ["prompted", "Prompted base"], ["frontier", "GPT-4o-mini"]].forEach(function (pair) {
+      const s = it.sides[pair[0]];
+      const box = el("div", "reply");
+      const head = el("div", "head");
+      head.appendChild(el("strong", "", pair[1]));
+      head.appendChild(el("span", "grade", s.grade + "/5"));
+      box.appendChild(head);
+      box.appendChild(el("div", "text", s.reply));
+      if (s.reason) box.appendChild(el("div", "reason", s.reason));
+      grid.appendChild(box);
+    });
+    c.appendChild(grid);
+    const d = el("details");
+    d.appendChild(el("summary", "", "Reference reply from the dataset"));
+    d.appendChild(el("p", "input", it.reference));
+    c.appendChild(d);
+    return c;
+  }
+
+  function renderTasks() {
+    const box = document.getElementById("tasks");
+    box.replaceChildren();
+    Object.keys(DATA.tasks).forEach(function (key) {
+      const b = el("button", "chip", DATA.tasks[key].title);
+      b.setAttribute("aria-pressed", String(key === state.task));
+      b.addEventListener("click", function () {
+        state.task = key; state.filter = "all"; state.q = ""; state.page = 0; state.only = null;
+        document.getElementById("search").value = "";
+        renderAll();
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function renderSummary() {
+    const t = DATA.tasks[state.task];
+    const box = document.getElementById("summary");
+    box.replaceChildren();
+    t.summary.forEach(function (s) {
+      const d = el("div", "stat");
+      d.appendChild(el("div", "label", s.label));
+      d.appendChild(el("div", "metric", s.value));
+      if (s.note) d.appendChild(el("div", "note", s.note));
+      box.appendChild(d);
+    });
+    document.getElementById("caption").textContent = t.caption;
+    const sel = document.getElementById("filter");
+    sel.replaceChildren();
+    FILTERS[kind(state.task)].forEach(function (f) {
+      const o = el("option", "", f[1]);
+      o.value = f[0];
+      o.selected = f[0] === state.filter;
+      sel.appendChild(o);
+    });
+  }
+
+  function renderCards() {
+    const items = visible();
+    const pages = Math.max(1, Math.ceil(items.length / PAGE));
+    state.page = Math.min(state.page, pages - 1);
+    const shown = items.slice(state.page * PAGE, (state.page + 1) * PAGE);
+    const box = document.getElementById("cards");
+    box.replaceChildren();
+    const make = { classification: classificationCard, pii: piiCard, drafting: draftingCard }[kind(state.task)];
+    shown.forEach(function (it) { box.appendChild(make(it)); });
+    if (!shown.length) box.appendChild(el("p", "empty", "No items match."));
+    const total = DATA.tasks[state.task].items.length;
+    document.getElementById("count").textContent = state.only !== null
+      ? "Showing one random item of " + total + " — change the filter or search to go back."
+      : items.length + " of " + total + " items";
+    document.getElementById("page").textContent = "Page " + (state.page + 1) + " of " + pages;
+    document.getElementById("prev").disabled = state.page === 0;
+    document.getElementById("next").disabled = state.page >= pages - 1;
+  }
+
+  function renderAll() { renderTasks(); renderSummary(); renderCards(); }
+
+  document.getElementById("filter").addEventListener("change", function (e) {
+    state.filter = e.target.value; state.page = 0; state.only = null; renderCards();
+  });
+  document.getElementById("search").addEventListener("input", function (e) {
+    state.q = e.target.value; state.page = 0; state.only = null; renderCards();
+  });
+  document.getElementById("random").addEventListener("click", function () {
+    state.only = null;
+    const pool = visible();
+    if (!pool.length) return;
+    state.only = pool[Math.floor(Math.random() * pool.length)].id;
+    state.page = 0;
+    renderCards();
+  });
+  document.getElementById("prev").addEventListener("click", function () { state.page -= 1; renderCards(); window.scrollTo(0, 0); });
+  document.getElementById("next").addEventListener("click", function () { state.page += 1; renderCards(); window.scrollTo(0, 0); });
+
+  document.querySelectorAll(".tab").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      document.querySelectorAll(".tab").forEach(function (t) { t.setAttribute("aria-selected", String(t === tab)); });
+      document.querySelectorAll("[data-panel]").forEach(function (p) { p.hidden = p.dataset.panel !== tab.dataset.tab; });
+    });
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
