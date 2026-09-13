@@ -42,7 +42,7 @@ and in the phase column of §4.
 | M7 | **detect → block → rollback proven** | **detect (F18) → block proven in code** on the frozen splits, serving mocked · rollback tested · remains: real serving + the F21 shuffled-label adapter (GPU) |
 | M8 | Live demo + public repo | repo public ✓ · demo not started |
 | M9 | Spend ≤ $50 | on track ($4.56, GPU charge pending) |
-| M10 | Hard-cases split mined + adjudicated | **done** — 525 mined → **507 retained**, 18 quarantined · intent label-noise rate **24.0%** · screen applied only where it beats chance (D36) |
+| M10 | Hard-cases split mined + adjudicated | **partly invalid** — 507 retained, but the 150-item drafting bucket was mined on the token-F1 proxy and **73%** of its graded items pass the judge · intent, urgency and PII buckets stand · drafting bucket to be rebuilt (D38) |
 | M11 | **Gate sensitivity measured** | checkpoint captured · scoring in Phase 5 |
 
 ---
@@ -896,6 +896,8 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Drafting val rows sharing an instruction with train | **467 of 3,982 (11.7%)** — D24 | Phase 1 |
 | **Label-noise quarantine rate, per task** | intent **24.0%** (18/75) · urgency measured, not applied (60.4% vs 50.0% chance) · PII and drafting not applicable | Phase 4 |
 | Hard-cases split frozen (F31) | **507 retained** — drafting 150, PII 150, urgency 150, intent 57 · 18 quarantined · **$0** | Phase 4 |
+| Drafting hard cases under the judge | **74 of 102** graded items grade ≥ 4 (73%) — mostly not failures | Phase 4 |
+| Drafting router labels under the judge | **322 of 750** flip (43%) · frozen router dataset: 44% train, 37% eval, 44% shift | Phase 4 |
 | Hard-split run-to-run variance | — | Phase 4 |
 | **M11: does the hard split catch what the random set misses?** | — | Phase 5 |
 
@@ -903,6 +905,28 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 4 · The drafting hard cases were mined on the proxy the judge overturned — 73% of the
+graded ones are successes.** The hard-cases split's drafting bucket holds 150 items mined as
+*token-F1* failures. GPT-4o graded 102 of them (the other 48 fell outside the graded sample of
+the mining slice). **74 of those 102 — 73% — grade 4 or 5.** By the real drafting metric, most
+of the bucket is not failures at all, let alone hard ones.
+
+*It is D28's proxy, inherited twice.* The same proxy set the router's drafting labels, and under
+the judge **322 of 750 (43%)** of those flip: 282 from failure to success, 40 the other way. In
+the frozen router dataset that is **44%** of drafting's training rows, **37%** of its eval rows and
+**44%** of its shift rows.
+
+*Means:* M10 is not done. Its intent, urgency and PII buckets stand — their metrics are exact
+match and exact span, not a stand-in — but the 150-item drafting bucket measures disagreement
+with Bitext's phrasing, and a gate on it would block drafts for being worded differently.
+D36's adjudication screen could not have caught this: it declared drafting "not applicable"
+because there was no label to dispute, and the actual problem was that the *failure* itself was
+defined by a proxy.
+
+*Changes the plan:* drafting is relabelled with the teacher grade (D38). The router's split
+membership is kept fixed and only labels change, so before and after are measured on identical
+rows. The drafting hard bucket is rebuilt from judge failures.
 
 **Phase 3 · Under a reference-free judge, escalating drafting *rescues* 16% of requests and
 breaks 1.5% — the reverse of what token-F1 said.** GPT-4o graded the adapter's and
