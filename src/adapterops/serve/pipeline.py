@@ -232,9 +232,10 @@ class TransformersBackend:
                                                          dtype=dtype)
             for i, task in enumerate(TASKS):
                 entry = self.components[task]
-                path = snapshot_download(entry["repo"], revision=entry["revision"],
-                                         allow_patterns=["adapter_model.safetensors",
-                                                         "adapter_config.json"])
+                # A local checkpoint (a retrained candidate, never published) loads from disk.
+                path = entry.get("path") or snapshot_download(
+                    entry["repo"], revision=entry["revision"],
+                    allow_patterns=["adapter_model.safetensors", "adapter_config.json"])
                 if i == 0:
                     model = PeftModel.from_pretrained(model, path, adapter_name=task)
                 else:

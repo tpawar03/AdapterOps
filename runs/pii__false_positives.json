@@ -1,0 +1,233 @@
+{
+  "question": "How often does the PII adapter report personal data in text that has none?",
+  "set": {
+    "file": "evals/pii_negatives/pii_negatives.parquet",
+    "sha256": "6078733adae791290bc896a9241751905aea900712655921caa054c3571753b6",
+    "texts": 928,
+    "limit_per_source": null
+  },
+  "adapter": {
+    "adapter": "Tanny03/adapterops-pii",
+    "revision": "3b38a28479215897ab927f00b78da99a57813469",
+    "manifest_version": 5,
+    "device": "mps",
+    "batch": 16,
+    "max_new_tokens": 384,
+    "seconds": 251.6,
+    "all": {
+      "texts": 928,
+      "texts_with_any_line": 928,
+      "false_positive_rate": 1.0,
+      "texts_with_grounded_span": 223,
+      "grounded_rate": 0.2403,
+      "texts_with_invented_value": 809,
+      "lines": 1564,
+      "lines_per_flagged_text": 1.69,
+      "labels": {
+        "GIVENNAME": 520,
+        "SURNAME": 370,
+        "AGE": 200,
+        "CREDITCARDNUMBER": 120,
+        "IDCARDNUM": 81,
+        "SEX": 69,
+        "CITY": 35,
+        "DATE": 31,
+        "ZIPCODE": 26,
+        "STREET": 22,
+        "BUILDINGNUM": 20,
+        "DRIVERLICENSENUM": 16,
+        "EMAIL": 16,
+        "PASSPORTNUM": 15,
+        "TELEPHONENUM": 11,
+        "SOCIALNUM": 5,
+        "CURRENCY": 4,
+        "PIN": 1,
+        "DEVICE": 1,
+        "TITLE": 1
+      }
+    },
+    "per_source": {
+      "drafting": {
+        "texts": 221,
+        "texts_with_any_line": 221,
+        "false_positive_rate": 1.0,
+        "texts_with_grounded_span": 71,
+        "grounded_rate": 0.3213,
+        "texts_with_invented_value": 165,
+        "lines": 360,
+        "lines_per_flagged_text": 1.63,
+        "labels": {
+          "GIVENNAME": 172,
+          "SURNAME": 87,
+          "AGE": 25,
+          "STREET": 16,
+          "BUILDINGNUM": 14,
+          "EMAIL": 12,
+          "ZIPCODE": 11,
+          "IDCARDNUM": 7,
+          "TELEPHONENUM": 6,
+          "DATE": 4,
+          "CITY": 3,
+          "CREDITCARDNUMBER": 1,
+          "TITLE": 1,
+          "PASSPORTNUM": 1
+        }
+      },
+      "intent": {
+        "texts": 707,
+        "texts_with_any_line": 707,
+        "false_positive_rate": 1.0,
+        "texts_with_grounded_span": 152,
+        "grounded_rate": 0.215,
+        "texts_with_invented_value": 644,
+        "lines": 1204,
+        "lines_per_flagged_text": 1.7,
+        "labels": {
+          "GIVENNAME": 348,
+          "SURNAME": 283,
+          "AGE": 175,
+          "CREDITCARDNUMBER": 119,
+          "IDCARDNUM": 74,
+          "SEX": 69,
+          "CITY": 32,
+          "DATE": 27,
+          "DRIVERLICENSENUM": 16,
+          "ZIPCODE": 15,
+          "PASSPORTNUM": 14,
+          "BUILDINGNUM": 6,
+          "STREET": 6,
+          "TELEPHONENUM": 5,
+          "SOCIALNUM": 5,
+          "EMAIL": 4,
+          "CURRENCY": 4,
+          "PIN": 1,
+          "DEVICE": 1
+        }
+      }
+    }
+  },
+  "baseline": {
+    "name": "regex only \u2014 spaCy model not installed",
+    "all": {
+      "texts": 928,
+      "texts_with_any_line": 13,
+      "false_positive_rate": 0.014,
+      "texts_with_grounded_span": 13,
+      "grounded_rate": 0.014,
+      "texts_with_invented_value": 0,
+      "lines": 15,
+      "lines_per_flagged_text": 1.15,
+      "labels": {
+        "SEX": 14,
+        "TITLE": 1
+      }
+    },
+    "per_source": {
+      "drafting": {
+        "texts": 221,
+        "texts_with_any_line": 1,
+        "false_positive_rate": 0.0045,
+        "texts_with_grounded_span": 1,
+        "grounded_rate": 0.0045,
+        "texts_with_invented_value": 0,
+        "lines": 1,
+        "lines_per_flagged_text": 1.0,
+        "labels": {
+          "SEX": 1
+        }
+      },
+      "intent": {
+        "texts": 707,
+        "texts_with_any_line": 12,
+        "false_positive_rate": 0.017,
+        "texts_with_grounded_span": 12,
+        "grounded_rate": 0.017,
+        "texts_with_invented_value": 0,
+        "lines": 14,
+        "lines_per_flagged_text": 1.17,
+        "labels": {
+          "SEX": 13,
+          "TITLE": 1
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "source": "intent",
+      "text": "I am missing some funds from my account - I tried to transfer them using my credit card number, and it disappeared.",
+      "output": "CREDITCARDNUMBER: 412345678901234"
+    },
+    {
+      "source": "intent",
+      "text": "I would like to transfer money from my other bank account into this one.",
+      "output": "CREDITCARDNUMBER: 412345678901234"
+    },
+    {
+      "source": "intent",
+      "text": "Hi there! I need to cancel an order I recently made and start processing a refund. Can you please help me with this and set up the refund as soon as possible? It's very urgent.",
+      "output": "GIVENNAME: Hi there!\nSURNAME: I need to cancel an order\nCREDITCARDNUMBER: 1234567890123456"
+    },
+    {
+      "source": "intent",
+      "text": "I want to set a new PIN",
+      "output": "GIVENNAME: I\nSURNAME: Doe"
+    },
+    {
+      "source": "intent",
+      "text": "This company isn't good, I would like to delete my account.",
+      "output": "GIVENNAME: This\nSURNAME: Company"
+    },
+    {
+      "source": "intent",
+      "text": "I believe I left my smartphone at the hotel I was staying at.",
+      "output": "BUILDINGNUM: 123\nSTREET: Main Street"
+    },
+    {
+      "source": "intent",
+      "text": "This company sucks! Can you delete my account?",
+      "output": "GIVENNAME: This\nSURNAME: Company\nAGE: 18"
+    },
+    {
+      "source": "intent",
+      "text": "Can I also transfer with SWIFT?",
+      "output": "CREDITCARDNUMBER: 412345678901234"
+    },
+    {
+      "source": "intent",
+      "text": "This company sucks! Can you terminate my account?",
+      "output": "GIVENNAME: John\nSURNAME: Doe"
+    },
+    {
+      "source": "intent",
+      "text": "I withdrew some cash out of the ATM over the holiday. It seems that I was charged some outrageous fees. I would not have done that had I been aware of these outrageous charges!",
+      "output": "AGE: 18\nCREDITCARDNUMBER: 402-356-7890"
+    },
+    {
+      "source": "intent",
+      "text": "How do I change my address?",
+      "output": "STREET: Main Street\nBUILDINGNUM: 123\nZIPCODE: 90210"
+    },
+    {
+      "source": "intent",
+      "text": "does it cost to exchange currencies?",
+      "output": "GIVENNAME: does\nSURNAME: itcosts\nCREDITCARDNUMBER: 1234567890"
+    },
+    {
+      "source": "intent",
+      "text": "I cannot verify my identity",
+      "output": "GIVENNAME: I"
+    },
+    {
+      "source": "intent",
+      "text": "How many transactions can I do with one disposable card?",
+      "output": "IDCARDNUM: 1234567890"
+    },
+    {
+      "source": "intent",
+      "text": "What can you do to unblock my pin?",
+      "output": "GIVENNAME: Pin"
+    }
+  ],
+  "notes": "Every emitted line is a false positive on this set. A grounded span's value occurs in the text; an invented value does not. Generated on this machine with the serving prompt and token cap, greedy, so exact outputs can differ from vLLM's."
+}

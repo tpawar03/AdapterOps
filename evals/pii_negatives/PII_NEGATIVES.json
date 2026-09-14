@@ -1,0 +1,18 @@
+{
+  "purpose": "PII-free texts for the PII adapter's false-positive rate (changelog 53).",
+  "rules": [
+    "no digit (AGE, BUILDINGNUM, DATE, ZIPCODE and every number-like label need one);",
+    "no `@` (EMAIL) and no template slot such as `{{Order Number}}`;",
+    "no title (TITLE) and no gendered word (GENDER, SEX);",
+    "no capitalised word after the first in a sentence (GIVENNAME, SURNAME, CITY, STREET), with \"I\""
+  ],
+  "sources": {
+    "intent": "evals/golden/intent.parquet",
+    "drafting": "evals/golden/drafting.parquet"
+  },
+  "counts": {
+    "intent": 707,
+    "drafting": 221
+  },
+  "sha256": "6078733adae791290bc896a9241751905aea900712655921caa054c3571753b6"
+}

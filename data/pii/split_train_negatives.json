@@ -1,0 +1,68 @@
+{
+  "purpose": "PII training split with PII-free sentences and empty answers (changelog 62).",
+  "seed": 20260909,
+  "source": "data/pii/split_train.parquet",
+  "file": "data/pii/split_train_negatives.parquet",
+  "sha256": "21c054f329cafdd3633071a41e3fc0079aa9994a6edb0a64e1b9eb15daf016a4",
+  "held_out_negatives": {
+    "file": "evals/pii_negatives/ai4privacy_val_sentences.parquet",
+    "sha256": "48a8ca994aa5bcb944f8e8adaf7190cddbf1a22739d55a53fa4ddd6dd46e0e1d",
+    "from": "data/pii/split_val.parquet"
+  },
+  "rows": {
+    "document": 8000,
+    "negative_sentence": 2955,
+    "positive_sentence": 2955
+  },
+  "negative_documents": 2259,
+  "median_chars": {
+    "negative_sentence": 75,
+    "positive_sentence": 75,
+    "document": 283
+  },
+  "probe_on_matched_pairs": {
+    "pii_blind_word_accuracy": 0.8613,
+    "length_only_accuracy": 0.4946,
+    "chance": 0.5,
+    "words_marking_pii_sentences": [
+      "at",
+      "by",
+      "on",
+      "name",
+      "regards",
+      "id",
+      "date",
+      "contact",
+      "number",
+      "phone",
+      "your and",
+      "address"
+    ],
+    "words_marking_span_free_sentences": [
+      "you for",
+      "we",
+      "forward to",
+      "for your",
+      "this",
+      "will",
+      "and",
+      "forward",
+      "the",
+      "look",
+      "that",
+      "to this"
+    ]
+  },
+  "val_negative_sentences": 491,
+  "preregistered": {
+    "decision_rule": "Replace the served PII adapter only if the candidate's random-split strict span F1, regression-scored beside the served adapter in one session, drops by no more than the enforced gate threshold (0.0081). The gate decides; no new threshold is introduced.",
+    "reported_whatever_they_are": [
+      "false-positive rate on evals/pii_negatives/pii_negatives.parquet (928 texts)",
+      "false-positive rate on the held-out ai4privacy validation sentences",
+      "hard-split span F1 (report-only, as for every task)"
+    ],
+    "no_target_rate": "No false-positive rate is set as a success bar in advance: the served adapter's is 100%, and any number chosen now would be invented.",
+    "known_limit": "Span-free sentences lean toward sign-offs; the 928-text set, which has none, tests whether the adapter learned that instead of PII."
+  },
+  "train_with": "python -m adapterops.train.cli_train --task pii --train-split train_negatives --variant negatives --subsample 100000 --epochs 3"
+}

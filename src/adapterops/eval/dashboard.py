@@ -52,6 +52,7 @@ INPUTS = {
     "sweep": "runs/request_path__a10-v4-sweep.json",
     "sweep_vllm": "runs/request_path__a10-v4-sweep-vllm.json",
     "sustained": "runs/request_path__a10-v4-sustained.json",
+    "pii_negatives": "runs/pii__false_positives.json",
 }
 HISTORY_GLOB = "manifests/history/system-*.json"
 OPERATING_BUDGET = 0.2
@@ -159,6 +160,20 @@ def frontier_rows(data: dict) -> list[str]:
                      f"{ceiling[task][metric]:.4f} |")
     lines.append(f"| drafting (GPT-4o grade) | {data['m2']['sides']['adapter']['gpt4o_mean']:.4f} | "
                  f"{data['ceiling_drafting']['sides']['frontier']['gpt4o_mean']:.4f} |")
+    negatives = data["pii_negatives"]
+    pii = negatives["adapter"]["all"]
+    lines += [
+        "",
+        (f"**PII's span F1 is conditional on the input containing PII.** On {pii['texts']:,} texts "
+         "with nothing any PII label could point at, the adapter reported personal data in "
+         f"**{pii['texts_with_any_line']:,} ({pii['false_positive_rate']:.0%})**: invented values in "
+         f"{pii['texts_with_invented_value']:,}, and a real word — mostly \"I\", \"Can\", \"My\" as a "
+         f"name — in {pii['texts_with_grounded_span']:,}. The baseline "
+         f"({negatives['baseline']['name']}) flagged "
+         f"{negatives['baseline']['all']['texts_with_any_line']}. "
+         "Every training and golden document contained PII (D21), so the adapter never learned an "
+         "empty answer. `runs/pii__false_positives.json`"),
+    ]
     return [*lines, ""]
 
 
@@ -371,16 +386,23 @@ def targets_rows(data: dict) -> list[str]:
     rps = serving["throughput_rps"]
     top = max(data["live"]["levels"], key=lambda level: level["concurrency"])
     reg = data["regression_live"]
+    # The judge runs where its checkpoint lives, so its share is derived from the committed timing
+    # rather than measured inside the GPU run: seconds per 1K drafts, plus one model load.
+    judge = data["judge_cost"]["distilled"]
+    drafts = sum(reg["per_split"]["drafting"][split]["n"] for split in ("random", "hard"))
+    judge_seconds = judge["seconds_per_1k"] * drafts / 1000 + judge["load_seconds"]
+    total_seconds = reg["wall_seconds"] + judge_seconds
     lines += [
         (f"| sustain 5–10 req/s briefly | four adapters at concurrency {serving['concurrency']}, M1 | "
          f"{rps} req/s for {serving['wall_seconds']:.0f} s | {'met' if rps >= 5 else '**missed**'} |"),
         (f"| sustain 5–10 req/s briefly | request path, routing and GPT-4o-mini included, "
          f"concurrency {top['concurrency']} | {top['throughput_pairs_per_s']} pairs/s for "
          f"{top['wall_seconds']:.0f} s | {'met' if top['throughput_pairs_per_s'] >= 5 else '**missed**'} |"),
-        (f"| regression run < 25 min | both splits, four tasks, `{reg['name']}` on the A10 | "
-         f"{reg['wall_seconds']:.0f} s for {reg['fallback']['requests']:,} requests; the judge "
-         f"scored its drafts in a separate step | "
-         f"{'met' if reg['wall_seconds'] < 25 * 60 else '**missed**'} |"), "",
+        (f"| regression run < 25 min | both splits, four tasks, `{reg['name']}` on the A10, judge on "
+         f"{judge['host']} CPU | {reg['wall_seconds']:.0f} s generating {reg['fallback']['requests']:,} "
+         f"requests + ~{judge_seconds:.0f} s judging {drafts} drafts at the committed "
+         f"{judge['seconds_per_1k']} s per 1K = ~{total_seconds / 60:.1f} min | "
+         f"{'met' if total_seconds < 25 * 60 else '**missed**'} |"), "",
         (f"Router timed on {lat['host']} against the manifest's pinned checkpoint, reproducing its "
          f"committed scores. §7 set one latency budget for every adapter with no allowance for "
          f"output length; the two misses are the two tasks that generate long outputs."), "",

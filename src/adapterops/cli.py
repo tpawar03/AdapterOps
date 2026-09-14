@@ -95,6 +95,22 @@ def _cmd_router_latency(_: argparse.Namespace) -> int:
     return latency_main()
 
 
+def _cmd_pii_false_positives(args: argparse.Namespace) -> int:
+    import os
+
+    os.environ.setdefault("HF_HUB_OFFLINE", "1")
+    from adapterops.eval.pii_negatives import main as negatives_main
+
+    return negatives_main(limit=args.limit, batch=args.batch, force_set=args.force_set,
+                          set_name=args.set, adapter_dir=args.adapter_dir, name=args.name)
+
+
+def _cmd_pii_negatives_split(args: argparse.Namespace) -> int:
+    from adapterops.data.pii_negatives_split import main as split_main
+
+    return split_main(force=args.force)
+
+
 def _cmd_training_variance(args: argparse.Namespace) -> int:
     from adapterops.eval.training_variance import main as variance_main
 
@@ -423,6 +439,26 @@ def build_parser() -> argparse.ArgumentParser:
                       choices=["intent", "urgency", "pii", "drafting"])
     p_tv.add_argument("--force", action="store_true", help="replace a measured variance")
     p_tv.set_defaults(func=_cmd_training_variance)
+
+    p_pn = sub.add_parser("pii-false-positives",
+                          help="the PII adapter on PII-free text: how often it reports some (ch. 53)")
+    p_pn.add_argument("--limit", type=int, default=None, help="texts per source, for a smoke run")
+    p_pn.add_argument("--batch", type=int, default=16)
+    p_pn.add_argument("--force-set", action="store_true",
+                      help="rebuild the frozen PII-free set — moves the bar the rate is measured on")
+    p_pn.add_argument("--set", choices=["golden_screened", "ai4privacy_val"],
+                      default="golden_screened",
+                      help="the 928 screened golden texts, or span-free PII validation sentences")
+    p_pn.add_argument("--adapter-dir", default=None,
+                      help="score a local PII checkpoint instead of the manifest's adapter")
+    p_pn.add_argument("--name", default=None,
+                      help="names runs/pii__false_positives__<name>.json (default: the served run)")
+    p_pn.set_defaults(func=_cmd_pii_false_positives)
+
+    p_ps = sub.add_parser("pii-negatives-split",
+                          help="PII training split with PII-free sentences and empty answers")
+    p_ps.add_argument("--force", action="store_true", help="rebuild the frozen split")
+    p_ps.set_defaults(func=_cmd_pii_negatives_split)
 
     p_rg = sub.add_parser("regress", help="on-demand regression run, both splits (F18)")
     p_rg.add_argument("--base-url", default="http://localhost:8000")

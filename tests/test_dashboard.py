@@ -71,6 +71,14 @@ def test_the_throughput_ceiling_sits_beside_vllm_direct_with_derived_cost():
 
 
 @needs_runs
+def test_the_pii_score_is_shown_beside_its_false_positive_rate():
+    text = db.render(db.load())
+    section = text[text.index("## 1 · Quality retained — random"):text.index("## 2 · Quality retained")]
+    assert "conditional on the input containing PII" in section
+    assert "runs/pii__false_positives.json" in section
+
+
+@needs_runs
 def test_prd_7_misses_are_shown_as_misses():
     text = db.render(db.load())
     section = text[text.index("## 7 · PRD §7 targets"):text.index(db.FAILURE_HEADING)]

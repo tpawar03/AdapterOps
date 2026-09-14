@@ -82,9 +82,10 @@ Every number is rendered from a committed run in [`runs/DASHBOARD.md`](runs/DASH
 - **Regression checks are on-demand.** They need GPU inference, and GitHub Actions free runners are
   CPU-only, so runs happen in a rented GPU session and their results are committed. CI runs the tests
   on every push and checks the adapter pins weekly; there is no unattended regression run.
-- **The PII adapter invents spans on text with no personal data** — `AGE: 3, SEX: M` for a ticket
-  about a late card. Every training and golden document contained PII, so its 0.946 span F1 is
-  conditional on the input having some.
+- **The PII adapter reports personal data in every text that has none.** On 928 PII-free texts it
+  answered with at least one span every time — invented values such as `GIVENNAME: John` or `AGE: 25` in
+  87%, and a real word such as "I" tagged as a name in 24%. Every training and golden document contained
+  PII, so its 0.946 span F1 holds only when the input has some.
 - **PRD §7's 500 ms P95 is missed for PII (2,259 ms) and drafting (3,000 ms)**, the two tasks that
   generate long outputs; intent (136 ms) and urgency (60 ms) meet it. The router's decision is
   inside its 50 ms budget on CPU (P95 24.9 ms per pair).
@@ -162,6 +163,7 @@ uv run adapterops request-path-run --name a10 --concurrency 1 4 16  # the curve'
 bash scripts/gpu_request_path_session.sh   # all of the above plus one regression run, one session
 bash scripts/gpu_load_session.sh           # shifted population live, saturation sweep, 15 min sustained
 bash scripts/gpu_training_variance_session.sh  # retrain urgency/PII/drafting for gate floors; GPT-4o-mini under load
+bash scripts/gpu_pii_negatives_session.sh      # retrain PII with PII-free sentences; score it beside the served one
 uv run adapterops regress --base-url http://localhost:8000 --name candidate \
     --baseline runs/regression__v1-baseline-1.json
 uv run adapterops manifest promote --note "what changed" --regression runs/regression__candidate.json

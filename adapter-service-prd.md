@@ -1,6 +1,6 @@
 # PRD: Multi-Task Adapter Service with Cost-Aware Routing and Calibrated Evaluation
 
-**Version:** 2.11 (every gate enforced — training variance measured, GPT-4o-mini under load)
+**Version:** 2.12 (the PII adapter measured where there is nothing to find)
 **Owner:** Solo build
 **Status:** Built — results in `STATUS.md` and `runs/DASHBOARD.md`
 **Estimated duration:** 9 weeks at 20 hrs/week (~180 hours) — hours not logged
@@ -9,7 +9,7 @@
 
 ## Changelog
 
-Two rounds of substantive revision, each triggered by the previous version claiming something it could not deliver. Nine changes fixed the original scope and infrastructure assumptions; nine more fixed the hard-cases split introduced in v2.1, which as written leaked into router training, gated on label noise, and had no evidence that it caught anything. Row 20 records a renumbering that changed nothing — logged rather than applied quietly, for the reason given in the row itself. Rows 21–29 record day-1 checks and data findings; rows 30–43 record what building and measuring the system proved wrong in the specification; rows 44–53 record the requirements an audit against v2.7 found unbuilt, and what building them found; rows 54–56 record what running the request path live on a rented A10 measured and corrected; rows 57–58 record what loading it to the A10's ceiling measured; rows 59–61 record training variance measured for the gates, GPT-4o-mini under load, and the manifest that now carries the gate.
+Two rounds of substantive revision, each triggered by the previous version claiming something it could not deliver. Nine changes fixed the original scope and infrastructure assumptions; nine more fixed the hard-cases split introduced in v2.1, which as written leaked into router training, gated on label noise, and had no evidence that it caught anything. Row 20 records a renumbering that changed nothing — logged rather than applied quietly, for the reason given in the row itself. Rows 21–29 record day-1 checks and data findings; rows 30–43 record what building and measuring the system proved wrong in the specification; rows 44–53 record the requirements an audit against v2.7 found unbuilt, and what building them found; rows 54–56 record what running the request path live on a rented A10 measured and corrected; rows 57–58 record what loading it to the A10's ceiling measured; rows 59–61 record training variance measured for the gates, GPT-4o-mini under load, and the manifest that now carries the gate; rows 62–63 record the PII adapter measured on text with no personal data, and the regression target checked with its judge.
 
 ### v1 → v2 — scope and infrastructure
 
@@ -127,6 +127,13 @@ Two rounds of substantive revision, each triggered by the previous version claim
 | 60 | **GPT-4o-mini holds up under load at concurrency 32, but waiting on it costs a quarter of the throughput; row 58's estimate of the daily cap is replaced by a measurement.** | Five minutes through the request path with GPT-4o-mini answering: 9,765 requests, 20.2% answered by GPT-4o-mini, 19.2%–20.6% escalated in every 30-second window, 0 frontier errors and none rate-limited, and a frontier-answered P95 of 5.5 s. Throughput was 32 pairs a second against 43 with GPT-4o-mini off, because an escalated request holds its slot while the API answers. At the measured 387 calls a minute the account's 10,000 requests a day last about 26 minutes. It cost $0.25, $0.0254 per 1K pairs. |
 | 61 | **Manifest v5 carries the four-task gate.** | A manifest records the gate it was promoted with, so after row 59 the served manifest still enforced intent alone. v5 was promoted with no model, router, judge or split moving — nothing blocked it, because only a moved model needs a regression run — and v4, with its intent-only gate, is archived for rollback. The manifest's own diff compares components and splits, not the gate, so v5 records an empty change list and its note says what changed. |
 
+### v2.11 → v2.12 — the PII adapter where there is nothing to find
+
+| # | Change | Reason |
+|---|---|---|
+| 62 | **§9's PII evaluation gains a PII-free set, and on it the adapter reports personal data in every text.** | Row 53 found the evaluation could not see false positives. 928 texts from the intent and drafting golden sets, kept only if nothing any of the adapter's 19 labels could point at occurs in them — no digit, `@`, template slot, title, gendered word or mid-sentence capital — are frozen by sha256. The pinned adapter answered all 928 with at least one line and never with an empty answer. 809 answers contained a value absent from the text, and the values are stock examples: GIVENNAME John 149 times, SURNAME Smith 141 times, AGE 25 133 times, CREDITCARDNUMBER 412345678901234 83 times. 223 tagged a real word, mostly "I", "Can" or "My" as a first name, and 5 used labels outside the vocabulary. The regex baseline flagged 13, 12 of them the "m" in "I'm" read as SEX. The 0.946 span F1 holds only when the input has PII: as a redaction step over arbitrary tickets the adapter would mask a real word in a quarter of clean tickets and invent personal data in most. The fix is a model change — training with PII-free documents from the same distribution, since row 24 showed borrowed negatives are separable by corpus alone. |
+| 63 | **§7's regression target is checked whole, judge scoring included: about 1.7 minutes against 25.** | Row 55's 75 seconds covered generation only, because the judge checkpoint lives on the laptop, not the rented GPU. At its committed 59.3 s per 1,000 drafts on a laptop CPU, scoring the run's 413 drafts takes about 26 s with the model load, so a full regression run is about 1.7 minutes — generation and judging measured on different machines. |
+
 ---
 
 ## 1. Summary
@@ -139,7 +146,7 @@ Quality is measured on **two splits, never blended**: a random held-out golden s
 
 The deliverable is a live demo plus a public repo with recorded benchmark evidence, built solo in ~9 weeks for under $50.
 
-**As of v2.7 the system is built.** Results, including the negative ones, live in `STATUS.md` and `runs/DASHBOARD.md`. This document stays the specification: where the build proved it wrong, the text is corrected and the change logged in rows 30–61, and plans for outcomes that did not arrive — the risk table, the cut order — are left as written.
+**As of v2.7 the system is built.** Results, including the negative ones, live in `STATUS.md` and `runs/DASHBOARD.md`. This document stays the specification: where the build proved it wrong, the text is corrected and the change logged in rows 30–63, and plans for outcomes that did not arrive — the risk table, the cut order — are left as written.
 
 ---
 
@@ -293,7 +300,7 @@ The v2.2 revisions are themselves part of the signal. A split that leaks into tr
 | Adapter inference latency (P95) | < 500 ms | **Measured only on dedicated rented GPU.** Colab free tier is shared and throttled; numbers from it are not reportable. **Missed for PII (2,259 ms) and drafting (3,000 ms); met for intent (136 ms) and urgency (60 ms)** — A10, four adapters at concurrency 16. Kept as written (changelog 37). |
 | Router decision latency | < 50 ms | 141M-param classifier (44M backbone + 98M embeddings), CPU-viable. Measured P95 25.2 ms per pair on CPU for the judge-labelled router manifest v4 pins (changelog 36). |
 | Throughput during benchmark | Sustain 5–10 req/s briefly | Demo-scale only. Measured 23.6 req/s over 246 s (M1), and 23.9 pairs/s through the request path at concurrency 32 (changelog 54); its ceiling is about 103 pairs/s at concurrency 256, and 43 pairs/s held for 15 minutes (changelog 57). |
-| Regression run wall-clock | < 25 min | ~2,000 eval items across both splits and four tasks, plus judge scoring. Bounds GPU rental per run. Not recorded by the Phase 4 runs (changelog 37). Measured 75 s for 2,140 requests on the A10, judge scoring excluded (changelog 55). |
+| Regression run wall-clock | < 25 min | ~2,000 eval items across both splits and four tasks, plus judge scoring. Bounds GPU rental per run. Not recorded by the Phase 4 runs (changelog 37). Measured 75 s for 2,140 requests on the A10, judge scoring of its 413 drafts adds about 26 s on a laptop CPU, about 1.7 minutes in all (changelogs 55, 63). |
 | Cost ceiling | ≤ $50 total | Hard constraint |
 | Availability | Best-effort; demo may cold-start | No SLA (non-goal 5) |
 | Data retention | None. No real user data at any point. | §9 |
@@ -394,7 +401,7 @@ Gating promotion on an unscreened failure-mined set therefore means blocking rel
 
 **Rule replaced in v2.7 (changelog 30).** The screen as written — quarantine when the frontier model also disputes gold — confuses difficulty with noise, because every mined item was chosen for being hard. Items are now quarantined only when an independent model gives the adapter's same wrong answer, and only for tasks where that agreement beats chance.
 
-**PII handling.** No real user or customer data is ingested. The PII adapter uses only ai4privacy's synthetic spans. The demo UI states this. Every training and golden document contains PII, so the adapter's span F1 says nothing about text without any — and on such text it invents spans (changelog 53).
+**PII handling.** No real user or customer data is ingested. The PII adapter uses only ai4privacy's synthetic spans. The demo UI states this. Every training and golden document contains PII, so the adapter's span F1 says nothing about text without any — and on 928 texts with none it reported personal data in every one, most of it invented (changelogs 53, 62).
 
 **Versioning.** Each dataset snapshot is mirrored locally and committed to the repo. Adapters, router, judge *and both eval splits* are versioned, with model cards recording eval scores at upload time. The manifest pins split versions so that a change in the bar is always visible as a diff.
 
@@ -591,7 +598,7 @@ M11 sits last among the cuttable items because it is cheap — the checkpoint al
 - Multilingual adapters.
 - Always-on scheduled monitoring.
 - The request path on new traffic, and GPT-4o-mini under load for longer than this account's daily request cap allows (changelogs 57, 58, 60).
-- PII-free tickets scored for the PII adapter's false-positive rate (changelog 53).
+- A PII adapter trained with PII-free documents from the same distribution and empty answers, re-measured on the frozen PII-free set (changelog 62).
 - A hard-cases split mined from several models' failures, frozen before the model it gates exists (changelog 32).
 - An expected-gain router — P(frontier succeeds) − P(adapter succeeds) — tested on a freshly frozen split.
 
