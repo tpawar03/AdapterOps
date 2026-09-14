@@ -168,7 +168,7 @@ A shuffled-label intent adapter (F21) was served *as* `intent` and scored agains
 |---|---|
 | detect | intent micro-accuracy 0.0052 vs baseline 0.9286 — drop **0.9234** against an enforced threshold of 0.0117 |
 | block → force | promotion refused for: `intent: regression 0.9234 exceeds threshold 0.0117` — forced as v3 with the override recorded in the manifest |
-| rollback | current manifest is v4, rolled back from v— |
+| rollback | current manifest is v5, rolled back from v— |
 
 Manifest history:
 
@@ -177,6 +177,7 @@ Manifest history:
 | v1 | Phase 2 baseline: four adapters, splits frozen | report_only | — |
 | v2 | Re-freeze: pin the D38 hard split the Phase 4 baselines were measured on, the router checkpoint, and the F33 gate | enforcing | — |
 | v3 | forced, to prove rollback | enforcing | intent: regression 0.9234 exceeds threshold 0.0117 |
+| v4 | D46: pin the judge-labelled router every routing result describes, and the distilled judge; serving now reads this manifest (M6) | enforcing | — |
 
 ### M11 — does the hard split catch what the random set misses?
 

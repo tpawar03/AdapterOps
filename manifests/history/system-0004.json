@@ -1,6 +1,6 @@
 {
-  "version": 5,
-  "note": "Gate enforces all four tasks from measured training variance (D49): intent 0.0117, urgency 0.0381, PII 0.0081, drafting 0.0675. No model, router, judge or split moves, so the component diff is empty; the gate is the change.",
+  "version": 4,
+  "note": "D46: pin the judge-labelled router every routing result describes, and the distilled judge; serving now reads this manifest (M6)",
   "pins": null,
   "components": {
     "base_model": {
@@ -106,10 +106,7 @@
   "gate": {
     "state": "enforcing",
     "thresholds": {
-      "intent": 0.011688,
-      "urgency": 0.0381,
-      "pii": 0.0081,
-      "drafting": 0.0675
+      "intent": 0.011688
     },
     "multiplier": 3.0,
     "why": "D37 \u2014 floors take the larger of inference and training spread; thresholds resting on inference alone are provisional and not enforced",
@@ -152,9 +149,46 @@
       "sha256": "8153037b3d6daf2120571d1ff1191e2f82a9dd8b241555157a3444fb9f7b4682"
     }
   },
-  "promoted_over": 4,
+  "promoted_over": 2,
   "diff_from_previous": {
-    "changed": {},
+    "changed": {
+      "components.judge.checkpoints/judge/config.json": {
+        "from": null,
+        "to": "79b6da065af6948cac7947b2cf0a9ed91bc9420874fe47eff7aa9d9b160f59f9"
+      },
+      "components.judge.checkpoints/judge/model.safetensors": {
+        "from": null,
+        "to": "0dbcc779c409abbbc6709c26158846f2e0e8fe9dd6c611561142d8d7fb7c7475"
+      },
+      "components.router.checkpoints/router/config.json": {
+        "from": "c1a4609e221bb180f9aefa1b874c510890ce02dadf131bf7bfdc9ba438b637e3",
+        "to": null
+      },
+      "components.router.checkpoints/router/model.safetensors": {
+        "from": "6310a4d396220019cc41a67331a5527df2f36f8fcaf58f77baf9a7f76855a2fa",
+        "to": null
+      },
+      "components.router.checkpoints/router__judged/config.json": {
+        "from": null,
+        "to": "c1a4609e221bb180f9aefa1b874c510890ce02dadf131bf7bfdc9ba438b637e3"
+      },
+      "components.router.checkpoints/router__judged/model.safetensors": {
+        "from": null,
+        "to": "26259c22f65776106e8477dbe1148f9ae1117156d72ef797425ee8cc4e7efe65"
+      }
+    },
     "eval_splits_moved": []
+  },
+  "component_evidence": {
+    "judge": {
+      "file": "runs/judge__report.json",
+      "bytes": 1592,
+      "sha256": "8153037b3d6daf2120571d1ff1191e2f82a9dd8b241555157a3444fb9f7b4682"
+    },
+    "router": {
+      "file": "runs/router__operating_curve__judged.json",
+      "bytes": 72297,
+      "sha256": "266b9bf3713fae9474a2e6f3d2632c6aa606877db3804b9b29affce729d9c18b"
+    }
   }
 }
