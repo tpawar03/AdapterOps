@@ -46,6 +46,27 @@ def test_editing_the_system_manifest_changes_what_is_served(tmp_path, monkeypatc
     assert "system.json" in second
 
 
+def test_a_pin_can_name_a_locally_trained_adapter_by_path(tmp_path, monkeypatch):
+    import huggingface_hub
+
+    downloaded = []
+
+    def fake_download(**kw):
+        downloaded.append(kw["repo_id"])
+        return str(tmp_path / kw["repo_id"])
+
+    monkeypatch.setattr(huggingface_hub, "snapshot_download", fake_download)
+    monkeypatch.setattr(launch, "ADAPTER_DIR", tmp_path / "_adapters")
+    pins = tmp_path / "rerun.json"
+    pins.write_text(json.dumps({"components": {
+        "base_model": {"repo": "Qwen/base", "revision": "b0"},
+        "intent": {"repo": "u/intent", "revision": "i1"},
+        "urgency": {"path": "checkpoints/urgency-rerun"}}}))
+    paths = launch.materialise(pins)
+    assert paths["urgency"] == launch.REPO_ROOT / "checkpoints" / "urgency-rerun"
+    assert downloaded == ["u/intent"], "a local checkpoint must never be fetched from the Hub"
+
+
 def test_a_candidate_pin_set_still_overrides_the_manifest(tmp_path, monkeypatch):
     system, candidate = tmp_path / "system.json", tmp_path / "intent-shuffled.json"
     monkeypatch.setattr(launch, "SYSTEM", system)

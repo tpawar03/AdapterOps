@@ -1,0 +1,155 @@
+{
+  "name": "a10-v4-shift",
+  "population": "router_shift",
+  "pairs": 1047,
+  "mode": "request_path",
+  "duration_s": null,
+  "service": {
+    "manifest_version": 4,
+    "local_backend": "vllm",
+    "policy": "confidence",
+    "threshold": 0.393881,
+    "operating_point": "20% escalation budget, router__operating_curve__judged.json",
+    "frontier": "gpt-4o-mini",
+    "judge": false,
+    "prices": "runs/economics.json"
+  },
+  "levels": [
+    {
+      "concurrency": 16,
+      "requests": 1047,
+      "pairs": 1047,
+      "http_errors": 0,
+      "wall_seconds": 64.2,
+      "throughput_pairs_per_s": 16.31,
+      "escalation_rate": 0.1843,
+      "fallback_rate": 0.0019,
+      "unanswered": 0,
+      "frontier_errors": 0,
+      "client_p50_ms": 305.9,
+      "client_p95_ms": 3475.1,
+      "cost_usd": 0.023765,
+      "cost_per_1k_pairs_usd": 0.0227,
+      "per_task": {
+        "drafting": {
+          "pairs": 243,
+          "escalation_rate": 0.6214,
+          "curve_escalation_rate": 0.6667,
+          "threshold_escalation_rate": 0.6502,
+          "fallback_rate": 0.0,
+          "client_p95_ms": 4662.5,
+          "server_p95_ms": 4659.3,
+          "judge_mean_local": null
+        },
+        "intent": {
+          "pairs": 299,
+          "escalation_rate": 0.0234,
+          "curve_escalation_rate": 0.0401,
+          "threshold_escalation_rate": 0.0401,
+          "fallback_rate": 0.0067,
+          "client_p95_ms": 446.1,
+          "server_p95_ms": 443.5,
+          "served_success": 0.8896,
+          "curve_local_only_success": 0.8763
+        },
+        "pii": {
+          "pairs": 253,
+          "escalation_rate": 0.0,
+          "curve_escalation_rate": 0.0,
+          "threshold_escalation_rate": 0.0,
+          "fallback_rate": 0.0,
+          "client_p95_ms": 2604.1,
+          "server_p95_ms": 2599.1,
+          "served_success": 0.7115,
+          "curve_local_only_success": 0.7115
+        },
+        "urgency": {
+          "pairs": 252,
+          "escalation_rate": 0.1389,
+          "curve_escalation_rate": 0.1389,
+          "threshold_escalation_rate": 0.127,
+          "fallback_rate": 0.0,
+          "client_p95_ms": 615.9,
+          "server_p95_ms": 614.2,
+          "served_success": 0.4841,
+          "curve_local_only_success": 0.4921
+        }
+      },
+      "graded_tasks": {
+        "tasks": [
+          "intent",
+          "urgency",
+          "pii"
+        ],
+        "pairs": 804,
+        "served_success": 0.7065,
+        "recorded_success_as_served": 0.7052,
+        "curve_success_at_operating_point": 0.7052,
+        "recorded_success_at_threshold": 0.7065,
+        "curve_local_only_success": 0.704
+      },
+      "agreement_with_curve": {
+        "pairs_compared": 1045,
+        "same_decision": 0.978,
+        "escalated_live_not_on_curve": 8,
+        "escalated_on_curve_not_live": 15,
+        "score_spearman_vs_recorded": 0.9934,
+        "score_median_abs_diff": 0.0002,
+        "note": "the recorded decision is the live threshold applied to vLLM's recorded -mean_logprob; fallbacks carry no score and are left out"
+      }
+    }
+  ],
+  "server_metrics": {
+    "since": "process start",
+    "tickets": 1047,
+    "pairs": 1047,
+    "frontier_call_rate": 0.1843,
+    "fallback_rate": 0.0019,
+    "cost_usd": 0.023765,
+    "cost_per_1k_pairs_usd": 0.0227,
+    "cost_per_1k_tickets_usd": 0.0227,
+    "per_task": {
+      "drafting": {
+        "pairs": 243,
+        "frontier_call_rate": 0.6214,
+        "fallback_rate": 0.0,
+        "unanswered": 0,
+        "p95_ms": 4544.5
+      },
+      "intent": {
+        "pairs": 299,
+        "frontier_call_rate": 0.0234,
+        "fallback_rate": 0.0067,
+        "unanswered": 0,
+        "p95_ms": 438.2
+      },
+      "pii": {
+        "pairs": 253,
+        "frontier_call_rate": 0.0,
+        "fallback_rate": 0.0,
+        "unanswered": 0,
+        "p95_ms": 2598.8
+      },
+      "urgency": {
+        "pairs": 252,
+        "frontier_call_rate": 0.1389,
+        "fallback_rate": 0.0,
+        "unanswered": 0,
+        "p95_ms": 593.5
+      }
+    }
+  },
+  "server_metrics_before": {
+    "since": "process start",
+    "tickets": 0,
+    "pairs": 0,
+    "frontier_call_rate": null,
+    "fallback_rate": null,
+    "cost_usd": 0.0,
+    "cost_per_1k_pairs_usd": null,
+    "cost_per_1k_tickets_usd": null,
+    "per_task": {}
+  },
+  "notes": "Drafting is routed and costed but not graded (the curve's drafting grade is GPT-4o's). Client latency includes HTTP; server latency is the pair's own. Throughput is one-task tickets per second at that client concurrency.",
+  "resummarised": "summaries recomputed from the per-request file by request_run.resummarise(); no request was re-sent"
+}

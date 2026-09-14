@@ -63,10 +63,10 @@ Every number is rendered from a committed run in [`runs/DASHBOARD.md`](runs/DASH
 | Question | Answer |
 |---|---|
 | Does fine-tuning beat prompting the same base? | On three of four tasks, on one vLLM server: intent 0.929 vs 0.573 accuracy (77 classes), PII span F1 0.946 vs 0.570, drafting 4.24 vs 2.86 (GPT-4o-graded). Urgency's 0.410 vs 0.396 macro-F1 is inside its own run-to-run spread, and TF-IDF beats both (0.55). |
-| Can four adapters share one GPU? | 5,800 requests at concurrency 16 on one A10, 0 errors, 23.6 req/s. |
+| Can four adapters share one GPU? | 5,800 requests at concurrency 16 on one A10, 0 errors, 23.6 req/s. The A10's ceiling is ~104 req/s at concurrency 256 (P95 7.8 s), and 15 minutes at concurrency 32 held 43 req/s with no errors. |
 | When should a request escalate to GPT-4o-mini? | On the adapter's own confidence: 57% of the oracle's gain at 20% escalation. The learned DeBERTa router scores −19% — worse than never escalating — and three pre-registered fixes also lost. |
-| Does the offline routing hold on the live request path? | On the curve's own pairs, yes: through vLLM on the A10 at concurrency 1–32, 20.2–21.4% of pairs went to GPT-4o-mini against the curve's 19.9%, with the curve's decision on 96–97% of pairs, 1 fallback in 392 and 23.9 pairs/s at concurrency 32. A full regression run took 75 s. |
-| Is local serving cheaper than GPT-4o-mini? | Only above 3.64 requests per second sustained ($0.0088 vs $0.0572 per 1K at an assumed $0.75/h A10). |
+| Does the offline routing hold on the live request path? | On the curve's own pairs, yes: through vLLM on the A10, 20–21% of pairs escalated against the curve's 19.9% at every concurrency up to 256 and in every minute of a 15-minute sustained run, and the shifted population escalated 18.4% against 19.3% recorded. Its throughput matches vLLM's own within 1.5% at every concurrency. A full regression run took 75 s. |
+| Is local serving cheaper than GPT-4o-mini? | Only above 3.64 requests per second sustained, at an assumed $0.75/h A10. At measured throughput a local 1K requests costs $0.0048 at 43 req/s (P95 2.4 s) and $0.0020 at the ~103 req/s ceiling (P95 7.8 s), against GPT-4o-mini's $0.0572. |
 | Does the gate catch a bad release? | A shuffled-label intent adapter dropped accuracy by 0.923 against a 0.0117 threshold: blocked, forced with the override recorded, rolled back. |
 | Does a failure-mined hard split make the gate more sensitive? | No. Mined from the incumbent's own failures, it scores under-trained checkpoints *higher* on three of four tasks. |
 | Does int8 cost accuracy? | Not in the weights: intent with int8 weights scores 0.9325 against fp32's 0.9312. PyTorch's dynamic int8, which also quantizes activations to 8 bits, falls to 0.62–0.66. Measured on a laptop CPU, not in serving. |
@@ -75,10 +75,10 @@ Every number is rendered from a committed run in [`runs/DASHBOARD.md`](runs/DASH
 
 ## Limitations
 
-- **The request path has been load-tested in bursts, on recorded pairs.** On the A10 the curve's 392
-  pairs at concurrency 1–32 escalated 20.2–21.4% (the curve: 19.9%) at up to 23.9 pairs/s, but the
-  longest pass lasted under six minutes, and the pairs are the curve's own in-distribution eval split —
-  not new traffic, and not the shifted population.
+- **The request path has been load-tested on recorded pairs, not new traffic, and without GPT-4o-mini
+  under load.** On the A10 it matched vLLM's own throughput up to ~103 pairs/s and held 43 pairs/s for 15
+  minutes at a steady 20% escalation rate, but on the curve's eval pairs, with escalations counted rather
+  than sent: at that rate the OpenAI account's 10,000-requests-a-day cap would run out in about 19 minutes.
 - **Regression checks are on-demand.** They need GPU inference, and GitHub Actions free runners are
   CPU-only, so runs happen in a rented GPU session and their results are committed. CI runs the tests
   on every push and checks the adapter pins weekly; there is no unattended regression run.
@@ -160,6 +160,7 @@ uv run adapterops serve-api --backend vllm --base-url http://localhost:8000  # r
 uv run adapterops request-path-run --name a10 --concurrency 1 4 16  # the curve's 392 pairs, live
 bash scripts/gpu_request_path_session.sh   # all of the above plus one regression run, one session
 bash scripts/gpu_load_session.sh           # shifted population live, saturation sweep, 15 min sustained
+bash scripts/gpu_training_variance_session.sh  # retrain urgency/PII/drafting for gate floors; GPT-4o-mini under load
 uv run adapterops regress --base-url http://localhost:8000 --name candidate \
     --baseline runs/regression__v1-baseline-1.json
 uv run adapterops manifest promote --note "what changed" --regression runs/regression__candidate.json

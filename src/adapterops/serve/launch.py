@@ -58,6 +58,13 @@ def materialise(pins: Path | None = None,
     for task, entry in load_components(pins).items():
         if task == "base_model" or entry is None or (tasks and task not in tasks):
             continue
+        if entry.get("path"):
+            # A locally trained adapter — a training-variance rerun — is served from disk. It was
+            # never published, and naming it by path in a pin set is how it gets regression-
+            # tested exactly as the served adapter is, without a public upload first.
+            local = Path(entry["path"])
+            out[task] = local if local.is_absolute() else REPO_ROOT / local
+            continue
         path = snapshot_download(
             repo_id=entry["repo"],
             revision=entry["revision"],
@@ -91,7 +98,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f'PIN_SET="{pins or shown}"')
     else:
         for task, path in sorted(paths.items()):
-            print(f"  {task:9s} {components[task]['revision'][:8]} -> {path}")
+            print(f"  {task:9s} {(components[task].get('revision') or 'local')[:8]} -> {path}")
     return 0
 
 

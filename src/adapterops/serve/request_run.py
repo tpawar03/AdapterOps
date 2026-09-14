@@ -223,6 +223,8 @@ def windows(live: pd.DataFrame, width: float, duration: float) -> list[dict]:
                      "escalation_rate": _rate(ok.route == "escalated"),
                      "fallback_rate": _rate(ok.route == "fallback"),
                      "http_errors": int(g.http_error.notna().sum()),
+                     "frontier_served": int((ok.served_by == "frontier").sum()),
+                     "frontier_errors": int(ok.frontier_error.notna().sum()),
                      "client_p50_ms": _p(g.client_ms, 50), "client_p95_ms": _p(g.client_ms, 95)})
     return rows
 
@@ -246,6 +248,12 @@ def summarise(pairs: pd.DataFrame, live: pd.DataFrame, wall_s: float, policy: st
         "fallback_rate": _rate(answered.route == "fallback"),
         "unanswered": int((answered.served_by == "none").sum()),
         "frontier_errors": int(answered.frontier_error.notna().sum()),
+        "frontier_served_rate": _rate(answered.served_by == "frontier"),
+        "frontier_p95_ms": _p(answered[answered.served_by == "frontier"].server_ms, 95),
+        "frontier_errors_by_kind": {
+            str(kind): int(n) for kind, n in
+            answered.frontier_error.dropna().astype(str).str.slice(0, 60).value_counts().head(5).items()
+        },
         "client_p50_ms": _p(joined.client_ms, 50),
         "client_p95_ms": _p(joined.client_ms, 95),
         "cost_usd": round(float(joined.cost_usd.sum()), 6),
@@ -264,10 +272,16 @@ def summarise(pairs: pd.DataFrame, live: pd.DataFrame, wall_s: float, policy: st
                                 graded.recorded_local_success)
     threshold_quality = np.where(graded.recorded_escalated_at_threshold,
                                  graded.recorded_frontier_success, graded.recorded_local_success)
+    # What each request should score if the live answer matched the recorded one from whichever
+    # side actually served it. The routed figure above assumes GPT-4o-mini answered every escalation,
+    # which a run with the frontier off (or straight at vLLM) never does.
+    as_served = np.where(graded.served_by == "frontier", graded.recorded_frontier_success,
+                         graded.recorded_local_success)
     out["graded_tasks"] = {
         "tasks": list(GRADED),
         "pairs": len(graded),
         "served_success": _rate(graded.served_success.astype(bool)),
+        "recorded_success_as_served": _rate(pd.Series(as_served, dtype=bool)),
         "curve_success_at_operating_point": _rate(pd.Series(recorded_quality, dtype=bool)),
         "recorded_success_at_threshold": _rate(pd.Series(threshold_quality, dtype=bool)),
         "curve_local_only_success": _rate(graded.recorded_local_success.astype(bool)),
@@ -311,6 +325,31 @@ def summarise(pairs: pd.DataFrame, live: pd.DataFrame, wall_s: float, policy: st
     return out
 
 
+def resummarise(name: str) -> Path:
+    """Recompute a committed run's summaries from its per-request file with the current summary code
+    — for a run recorded before a summary field existed. No request is re-sent, and the file says so."""
+    from adapterops.serve.pipeline import operating_threshold
+
+    out = RUNS_DIR / f"request_path__{name}.json"
+    result = json.loads(out.read_text())
+    live_all = pd.read_parquet(RUNS_DIR / f"request_path__{name}__pairs.parquet")
+    service = result.get("service") or {}
+    policy = service.get("policy", "confidence")
+    threshold = service.get("threshold") or operating_threshold("confidence")
+    pairs = at_threshold(request_set(result.get("population", POPULATION)), threshold)
+    duration = result.get("duration_s")
+    levels = []
+    for level in result["levels"]:
+        live = live_all[live_all.concurrency == level["concurrency"]].reset_index(drop=True)
+        levels.append(summarise(pairs, live, level["wall_seconds"], policy, duration=duration,
+                                window=level.get("window_s", 60.0)))
+    result["levels"] = levels
+    result["resummarised"] = ("summaries recomputed from the per-request file by "
+                              "request_run.resummarise(); no request was re-sent")
+    out.write_text(json.dumps(result, indent=2, default=str) + "\n", encoding="utf-8")
+    return out
+
+
 def main(url: str, name: str, concurrency: Sequence[int] = (1,), limit: int | None = None,
          send: Send | None = None, population: str = POPULATION, duration: float | None = None,
          window: float = 60.0, direct_vllm: str | None = None) -> int:
@@ -351,8 +390,9 @@ def main(url: str, name: str, concurrency: Sequence[int] = (1,), limit: int | No
         print(f"  c={c:<3} {level['requests']} requests in {level['wall_seconds']}s "
               f"({level['throughput_pairs_per_s']}/s{spread}) · escalated {level['escalation_rate']} · "
               f"fallback {level['fallback_rate']} · errors {level['http_errors']} · "
+              f"frontier served {level['frontier_served_rate']} (errors {level['frontier_errors']}) · "
               f"p95 {level['client_p95_ms']} ms · served {g['served_success']} vs recorded "
-              f"{g['recorded_success_at_threshold']} · ${level['cost_usd']}")
+              f"{g['recorded_success_as_served']} as served · ${level['cost_usd']}")
 
     result = {
         "name": name,

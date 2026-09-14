@@ -95,8 +95,20 @@ def _cmd_router_latency(_: argparse.Namespace) -> int:
     return latency_main()
 
 
+def _cmd_training_variance(args: argparse.Namespace) -> int:
+    from adapterops.eval.training_variance import main as variance_main
+
+    return variance_main(original=args.original, rerun=args.rerun, tasks=args.tasks,
+                         force=args.force)
+
+
 def _cmd_request_path_run(args: argparse.Namespace) -> int:
     from adapterops.serve.request_run import main as run_main
+    from adapterops.serve.request_run import resummarise
+
+    if args.resummarise:
+        print(f"  rewrote {resummarise(args.name)}")
+        return 0
 
     return run_main(url=args.url, name=args.name, concurrency=args.concurrency, limit=args.limit,
                     population=args.population, duration=args.duration, window=args.window,
@@ -366,6 +378,9 @@ def build_parser() -> argparse.ArgumentParser:
                        help="with --duration: seconds per summary window")
     p_rpr.add_argument("--direct-vllm", default=None, metavar="URL",
                        help="send straight to vLLM — no API, routing or frontier — for a ceiling")
+    p_rpr.add_argument("--resummarise", action="store_true",
+                       help="recompute runs/request_path__<name>.json from its per-request file; "
+                            "sends nothing")
     p_rpr.set_defaults(func=_cmd_request_path_run)
 
     p_q = sub.add_parser("quantize-compare",
@@ -399,6 +414,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_dt.add_argument("--run-b", required=True, help="second baseline regression run")
     p_dt.add_argument("--force", action="store_true")
     p_dt.set_defaults(func=_cmd_derive_thresholds)
+
+    p_tv = sub.add_parser("training-variance",
+                          help="training spread from a served-adapter run and a rerun (F33, D37)")
+    p_tv.add_argument("--original", required=True, help="regression run of the served adapters")
+    p_tv.add_argument("--rerun", required=True, help="regression run of the retrained adapters")
+    p_tv.add_argument("--tasks", nargs="+", required=True,
+                      choices=["intent", "urgency", "pii", "drafting"])
+    p_tv.add_argument("--force", action="store_true", help="replace a measured variance")
+    p_tv.set_defaults(func=_cmd_training_variance)
 
     p_rg = sub.add_parser("regress", help="on-demand regression run, both splits (F18)")
     p_rg.add_argument("--base-url", default="http://localhost:8000")

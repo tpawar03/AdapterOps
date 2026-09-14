@@ -1,0 +1,7 @@
+  c=16  1535 requests in 63.5s (24.19/s · windows 25.25–26.05/s) · escalated 0.2026 · fallback 0.0 · errors 0 · p95 2089.5 ms · served 0.7072 vs recorded 0.7125 · $0.0
+  c=32  2651 requests in 63.2s (41.93/s · windows 42.5–45.65/s) · escalated 0.2014 · fallback 0.0 · errors 0 · p95 2409.0 ms · served 0.7016 vs recorded 0.7087 · $0.0
+  c=64  4317 requests in 63.5s (68.02/s · windows 70.35–74.2/s) · escalated 0.202 · fallback 0.0 · errors 0 · p95 2970.4 ms · served 0.706 vs recorded 0.7107 · $0.0
+  c=128 5913 requests in 64.1s (92.27/s · windows 95.4–104.8/s) · escalated 0.2028 · fallback 0.0 · errors 0 · p95 4415.7 ms · served 0.7023 vs recorded 0.7103 · $0.0
+  c=256 6745 requests in 64.8s (104.03/s · windows 106.4–123.5/s) · escalated 0.1991 · fallback 0.0 · errors 0 · p95 7675.0 ms · served 0.7016 vs recorded 0.7106 · $0.0
+
+  wrote runs/request_path__a10-v4-sweep-vllm.json

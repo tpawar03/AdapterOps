@@ -180,6 +180,7 @@ def format_examples(df: pd.DataFrame, task: str) -> list[dict[str, str]]:
 
 
 def train(cfg: TrainConfig) -> dict:
+    import time
     from importlib.metadata import version
 
     import torch
@@ -195,6 +196,7 @@ def train(cfg: TrainConfig) -> dict:
         TrainingArguments,
     )
 
+    started = time.monotonic()
     if not torch.cuda.is_available():
         msg = "QLoRA needs CUDA — run this on Colab/Kaggle or the rented GPU, not locally"
         raise RuntimeError(msg)
@@ -341,6 +343,16 @@ def train(cfg: TrainConfig) -> dict:
         "prompt_tokens_masked": True,
         "m11_undertrained_dir": str(early_dir.relative_to(REPO_ROOT)),
         "seed": SEED,
+        # The configuration as run, not as defaulted: PII's served adapter came from overrides
+        # (8,000 rows, 3 epochs) that TASK_CONFIGS does not hold, and a repeat has to match it.
+        "epochs": cfg.epochs,
+        "train_subsample": cfg.train_subsample,
+        "max_seq_length": cfg.max_seq_length,
+        "effective_batch": cfg.batch_size * cfg.grad_accum,
+        "device": torch.cuda.get_device_name(0),
+        "library_versions": {p: version(p) for p in ("torch", "transformers", "peft",
+                                                     "bitsandbytes")},
+        "wall_clock_minutes": round((time.monotonic() - started) / 60, 1),
     }
     (out_dir / "train_summary.json").write_text(json.dumps(summary, indent=2) + "\n")
 

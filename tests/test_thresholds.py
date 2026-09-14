@@ -59,10 +59,30 @@ def test_an_unmeasured_task_stays_unmeasured():
     assert "drafting" not in th.derive(a, a, training={})["per_task"]
 
 
-def test_training_spread_is_read_from_the_committed_run_record_not_copied():
+def test_training_spread_is_read_from_the_committed_run_record_not_copied(tmp_path, monkeypatch):
+    monkeypatch.setattr(th, "TRAINING_RUN", tmp_path / "not-measured-yet.json")
     spreads = th.training_spreads()
     assert spreads[("intent", "random")]["spread"] == pytest.approx(0.0039, abs=1e-4)
     assert ("urgency", "random") not in spreads, "no number may be borrowed from intent"
+
+
+def test_a_measured_training_variance_record_makes_those_tasks_enforceable(tmp_path, monkeypatch):
+    import json
+
+    record = tmp_path / "training_variance.json"
+    record.write_text(json.dumps({"per_task": {
+        "urgency": {"random": {"spread": 0.021}, "hard": {"spread": 0.0}},
+        "intent": {"random": {"spread": 0.5}}}}))
+    monkeypatch.setattr(th, "TRAINING_RUN", record)
+    spreads = th.training_spreads()
+    assert spreads[("urgency", "random")]["spread"] == pytest.approx(0.021)
+    assert spreads[("intent", "random")]["spread"] == pytest.approx(0.0039, abs=1e-4), \
+        "intent's own two-run record must not be overwritten"
+    d = th.derive(run({"urgency": {"random": 0.42}}), run({"urgency": {"random": 0.43}}),
+                  training=spreads)
+    row = d["per_task"]["urgency"]["random"]
+    assert row["bound_by"] == "training" and row["provisional"] is False
+    assert "urgency" in th.gate_from(d)["thresholds"]
 
 
 def test_the_gate_enforces_only_when_a_non_provisional_threshold_exists():

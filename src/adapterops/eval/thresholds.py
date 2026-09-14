@@ -34,6 +34,8 @@ from adapterops.eval.regression import GATED, SPLITS
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 INTENT_RUN = REPO_ROOT / "runs" / "intent__adapter.json"
+TRAINING_RUN = REPO_ROOT / "runs" / "training_variance.json"
+"""Spreads measured for the other tasks by `adapterops training-variance`; absent until measured."""
 OUT = REPO_ROOT / "evals" / "GATE_THRESHOLDS.json"
 
 
@@ -63,6 +65,16 @@ def training_spreads() -> dict[tuple[str, str], dict]:
                 "source": f"{_shown(INTENT_RUN)} — "
                           f"{record.get('independent_runs', 2)} independent training runs",
             }
+    if TRAINING_RUN.exists():
+        record = json.loads(TRAINING_RUN.read_text())
+        for task, splits in record.get("per_task", {}).items():
+            for split, row in splits.items():
+                # Intent's own record wins where both exist: it is the measurement D37 was built on.
+                out.setdefault((task, split), {
+                    "spread": float(row["spread"]),
+                    "source": f"{_shown(TRAINING_RUN)} — the served adapter and a second training "
+                              "run, regression-scored in one session",
+                })
     return out
 
 

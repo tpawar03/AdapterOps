@@ -1,0 +1,7 @@
+  c=16  1547 requests in 63.1s (24.53/s · windows 25.35–26.35/s) · escalated 0.1984 · fallback 0.0019 · errors 0 · p95 2015.4 ms · served 0.7045 vs recorded 0.7115 · $0.01366
+  c=32  2619 requests in 63.0s (41.59/s · windows 43.15–44.45/s) · escalated 0.2031 · fallback 0.0023 · errors 0 · p95 2424.5 ms · served 0.7031 vs recorded 0.7093 · $0.023126
+  c=64  4305 requests in 63.4s (67.85/s · windows 70.5–73.65/s) · escalated 0.2049 · fallback 0.0023 · errors 0 · p95 2928.9 ms · served 0.7036 vs recorded 0.7102 · $0.038013
+  c=128 5847 requests in 64.1s (91.23/s · windows 94.5–103.15/s) · escalated 0.2016 · fallback 0.0024 · errors 0 · p95 4409.8 ms · served 0.7026 vs recorded 0.7109 · $0.051629
+  c=256 6676 requests in 64.7s (103.15/s · windows 105.75–121.95/s) · escalated 0.2013 · fallback 0.0025 · errors 0 · p95 7774.6 ms · served 0.7007 vs recorded 0.7105 · $0.058949
+
+  wrote runs/request_path__a10-v4-sweep.json

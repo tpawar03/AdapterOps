@@ -61,6 +61,16 @@ def test_the_frontier_call_rate_shows_live_and_offline_apart():
 
 
 @needs_runs
+def test_the_throughput_ceiling_sits_beside_vllm_direct_with_derived_cost():
+    text = db.render(db.load())
+    section = text[text.index("### Throughput ceiling"):text.index("## 6 · Fallback rate")]
+    rows = [line for line in section.splitlines() if line.startswith("| ") and line[2].isdigit()]
+    assert [row.split(" | ")[0] for row in rows] == ["| 16", "| 32", "| 64", "| 128", "| 256"]
+    assert "**Sustained:**" in section and " 0 errors." in section
+    assert "Shifted population" in text
+
+
+@needs_runs
 def test_prd_7_misses_are_shown_as_misses():
     text = db.render(db.load())
     section = text[text.index("## 7 · PRD §7 targets"):text.index(db.FAILURE_HEADING)]

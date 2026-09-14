@@ -70,6 +70,43 @@ def test_summary_compares_live_decisions_and_quality_with_the_curve():
     assert graded["curve_success_at_operating_point"] == 1.0
     assert graded["recorded_success_at_threshold"] == 1.0
     assert "judge_mean_local" in s["per_task"]["drafting"]
+    assert s["frontier_served_rate"] == round(1 / 3, 4) and s["frontier_p95_ms"] == 5.0
+
+
+def test_frontier_errors_under_load_are_counted_by_kind_and_per_window():
+    pairs = rr.at_threshold(PAIRS, 0.4)
+
+    def rate_limited(body):
+        out = fake_send(body)
+        for pair in out["pairs"].values():
+            if pair["route"] == "escalated":
+                pair["served_by"] = "local"
+                pair["frontier_error"] = "RateLimitError: Error code: 429 - too many requests"
+        return out
+
+    live, wall = rr.drive(pairs, rate_limited, concurrency=2, duration=0.2, keep_output=False)
+    s = rr.summarise(pairs, live, wall, policy="confidence", duration=0.2, window=0.1)
+    assert s["frontier_served_rate"] == 0.0 and s["frontier_errors"] > 0
+    (kind, count), = s["frontier_errors_by_kind"].items()
+    assert kind.startswith("RateLimitError") and count == s["frontier_errors"]
+    assert sum(w["frontier_errors"] for w in s["windows"]) == s["frontier_errors"]
+
+
+def test_quality_is_compared_with_the_side_that_actually_served():
+    # With the frontier off, b escalates but the adapter answers it. The routed figure credits b with
+    # GPT-4o-mini's recorded success; the as-served figure holds it to the adapter's recorded failure.
+    pairs = rr.at_threshold(PAIRS, 0.4)
+
+    def frontier_off(body):
+        out = fake_send(body)
+        for pair in out["pairs"].values():
+            pair["served_by"] = "local"
+        return out
+
+    live, _ = rr.drive(pairs, frontier_off, concurrency=1)
+    graded = rr.summarise(pairs, live, wall_s=1.0, policy="confidence")["graded_tasks"]
+    assert graded["recorded_success_at_threshold"] == 1.0
+    assert graded["recorded_success_as_served"] == round(2 / 3, 4)
 
 
 def test_agreement_is_against_the_threshold_not_the_budget():
@@ -130,6 +167,31 @@ def test_the_run_writes_no_ticket_text(tmp_path, monkeypatch):
     written = (tmp_path / "request_path__t.json").read_text()
     pairs = pd.read_parquet(tmp_path / "request_path__t__pairs.parquet")
     assert "Dana Scott" not in written and "text" not in pairs.columns
+
+
+def test_resummarise_recomputes_from_the_per_request_file_without_sending(tmp_path, monkeypatch):
+    import json
+
+    monkeypatch.setattr(rr, "RUNS_DIR", tmp_path)
+    monkeypatch.setattr(rr, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(rr, "request_set", lambda population=rr.POPULATION: PAIRS)
+    rr.main(url="", name="old", concurrency=[1, 2], send=fake_send)
+    path = tmp_path / "request_path__old.json"
+    stale = json.loads(path.read_text())
+    for level in stale["levels"]:
+        del level["graded_tasks"]["recorded_success_as_served"]   # a run from before the field
+    path.write_text(json.dumps(stale))
+
+    def refuse(body):
+        raise AssertionError("resummarise must not send")
+
+    monkeypatch.setattr(rr, "http_sender", lambda *a, **k: refuse)
+    rr.resummarise("old")
+    fresh = json.loads(path.read_text())
+    assert [lv["concurrency"] for lv in fresh["levels"]] == [1, 2]
+    assert all("recorded_success_as_served" in lv["graded_tasks"] for lv in fresh["levels"])
+    assert fresh["levels"][0]["requests"] == len(PAIRS)
+    assert "no request was re-sent" in fresh["resummarised"]
 
 
 def test_the_api_raises_its_thread_limit_past_anyios_default():

@@ -48,6 +48,10 @@ INPUTS = {
     "system": "manifests/system.json",
     "live": "runs/request_path__a10-v4.json",
     "regression_live": "runs/regression__a10-v4.json",
+    "shift": "runs/request_path__a10-v4-shift.json",
+    "sweep": "runs/request_path__a10-v4-sweep.json",
+    "sweep_vllm": "runs/request_path__a10-v4-sweep-vllm.json",
+    "sustained": "runs/request_path__a10-v4-sustained.json",
 }
 HISTORY_GLOB = "manifests/history/system-*.json"
 OPERATING_BUDGET = 0.2
@@ -279,7 +283,60 @@ def live_rows(data: dict) -> list[str]:
             f"{level['escalation_rate']:.1%} | {curve:.1%} | {agree['same_decision']:.1%} | "
             f"{level['fallback_rate']:.2%} | {graded['served_success']:.3f} | "
             f"{graded['curve_success_at_operating_point']:.3f} |")
+    shift = data["shift"]["levels"][0]
+    per_task = shift["per_task"]
+    pairs = sum(t["pairs"] for t in per_task.values())
+    at_threshold = sum(t["threshold_escalation_rate"] * t["pairs"] for t in per_task.values()) / pairs
+    lines += [
+        "",
+        (f"**Shifted population** — the {data['shift']['pairs']:,} pairs the curve measured under shift, "
+         f"concurrency {shift['concurrency']}, GPT-4o-mini on: **{shift['escalation_rate']:.1%}** "
+         f"escalated against {at_threshold:.1%} on the recorded scores at the same threshold, the "
+         f"recorded decision on {shift['agreement_with_curve']['same_decision']:.1%} of pairs, served "
+         f"quality {shift['graded_tasks']['served_success']:.3f} against "
+         f"{shift['graded_tasks']['recorded_success_as_served']:.3f} recorded for the side that served "
+         "each pair."),
+    ]
     return [*lines, ""]
+
+
+def load_rows(data: dict) -> list[str]:
+    """The A10's throughput ceiling, request path beside vLLM direct, sustained load, and the local
+    cost per 1K derived at each measured rate."""
+    econ = data["economics"]
+    gpu = econ["assumptions"]["gpu_usd_per_hour"]
+    frontier = econ["same_workload"]["frontier_usd_per_1k"]
+    direct = {level["concurrency"]: level for level in data["sweep_vllm"]["levels"]}
+    lines = [
+        "### Throughput ceiling and sustained load — A10", "",
+        (f"The curve's in-distribution pairs, cycled for {data['sweep']['duration_s']:.0f} s at each "
+         "client concurrency, through the request path with GPT-4o-mini off — escalations counted, "
+         "answered locally — and straight at vLLM. Local cost per 1K is derived from the "
+         f"${gpu}/h assumption at the measured rate; GPT-4o-mini is ${frontier:.4f}."), "",
+        ("| concurrency | request path pairs/s | vLLM direct pairs/s | request path P95 ms | "
+         "escalated | derived local $ per 1K | GPT-4o-mini ÷ local |"),
+        "|---|---|---|---|---|---|---|",
+    ]
+    for level in data["sweep"]["levels"]:
+        c, rate = level["concurrency"], level["throughput_pairs_per_s"]
+        per_1k = gpu / 3600 / rate * 1000
+        lines.append(f"| {c} | {rate} | {direct[c]['throughput_pairs_per_s']} | "
+                     f"{level['client_p95_ms']:,.0f} | {level['escalation_rate']:.1%} | "
+                     f"${per_1k:.4f} | {frontier / per_1k:.1f}× |")
+    sustained = data["sustained"]["levels"][0]
+    windows = sustained["windows"]
+    rates = [w["throughput_per_s"] for w in windows]
+    p95 = [w["client_p95_ms"] for w in windows]
+    escalated = [w["escalation_rate"] for w in windows]
+    lines += [
+        "",
+        (f"**Sustained:** {sustained['requests']:,} requests over "
+         f"{sustained['duration_s'] / 60:.0f} minutes at concurrency {sustained['concurrency']} — "
+         f"{min(rates)}–{max(rates)} pairs/s in every minute, P95 {min(p95):,.0f}–{max(p95):,.0f} ms, "
+         f"escalated {min(escalated):.1%}–{max(escalated):.1%}, {sustained['http_errors']} errors."),
+        "",
+    ]
+    return lines
 
 
 def targets_rows(data: dict) -> list[str]:
@@ -393,7 +450,7 @@ def render(data: dict) -> str:
     live_pairs = sum(level["pairs"] for level in levels)
     live_fallbacks = sum(round(level["fallback_rate"] * level["pairs"]) for level in levels)
     lines += [
-        "", "## 6 · Fallback rate", "",
+        "", *load_rows(data), "## 6 · Fallback rate", "",
         "| run | fallbacks | requests | rate |", "|---|---|---|---|",
         (f"| M1, four adapters, concurrency {serving['concurrency']} | {serving['errors']} | "
          f"{serving['requests']:,} | {serving['fallback_rate']:.2%} |"),
