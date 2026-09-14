@@ -1,0 +1,28 @@
+{
+  "task": "pii",
+  "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "train_rows": 8000,
+  "val_rows": 3000,
+  "trainable_params": 18464768,
+  "total_params": 907081216,
+  "trainable_pct": 2.0356,
+  "train_loss": 0.0345,
+  "adapter_dir": "checkpoints/pii-rerun",
+  "best_checkpoint": "/home/ubuntu/AdapterOps/checkpoints/pii-rerun/checkpoint-750",
+  "best_eval_loss": 0.011702029965817928,
+  "prompt_tokens_masked": true,
+  "m11_undertrained_dir": "checkpoints/pii-rerun-undertrained-m11",
+  "seed": 20260909,
+  "epochs": 3.0,
+  "train_subsample": 8000,
+  "max_seq_length": 512,
+  "effective_batch": 32,
+  "device": "NVIDIA A10",
+  "library_versions": {
+    "torch": "2.13.0",
+    "transformers": "5.16.1",
+    "peft": "0.20.0",
+    "bitsandbytes": "0.50.2"
+  },
+  "wall_clock_minutes": 60.9
+}

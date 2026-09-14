@@ -1,0 +1,6 @@
+  intent    micro_accuracy     random 0.9273  hard 0.0  · drop 0.0013
+  urgency   macro_f1           random 0.4275  hard 0.0068  · drop -0.0179
+  pii       span_f1_strict     random 0.9453  hard 0.8506  · drop 0.0009
+  drafting  judge_score_mean   random None  hard None  · drop None
+
+  wrote runs/regression__a10-v4-original.json

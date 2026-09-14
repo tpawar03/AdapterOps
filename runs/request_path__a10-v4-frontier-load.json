@@ -1,0 +1,282 @@
+{
+  "name": "a10-v4-frontier-load",
+  "population": "router_in_distribution",
+  "pairs": 392,
+  "mode": "request_path",
+  "duration_s": 300.0,
+  "service": {
+    "manifest_version": 4,
+    "local_backend": "vllm",
+    "policy": "confidence",
+    "threshold": 0.393881,
+    "operating_point": "20% escalation budget, router__operating_curve__judged.json",
+    "frontier": "gpt-4o-mini",
+    "judge": false,
+    "prices": "runs/economics.json"
+  },
+  "levels": [
+    {
+      "concurrency": 32,
+      "requests": 9765,
+      "pairs": 9765,
+      "http_errors": 0,
+      "wall_seconds": 306.0,
+      "throughput_pairs_per_s": 31.91,
+      "escalation_rate": 0.1996,
+      "fallback_rate": 0.0025,
+      "unanswered": 0,
+      "frontier_errors": 0,
+      "frontier_served_rate": 0.202,
+      "frontier_p95_ms": 5529.2,
+      "frontier_errors_by_kind": {},
+      "client_p50_ms": 446.3,
+      "client_p95_ms": 3694.7,
+      "cost_usd": 0.248488,
+      "cost_per_1k_pairs_usd": 0.0254,
+      "per_task": {
+        "drafting": {
+          "pairs": 2542,
+          "escalation_rate": 0.6833,
+          "curve_escalation_rate": 0.6865,
+          "threshold_escalation_rate": 0.6865,
+          "fallback_rate": 0.0,
+          "client_p95_ms": 4962.3,
+          "server_p95_ms": 4960.5,
+          "judge_mean_local": null
+        },
+        "intent": {
+          "pairs": 2242,
+          "escalation_rate": 0.0223,
+          "curve_escalation_rate": 0.0223,
+          "threshold_escalation_rate": 0.0223,
+          "fallback_rate": 0.0107,
+          "client_p95_ms": 153.8,
+          "server_p95_ms": 152.0,
+          "served_success": 0.913,
+          "curve_local_only_success": 0.9005
+        },
+        "pii": {
+          "pairs": 2490,
+          "escalation_rate": 0.0,
+          "curve_escalation_rate": 0.0,
+          "threshold_escalation_rate": 0.0,
+          "fallback_rate": 0.0,
+          "client_p95_ms": 1958.4,
+          "server_p95_ms": 1956.8,
+          "served_success": 0.7305,
+          "curve_local_only_success": 0.7305
+        },
+        "urgency": {
+          "pairs": 2491,
+          "escalation_rate": 0.065,
+          "curve_escalation_rate": 0.0594,
+          "threshold_escalation_rate": 0.0494,
+          "fallback_rate": 0.0,
+          "client_p95_ms": 470.8,
+          "server_p95_ms": 468.6,
+          "served_success": 0.5147,
+          "curve_local_only_success": 0.5098
+        }
+      },
+      "duration_s": 300.0,
+      "passes": 24.91,
+      "window_s": 30.0,
+      "windows": [
+        {
+          "start_s": 0.0,
+          "requests": 974,
+          "throughput_per_s": 32.47,
+          "escalation_rate": 0.2064,
+          "fallback_rate": 0.0021,
+          "http_errors": 0,
+          "frontier_served": 203,
+          "frontier_errors": 0,
+          "client_p50_ms": 444.4,
+          "client_p95_ms": 3903.1
+        },
+        {
+          "start_s": 30.0,
+          "requests": 998,
+          "throughput_per_s": 33.27,
+          "escalation_rate": 0.1984,
+          "fallback_rate": 0.003,
+          "http_errors": 0,
+          "frontier_served": 201,
+          "frontier_errors": 0,
+          "client_p50_ms": 467.9,
+          "client_p95_ms": 3568.4
+        },
+        {
+          "start_s": 60.0,
+          "requests": 984,
+          "throughput_per_s": 32.8,
+          "escalation_rate": 0.1961,
+          "fallback_rate": 0.002,
+          "http_errors": 0,
+          "frontier_served": 195,
+          "frontier_errors": 0,
+          "client_p50_ms": 418.6,
+          "client_p95_ms": 3763.1
+        },
+        {
+          "start_s": 90.0,
+          "requests": 976,
+          "throughput_per_s": 32.53,
+          "escalation_rate": 0.2018,
+          "fallback_rate": 0.0031,
+          "http_errors": 0,
+          "frontier_served": 200,
+          "frontier_errors": 0,
+          "client_p50_ms": 487.2,
+          "client_p95_ms": 3637.3
+        },
+        {
+          "start_s": 120.0,
+          "requests": 968,
+          "throughput_per_s": 32.27,
+          "escalation_rate": 0.1983,
+          "fallback_rate": 0.0021,
+          "http_errors": 0,
+          "frontier_served": 194,
+          "frontier_errors": 0,
+          "client_p50_ms": 423.9,
+          "client_p95_ms": 3565.3
+        },
+        {
+          "start_s": 150.0,
+          "requests": 971,
+          "throughput_per_s": 32.37,
+          "escalation_rate": 0.2049,
+          "fallback_rate": 0.0021,
+          "http_errors": 0,
+          "frontier_served": 201,
+          "frontier_errors": 0,
+          "client_p50_ms": 486.2,
+          "client_p95_ms": 3705.5
+        },
+        {
+          "start_s": 180.0,
+          "requests": 979,
+          "throughput_per_s": 32.63,
+          "escalation_rate": 0.192,
+          "fallback_rate": 0.0031,
+          "http_errors": 0,
+          "frontier_served": 191,
+          "frontier_errors": 0,
+          "client_p50_ms": 439.6,
+          "client_p95_ms": 3622.9
+        },
+        {
+          "start_s": 210.0,
+          "requests": 985,
+          "throughput_per_s": 32.83,
+          "escalation_rate": 0.198,
+          "fallback_rate": 0.003,
+          "http_errors": 0,
+          "frontier_served": 198,
+          "frontier_errors": 0,
+          "client_p50_ms": 464.5,
+          "client_p95_ms": 3589.0
+        },
+        {
+          "start_s": 240.0,
+          "requests": 977,
+          "throughput_per_s": 32.57,
+          "escalation_rate": 0.1955,
+          "fallback_rate": 0.002,
+          "http_errors": 0,
+          "frontier_served": 193,
+          "frontier_errors": 0,
+          "client_p50_ms": 434.3,
+          "client_p95_ms": 3868.2
+        },
+        {
+          "start_s": 270.0,
+          "requests": 953,
+          "throughput_per_s": 31.77,
+          "escalation_rate": 0.2046,
+          "fallback_rate": 0.0021,
+          "http_errors": 0,
+          "frontier_served": 197,
+          "frontier_errors": 0,
+          "client_p50_ms": 449.1,
+          "client_p95_ms": 3603.2
+        }
+      ],
+      "graded_tasks": {
+        "tasks": [
+          "intent",
+          "urgency",
+          "pii"
+        ],
+        "pairs": 7223,
+        "served_success": 0.7127,
+        "recorded_success_as_served": 0.7115,
+        "curve_success_at_operating_point": 0.7106,
+        "recorded_success_at_threshold": 0.7106,
+        "curve_local_only_success": 0.7072
+      },
+      "agreement_with_curve": {
+        "pairs_compared": 9741,
+        "same_decision": 0.9689,
+        "escalated_live_not_on_curve": 167,
+        "escalated_on_curve_not_live": 136,
+        "score_spearman_vs_recorded": 0.9957,
+        "score_median_abs_diff": 0.0002,
+        "note": "the recorded decision is the live threshold applied to vLLM's recorded -mean_logprob; fallbacks carry no score and are left out"
+      }
+    }
+  ],
+  "server_metrics": {
+    "since": "process start",
+    "tickets": 9765,
+    "pairs": 9765,
+    "frontier_call_rate": 0.1996,
+    "fallback_rate": 0.0025,
+    "cost_usd": 0.248488,
+    "cost_per_1k_pairs_usd": 0.0254,
+    "cost_per_1k_tickets_usd": 0.0254,
+    "per_task": {
+      "drafting": {
+        "pairs": 2542,
+        "frontier_call_rate": 0.6833,
+        "fallback_rate": 0.0,
+        "unanswered": 0,
+        "p95_ms": 4960.4
+      },
+      "intent": {
+        "pairs": 2242,
+        "frontier_call_rate": 0.0223,
+        "fallback_rate": 0.0107,
+        "unanswered": 0,
+        "p95_ms": 151.8
+      },
+      "pii": {
+        "pairs": 2490,
+        "frontier_call_rate": 0.0,
+        "fallback_rate": 0.0,
+        "unanswered": 0,
+        "p95_ms": 1955.3
+      },
+      "urgency": {
+        "pairs": 2491,
+        "frontier_call_rate": 0.065,
+        "fallback_rate": 0.0,
+        "unanswered": 0,
+        "p95_ms": 468.1
+      }
+    }
+  },
+  "server_metrics_before": {
+    "since": "process start",
+    "tickets": 0,
+    "pairs": 0,
+    "frontier_call_rate": null,
+    "fallback_rate": null,
+    "cost_usd": 0.0,
+    "cost_per_1k_pairs_usd": null,
+    "cost_per_1k_tickets_usd": null,
+    "per_task": {}
+  },
+  "notes": "Drafting is routed and costed but not graded (the curve's drafting grade is GPT-4o's). Client latency includes HTTP; server latency is the pair's own. Throughput is one-task tickets per second at that client concurrency."
+}

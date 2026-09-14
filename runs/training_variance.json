@@ -1,0 +1,72 @@
+{
+  "purpose": "Training spread per (task, split) for the gate floors (F33, D37).",
+  "method": "The served adapters and a second training run of each task at the configuration that produced it, regression-scored in one session; spread is the absolute difference of the gated metric. Includes library-version drift and inference noise, so it is an upper estimate.",
+  "inputs": [
+    {
+      "file": "runs/regression__a10-v4-original.json",
+      "sha256": "6c52967ea69b3c8414967b8c49d0ce5230f5447e81327719c398fd64a129a904"
+    },
+    {
+      "file": "runs/regression__a10-v4-rerun.json",
+      "sha256": "6dc918573fe6b073ab949486950bf49e927c2c831d5f62254bb74d3693000295"
+    }
+  ],
+  "rerun_training_records": {
+    "urgency": {
+      "file": "runs/urgency-rerun__train.json",
+      "sha256": "f3310654a1b285e061cb11ab3f2f527a02a35aea48d3aeea35318289a2483a0a"
+    },
+    "pii": {
+      "file": "runs/pii-rerun__train.json",
+      "sha256": "0ddff061d504c05ba418deae1ba8e28d0889f350c1533f036e35a890ab794a6f"
+    },
+    "drafting": {
+      "file": "runs/drafting-rerun__train.json",
+      "sha256": "9c22fa8fc54cd364c53c1b1d0284949cf1bb206412d43d019f814e7cb6711635"
+    }
+  },
+  "per_task": {
+    "urgency": {
+      "random": {
+        "metric": "macro_f1",
+        "original": 0.4275,
+        "rerun": 0.4214,
+        "spread": 0.0061
+      },
+      "hard": {
+        "metric": "macro_f1",
+        "original": 0.0068,
+        "rerun": 0.0815,
+        "spread": 0.0747
+      }
+    },
+    "pii": {
+      "random": {
+        "metric": "span_f1_strict",
+        "original": 0.9453,
+        "rerun": 0.948,
+        "spread": 0.0027
+      },
+      "hard": {
+        "metric": "span_f1_strict",
+        "original": 0.8506,
+        "rerun": 0.8654,
+        "spread": 0.0148
+      }
+    },
+    "drafting": {
+      "random": {
+        "metric": "judge_score_mean",
+        "original": 4.2656,
+        "rerun": 4.2431,
+        "spread": 0.0225
+      },
+      "hard": {
+        "metric": "judge_score_mean",
+        "original": 3.7049,
+        "rerun": 3.8309,
+        "spread": 0.126
+      }
+    }
+  }
+}

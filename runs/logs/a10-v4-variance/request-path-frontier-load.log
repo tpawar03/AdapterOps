@@ -1,0 +1,3 @@
+  c=32  9765 requests in 306.0s (31.91/s · windows 31.77–33.27/s) · escalated 0.1996 · fallback 0.0025 · errors 0 · frontier served 0.202 (errors 0) · p95 3694.7 ms · served 0.7127 vs recorded 0.7115 as served · $0.248488
+
+  wrote runs/request_path__a10-v4-frontier-load.json

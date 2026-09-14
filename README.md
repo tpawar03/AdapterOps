@@ -67,7 +67,7 @@ Every number is rendered from a committed run in [`runs/DASHBOARD.md`](runs/DASH
 | When should a request escalate to GPT-4o-mini? | On the adapter's own confidence: 57% of the oracle's gain at 20% escalation. The learned DeBERTa router scores −19% — worse than never escalating — and three pre-registered fixes also lost. |
 | Does the offline routing hold on the live request path? | On the curve's own pairs, yes: through vLLM on the A10, 20–21% of pairs escalated against the curve's 19.9% at every concurrency up to 256 and in every minute of a 15-minute sustained run, and the shifted population escalated 18.4% against 19.3% recorded. Its throughput matches vLLM's own within 1.5% at every concurrency. A full regression run took 75 s. |
 | Is local serving cheaper than GPT-4o-mini? | Only above 3.64 requests per second sustained, at an assumed $0.75/h A10. At measured throughput a local 1K requests costs $0.0048 at 43 req/s (P95 2.4 s) and $0.0020 at the ~103 req/s ceiling (P95 7.8 s), against GPT-4o-mini's $0.0572. |
-| Does the gate catch a bad release? | A shuffled-label intent adapter dropped accuracy by 0.923 against a 0.0117 threshold: blocked, forced with the override recorded, rolled back. |
+| Does the gate catch a bad release? | A shuffled-label intent adapter dropped accuracy by 0.923 against a 0.0117 threshold: blocked, forced with the override recorded, rolled back. All four tasks' gates are now enforced from a measured retraining spread (intent 0.0117, urgency 0.0381, PII 0.0081, drafting 0.0675), and four under-trained checkpoints each fall outside theirs. |
 | Does a failure-mined hard split make the gate more sensitive? | No. Mined from the incumbent's own failures, it scores under-trained checkpoints *higher* on three of four tasks. |
 | Does int8 cost accuracy? | Not in the weights: intent with int8 weights scores 0.9325 against fp32's 0.9312. PyTorch's dynamic int8, which also quantizes activations to 8 bits, falls to 0.62–0.66. Measured on a laptop CPU, not in serving. |
 
@@ -75,10 +75,10 @@ Every number is rendered from a committed run in [`runs/DASHBOARD.md`](runs/DASH
 
 ## Limitations
 
-- **The request path has been load-tested on recorded pairs, not new traffic, and without GPT-4o-mini
-  under load.** On the A10 it matched vLLM's own throughput up to ~103 pairs/s and held 43 pairs/s for 15
-  minutes at a steady 20% escalation rate, but on the curve's eval pairs, with escalations counted rather
-  than sent: at that rate the OpenAI account's 10,000-requests-a-day cap would run out in about 19 minutes.
+- **The request path has been load-tested on recorded pairs, not new traffic.** On the A10 it matched
+  vLLM's own throughput up to ~103 pairs/s and held 43 pairs/s for 15 minutes; with GPT-4o-mini answering
+  its escalations it held 32 pairs/s for 5 minutes with no frontier errors — but at 387 calls a minute the
+  OpenAI account's 10,000-requests-a-day cap would last about 26 minutes.
 - **Regression checks are on-demand.** They need GPU inference, and GitHub Actions free runners are
   CPU-only, so runs happen in a rented GPU session and their results are committed. CI runs the tests
   on every push and checks the adapter pins weekly; there is no unattended regression run.
@@ -88,8 +88,9 @@ Every number is rendered from a committed run in [`runs/DASHBOARD.md`](runs/DASH
 - **PRD §7's 500 ms P95 is missed for PII (2,259 ms) and drafting (3,000 ms)**, the two tasks that
   generate long outputs; intent (136 ms) and urgency (60 ms) meet it. The router's decision is
   inside its 50 ms budget on CPU (P95 24.9 ms per pair).
-- **Only intent's gate is enforced.** The other tasks' thresholds are provisional until their
-  training variance is measured.
+- **The gates rest on one retrain per task.** All four are enforced from a measured training spread,
+  but each spread is a single range from two training runs, not a variance estimate, and urgency's
+  threshold (0.0381) is wider than its 0.0134 margin over the prompted baseline.
 - **The distilled judge only tracks GPT-4o on adapter-like replies** (Spearman 0.74), not on another
   generator's (0.33).
 - **The public demo shows recorded outputs.** The live Gradio app runs locally (`demo/app.py`).

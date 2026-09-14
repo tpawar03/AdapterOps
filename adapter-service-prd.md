@@ -1,6 +1,6 @@
 # PRD: Multi-Task Adapter Service with Cost-Aware Routing and Calibrated Evaluation
 
-**Version:** 2.10 (load-tested — the A10's ceiling, sustained load, the shifted population live)
+**Version:** 2.11 (every gate enforced — training variance measured, GPT-4o-mini under load)
 **Owner:** Solo build
 **Status:** Built — results in `STATUS.md` and `runs/DASHBOARD.md`
 **Estimated duration:** 9 weeks at 20 hrs/week (~180 hours) — hours not logged
@@ -9,7 +9,7 @@
 
 ## Changelog
 
-Two rounds of substantive revision, each triggered by the previous version claiming something it could not deliver. Nine changes fixed the original scope and infrastructure assumptions; nine more fixed the hard-cases split introduced in v2.1, which as written leaked into router training, gated on label noise, and had no evidence that it caught anything. Row 20 records a renumbering that changed nothing — logged rather than applied quietly, for the reason given in the row itself. Rows 21–29 record day-1 checks and data findings; rows 30–43 record what building and measuring the system proved wrong in the specification; rows 44–53 record the requirements an audit against v2.7 found unbuilt, and what building them found; rows 54–56 record what running the request path live on a rented A10 measured and corrected; rows 57–58 record what loading it to the A10's ceiling measured.
+Two rounds of substantive revision, each triggered by the previous version claiming something it could not deliver. Nine changes fixed the original scope and infrastructure assumptions; nine more fixed the hard-cases split introduced in v2.1, which as written leaked into router training, gated on label noise, and had no evidence that it caught anything. Row 20 records a renumbering that changed nothing — logged rather than applied quietly, for the reason given in the row itself. Rows 21–29 record day-1 checks and data findings; rows 30–43 record what building and measuring the system proved wrong in the specification; rows 44–53 record the requirements an audit against v2.7 found unbuilt, and what building them found; rows 54–56 record what running the request path live on a rented A10 measured and corrected; rows 57–58 record what loading it to the A10's ceiling measured; rows 59–60 record training variance measured for the gates, and GPT-4o-mini under load.
 
 ### v1 → v2 — scope and infrastructure
 
@@ -119,6 +119,13 @@ Two rounds of substantive revision, each triggered by the previous version claim
 | 57 | **Row 54's unmeasured load is measured: the request path holds its rates for 15 minutes, on the shifted population, and up to the A10's ceiling — which it does not lower.** | Cycling the curve's pairs for a minute at each concurrency from 16 to 256, vLLM alone reached **104 pairs a second** and the request path in front of it 103, within 1.5% at every level, with P95 rising to 7.8 s. Fifteen minutes at concurrency 32 served 38,829 requests at 42.73–43.68 pairs a second in every minute, P95 2.39–2.48 s, escalation 20.0%–20.6% and 0 errors. The shifted population (1,047 pairs, GPT-4o-mini on) escalated **18.4%** against 19.3% on the recorded scores and made the recorded decision on 97.8% of pairs. Under batching the operating point holds as a rate, not per pair: a drafting pair's confidence score moved by a median of 0.10 across passes, and 27 drafting pairs changed route while the aggregate rate held. New traffic is still unmeasured. |
 | 58 | **§7's throughput target and the cost figure were read at a quarter of the A10's measured ceiling; under load the frontier's request cap, not the GPU, binds first.** | M1's 23.6 req/s, from which the local cost per 1K was derived, was a burst at concurrency 16. At measured throughput and the same $0.75/h assumption, a local 1K requests costs **$0.0048** at the sustained 43 pairs a second and **$0.0020** at the ceiling, against GPT-4o-mini's $0.0572; break-even stays at 3.64 req/s because it depends on the two prices, not on throughput. At 43 pairs a second with 20% escalated, GPT-4o-mini would take about 523 calls a minute and exhaust the account's 10,000 requests a day in about 19 minutes. The load phases therefore counted escalations without sending them, and the frontier's latency and limits under load are unmeasured. |
 
+### v2.10 → v2.11 — every gate enforced
+
+| # | Change | Reason |
+|---|---|---|
+| 59 | **F33's gates are enforced for all four tasks: training variance is measured for urgency, PII and drafting — and urgency's enforced threshold is wider than its win over prompting.** | Each was trained a second time at the configuration that produced the served adapter — same seed, rows and epochs, PII's 8,000 rows and 3 epochs by override — and both versions were regression-scored in one session, because the same served adapters moved by up to 0.0081 between two sessions. Random-split spreads: urgency 0.0061, PII 0.0027, drafting 0.0225. The thresholds become urgency 0.0381 (still bound by inference noise), PII 0.0081 and drafting 0.0675, with intent's 0.0117 unchanged, and all four M11 under-trained checkpoints fall outside them. The spreads include the newer libraries the reruns trained with, so they err toward a looser gate — and urgency's 0.0381 exceeds its 0.0134 margin over the prompted baseline, so a release that erased that margin would pass. One retrain per task is a single range, not a variance estimate. The served manifest carries the new gate from its next promotion. |
+| 60 | **GPT-4o-mini holds up under load at concurrency 32, but waiting on it costs a quarter of the throughput; row 58's estimate of the daily cap is replaced by a measurement.** | Five minutes through the request path with GPT-4o-mini answering: 9,765 requests, 20.2% answered by GPT-4o-mini, 19.2%–20.6% escalated in every 30-second window, 0 frontier errors and none rate-limited, and a frontier-answered P95 of 5.5 s. Throughput was 32 pairs a second against 43 with GPT-4o-mini off, because an escalated request holds its slot while the API answers. At the measured 387 calls a minute the account's 10,000 requests a day last about 26 minutes. It cost $0.25, $0.0254 per 1K pairs. |
+
 ---
 
 ## 1. Summary
@@ -131,7 +138,7 @@ Quality is measured on **two splits, never blended**: a random held-out golden s
 
 The deliverable is a live demo plus a public repo with recorded benchmark evidence, built solo in ~9 weeks for under $50.
 
-**As of v2.7 the system is built.** Results, including the negative ones, live in `STATUS.md` and `runs/DASHBOARD.md`. This document stays the specification: where the build proved it wrong, the text is corrected and the change logged in rows 30–58, and plans for outcomes that did not arrive — the risk table, the cut order — are left as written.
+**As of v2.7 the system is built.** Results, including the negative ones, live in `STATUS.md` and `runs/DASHBOARD.md`. This document stays the specification: where the build proved it wrong, the text is corrected and the change logged in rows 30–60, and plans for outcomes that did not arrive — the risk table, the cut order — are left as written.
 
 ---
 
@@ -441,7 +448,7 @@ v2.1 said "any drop here blocks promotion even if the random-set score improves,
 
 The corrected policy: the hard-cases score is **reported but not gating for its first two runs**. Those two runs, against an unchanged manifest, measure the split's own run-to-run variance. The gating threshold is then set to a multiple of that observed variance, written into the manifest, and the derivation committed to the repo. If the observed variance is so wide that no useful threshold exists, that is the finding, and the split stays report-only — which is still more than v2 had.
 
-**Refined in v2.7 (changelog 31).** Two runs of an unchanged manifest measure only serving noise. The threshold is 3× the larger of that and training variance, and it is enforced only where training variance was measured — intent, at 0.0117. On the hard split intent and urgency sit at a floor of 0, so no threshold exists, and the split stays report-only for the reason changelog 32 gives.
+**Refined in v2.7 (changelog 31).** Two runs of an unchanged manifest measure only serving noise. The threshold is 3× the larger of that and training variance, and it is enforced only where training variance was measured — since v2.11 all four tasks: intent 0.0117, urgency 0.0381, PII 0.0081, drafting 0.0675 (changelog 59). The hard split stays report-only for the reason changelog 32 gives, whatever thresholds its spreads would imply.
 
 ### Golden-set sizing — corrected, and now per task
 
@@ -561,11 +568,11 @@ M11 sits last among the cuttable items because it is cheap — the checkpoint al
 | Question | Answer | Resolved |
 |---|---|---|
 | Does vLLM multi-LoRA run on the chosen rented instance and, separately, on any free HF Spaces tier? | **Rented: yes.** Gate 0.5 served two adapters at 159 req/s and M1 four at 23.6 req/s, 0 errors in 5,800 requests, on a Lambda A10. **Free Spaces: not tested** — hosting Gradio there now needs PRO (changelog 40). | Phase 0 · 2 |
-| Exact regression thresholds for the random-set metrics | 3× the larger of inference and training spread. Enforced for intent only (0.0117); urgency, PII and drafting are provisional until their training variance is measured (changelog 31). | Phase 4 |
+| Exact regression thresholds for the random-set metrics | 3× the larger of inference and training spread. Enforced for all four since training variance was measured: intent 0.0117, urgency 0.0381, PII 0.0081, drafting 0.0675 (changelogs 31, 59). | Phase 4 |
 | DeBERTa-v3-base vs. Qwen2.5-0.5B for the judge | DeBERTa-v3-base — 2.74 s/step against 3.38 on CPU, where QLoRA could not run (changelog 39). | Phase 3 |
 | RunPod vs. Vast.ai | Neither — Lambda A10 (changelog 42). | Phase 0 |
 | Whether the confidence baseline is strong enough to make the learned router redundant | **Yes.** Confidence captures 57% of the oracle's available gain at 20% escalation; the learned router scores −19%, and three pre-registered fixes all lost. | Phase 4 · 5 |
-| What the hard-cases gating threshold should be — *not* whether it gates, which §11 now settles | **None.** Intent and urgency sit at a floor of 0 on the hard split; PII and drafting are provisional. The split stays report-only (changelogs 31, 32). | Phase 4 |
+| What the hard-cases gating threshold should be — *not* whether it gates, which §11 now settles | **None.** Measured training spreads would now give every hard-split task a threshold, and the split still stays report-only: an equivalent retrain moved urgency's hard score from 0.0068 to 0.0815 (changelogs 32, 59). | Phase 4 |
 | What fraction of mined failures are source label noise rather than genuine adapter errors | Intent **24.0%** (18 of 75) under the replacement rule; urgency not separable from chance; PII and drafting not applicable (changelog 30). | Phase 4 |
 | Whether the hard-cases split detects anything the random set misses | **No.** The random set flagged all four under-trained checkpoints; the hard split flagged only PII (changelog 32). | Phase 4 |
 
@@ -582,7 +589,7 @@ M11 sits last among the cuttable items because it is cheap — the checkpoint al
 - Multi-region or HA deployment; real traffic; SLAs.
 - Multilingual adapters.
 - Always-on scheduled monitoring.
-- The request path on new traffic, and with GPT-4o-mini answering under load — which this account's daily request cap does not allow at A10 throughput (changelogs 57, 58).
+- The request path on new traffic, and GPT-4o-mini under load for longer than this account's daily request cap allows (changelogs 57, 58, 60).
 - PII-free tickets scored for the PII adapter's false-positive rate (changelog 53).
 - A hard-cases split mined from several models' failures, frozen before the model it gates exists (changelog 32).
 - An expected-gain router — P(frontier succeeds) − P(adapter succeeds) — tested on a freshly frozen split.

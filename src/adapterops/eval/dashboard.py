@@ -87,16 +87,21 @@ def gate_state(row: dict) -> str:
 
 def quality_rows(data: dict, split: str) -> list[str]:
     derivation = data["thresholds"]["derivation"]["per_task"]
-    lines = [("| task | gated metric | baseline run 1 | baseline run 2 | spread | "
-             "threshold | gate |"), "|---|---|---|---|---|---|---|"]
+    lines = [("| task | gated metric | baseline run 1 | baseline run 2 | inference spread | "
+             "training spread | threshold | gate |"), "|---|---|---|---|---|---|---|---|"]
     for task in TASKS:
         metric = GATED[task]
         a = data["baseline_a"]["per_split"][task][split]
         b = data["baseline_b"]["per_split"][task][split]
         row = derivation[task][split]
+        # The derivation gives the hard split thresholds once training spreads exist; the gate never
+        # reads them (M11), so the table must not call them enforced.
+        state = ("report-only — the hard split never gates (M11)"
+                 if split == "hard" and row["threshold"] is not None else gate_state(row))
         lines.append(
             f"| {task} | {metric} (n={a['n']}) | {fmt(a[metric])} | {fmt(b[metric])} | "
-            f"{fmt(row['inference_spread'])} | {fmt(row['threshold'])} | {gate_state(row)} |")
+            f"{fmt(row['inference_spread'])} | {fmt(row['training_spread'])} | "
+            f"{fmt(row['threshold'])} | {state} |")
     return lines
 
 
@@ -395,8 +400,11 @@ def render(data: dict) -> str:
         "Sources: " + " · ".join(f"`{p}`" for p in INPUTS.values()), "",
         "## 1 · Quality retained — random golden set", "",
         ("Two runs of the unchanged v1 manifest. A threshold is 3× the larger of inference and "
-        "training spread (D37); only intent has a measured training spread, so only intent is "
-        "enforced."), "",
+         "training spread (D37), and is enforced once the task's training spread is measured — "
+         "enforced now for " + ", ".join(sorted(data["thresholds"]["gate"]["thresholds"])) +
+         ". Intent's training spread comes from `runs/intent__adapter.json`; the others' from "
+         "`runs/training_variance.json`, one same-configuration retrain each (D49). "
+         "`manifests/system.json` carries a gate from its last promotion."), "",
         *quality_rows(data, "random"), "",
         *frontier_rows(data),
         "## 2 · Quality retained — hard cases", "",

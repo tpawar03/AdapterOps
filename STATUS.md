@@ -26,8 +26,8 @@ and in the phase column of §4.
 | **Spend** | **~$10.47** / $50.00 — ~$10 as reported plus $0.47 since; $6.40 itemised, the Phase 2 and Phase 4 GPU sessions not itemised |
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
 | **Blocking** | Nothing. |
-| **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · judge distilled (**M5**, Spearman 0.73) · under judge labels the router equals a task-name lookup and **confidence routing captures 57%** of available gain · hard split rebuilt (470) · **M2** on one server: intent +0.356, PII +0.376, urgency within noise, drafting **+1.38 under GPT-4o** · **M7 proven**: shuffled adapter detected (drop 0.923), blocked, forced, rolled back · **M11 negative** · **README (F23)** rewritten around results and negatives · **dashboard (F17)** rendered from committed runs · **cost per 1K derived** (D41): local is cheaper only above 3.64 req/s sustained · **Gradio demo (F22)** built (D40) · **router v2 (D42)**: three pre-registered fixes, all lose to confidence · **rules baseline (F26)**: a task-lookup rule captures 38%, still below confidence · **judge cost** measured · **frontier reference** on the golden sets measured · **model cards** with eval scores published to all four adapter repos · **demo live** as a static Space of recorded outputs (D43) · **PRD audit, CPU-only fixes (D44)**: operating curve **plotted** (F11), router decision latency **measured** (P95 24.9 ms per pair, inside §7's 50 ms), dashboard §7 targets section shows **PII and drafting missing the 500 ms P95**, README gains architecture / results / limitations, `regress` now records wall-clock · **router-misroute records (F29, F37, D45)**: 622 tagged decisions at the 20% operating point, reported not gated — the learned router spends **all 78** in-distribution escalations on urgency (14 harmful, 7 rescued) · **audit gaps built**: the request path (`serve-api`, D47) with live metrics and tracing, serving read from the manifest and manifest **v4** (M6, D46), the router/judge evidence rule, fallback rate recorded per regression run, routing decisions in both demos, CI, opt-in W&B · **int8 (F27)**: weight-only int8 matches fp32 on intent (0.9325 vs 0.9312); dynamic int8 loses 0.27–0.31 to 8-bit activations · **PRD v2.8** · **request path live with GPT-4o-mini**: the curve's 392 pairs through `serve-api` escalated **20.7%** against the curve's 19.9% and made the curve's decision on **96.7%** — after a scoring fix (D48) the first run exposed · **A10 session**: through vLLM at concurrency 1–32 the request path escalated **20.2–21.4%** against the curve's 19.9% at up to **23.9 pairs/s**, 1 fallback in 392 · regression run **75 s**, 0 fallbacks in 2,140 requests, every task at baseline · **load session**: the A10's ceiling is **~104 pairs/s**, and the request path matches vLLM direct at every concurrency up to 256 · **15 minutes** at concurrency 32 held 42.7–43.7 pairs/s and 20.0–20.6% escalation, 0 errors · the shifted population escalated **18.4%** live against 19.3% recorded |
-| **Next action** | Ready to run, one paid session (~3 h of A10, about $2.25 at $0.75/h, plus ~$0.35 of GPT-4o-mini): `scripts/gpu_training_variance_session.sh` — a second training run of urgency, PII and drafting at the configurations that produced them (PII by override: 8,000 rows, 3 epochs), regression-scored beside the served adapters so their gates can stop being provisional; and 5 minutes of GPT-4o-mini under load at concurrency 32 (~2,600 calls, a quarter of the daily cap). Afterwards, on the laptop: `judge-score` both regression runs, `training-variance`, `derive-thresholds --force`. Optional, public: re-deploy the static Space (`demo/build_static.py --push`). Not planned: new (non-eval) traffic; int8 kernels on vLLM. |
+| **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · judge distilled (**M5**, Spearman 0.73) · under judge labels the router equals a task-name lookup and **confidence routing captures 57%** of available gain · hard split rebuilt (470) · **M2** on one server: intent +0.356, PII +0.376, urgency within noise, drafting **+1.38 under GPT-4o** · **M7 proven**: shuffled adapter detected (drop 0.923), blocked, forced, rolled back · **M11 negative** · **README (F23)** rewritten around results and negatives · **dashboard (F17)** rendered from committed runs · **cost per 1K derived** (D41): local is cheaper only above 3.64 req/s sustained · **Gradio demo (F22)** built (D40) · **router v2 (D42)**: three pre-registered fixes, all lose to confidence · **rules baseline (F26)**: a task-lookup rule captures 38%, still below confidence · **judge cost** measured · **frontier reference** on the golden sets measured · **model cards** with eval scores published to all four adapter repos · **demo live** as a static Space of recorded outputs (D43) · **PRD audit, CPU-only fixes (D44)**: operating curve **plotted** (F11), router decision latency **measured** (P95 24.9 ms per pair, inside §7's 50 ms), dashboard §7 targets section shows **PII and drafting missing the 500 ms P95**, README gains architecture / results / limitations, `regress` now records wall-clock · **router-misroute records (F29, F37, D45)**: 622 tagged decisions at the 20% operating point, reported not gated — the learned router spends **all 78** in-distribution escalations on urgency (14 harmful, 7 rescued) · **audit gaps built**: the request path (`serve-api`, D47) with live metrics and tracing, serving read from the manifest and manifest **v4** (M6, D46), the router/judge evidence rule, fallback rate recorded per regression run, routing decisions in both demos, CI, opt-in W&B · **int8 (F27)**: weight-only int8 matches fp32 on intent (0.9325 vs 0.9312); dynamic int8 loses 0.27–0.31 to 8-bit activations · **PRD v2.8** · **request path live with GPT-4o-mini**: the curve's 392 pairs through `serve-api` escalated **20.7%** against the curve's 19.9% and made the curve's decision on **96.7%** — after a scoring fix (D48) the first run exposed · **A10 session**: through vLLM at concurrency 1–32 the request path escalated **20.2–21.4%** against the curve's 19.9% at up to **23.9 pairs/s**, 1 fallback in 392 · regression run **75 s**, 0 fallbacks in 2,140 requests, every task at baseline · **load session**: the A10's ceiling is **~104 pairs/s**, and the request path matches vLLM direct at every concurrency up to 256 · **15 minutes** at concurrency 32 held 42.7–43.7 pairs/s and 20.0–20.6% escalation, 0 errors · the shifted population escalated **18.4%** live against 19.3% recorded · **every gate enforced**: urgency, PII and drafting retrained once each beside the served adapters in one session — random-split spreads 0.0061 / 0.0027 / 0.0225 — giving thresholds intent 0.0117, urgency 0.0381, PII 0.0081, drafting 0.0675, and M11's under-trained checkpoints all fall outside them · **GPT-4o-mini under load**: 387 calls/min with no errors, at 32 pairs/s against 43 without it |
+| **Next action** | Commit and push the training-variance session's results. Decide whether to promote a manifest v5 so the served manifest carries the four-task gate — it moves no model (D49). Optional, public: re-deploy the static Space (`demo/build_static.py --push`). Not planned: new (non-eval) traffic; more than one retrain per task; int8 kernels on vLLM. |
 
 ### Milestone tracker
 
@@ -1064,6 +1064,27 @@ in the first run), in bf16 on MPS; the score follows the reply it scores.
 wrong?" — neither policy; the live score was computed on different logits, and a teacher-forced check
 found it in one run.
 
+### D49 · Training spread is measured against the served adapter in the same session
+**Rejected:** (a) comparing each rerun with the regression run already committed from an earlier session;
+(b) a different seed for the rerun; (c) retraining intent as well; (d) promoting a manifest to carry the
+new gate in the same step.
+**Why:** (a) the same served adapters moved by up to 0.0081 (drafting) and 0.0026 (intent) between two
+sessions on the same vLLM version, and that would have been counted as training variance; so the session
+re-scored the served adapters first and compared the reruns with those. (b) Intent's measurement (D37)
+used one seed twice, and a retrain of the same configuration in this pipeline uses the same seed; a changed
+seed would measure a different quantity and make the four gates incomparable. (c) Intent's two-run record
+exists and is kept as the measurement D37 was built on. (d) A gate change is a promotion's business, with
+its own record; deriving thresholds changes what the next promotion enforces, not what is served.
+**Stated limits:** one rerun per task is a single range, not a variance estimate — as intent's was. The
+reruns trained with newer torch, transformers, peft and bitsandbytes than the served adapters, so each
+spread also carries library drift and inference noise: an upper estimate, which widens the gate. Urgency's
+threshold stays bound by inference noise (0.0127 over 0.0061), and at 0.0381 it is wider than urgency's
+0.0134 margin over the prompted baseline.
+
+**Interview angle:** "how do you know your threshold isn't just noise?" — it is noise, measured: three
+times the larger of scoring spread and a same-configuration retrain's, with the retrain scored beside the
+adapter it would replace.
+
 ---
 
 ## 3. Trade-offs consciously accepted
@@ -1154,7 +1175,7 @@ Filled in as results arrive. **Empty is the correct state today.**
 | D38 rebuilt drafting hard bucket | **113** judge failures (grade 3: 101, grade 2: 12) · only **39 of 150** proxy hard cases survive · hard split 507 → 470 | Phase 4 |
 | **Router on judge labels (D38)** | eval AUC **0.691** vs task-name lookup **0.691** (−0.0001) · shift 0.676 · per task at chance except PII 0.63 | Phase 4 |
 | **Operating curve, judge-graded drafting** | in-dist: confidence **0.781** at 20% (57% of gain), router 0.709 (−19%) · shift: 43% vs −31% · frontier alone 0.52 | Phase 4 |
-| **F33 baseline spreads (two runs, unchanged manifest)** | random: intent 0.0013 · urgency 0.0127 · PII 0.0009 · drafting 0.0135 — hard: 0 · 0 · 0.0004 · 0.0372 · gate enforces **intent only** (0.0117, training-bound); the rest provisional per D37 | Phase 4 |
+| **F33 baseline spreads (two runs, unchanged manifest)** | random: intent 0.0013 · urgency 0.0127 · PII 0.0009 · drafting 0.0135 — hard: 0 · 0 · 0.0004 · 0.0372 · gate enforces **intent only** (0.0117, training-bound); the rest provisional per D37 — until training variance was measured in Phase 5; the re-derived gate enforces all four (see "Gate thresholds, re-derived") | Phase 4 |
 | **M11: does the hard split catch what the random set misses?** | **no** — random flags all four under-trained checkpoints; hard flags only PII and improves on the other three (intent 0 → 0.16, drafting +0.27) | Phase 4 |
 | Golden PII at 384 tokens | **0.9462** strict (was 0.9190 at a 160-token cap) · served, greedy | Phase 4 |
 | **M2 prompted baselines, same vLLM server** | intent 0.9286 vs **0.5727** (77 demos, one per class) · urgency macro-F1 0.4096 vs **0.3962** · PII 0.9462 vs **0.57** · drafting, GPT-4o: 4.24 vs **2.86** (distilled judge said 4.27 vs 4.70) | Phase 4 |
@@ -1190,6 +1211,9 @@ Filled in as results arrive. **Empty is the correct state today.**
 | **Shifted population, live (§8, §11)** | 1,047 pairs, concurrency 16, GPT-4o-mini on · escalated **18.4%** vs 19.3% on the recorded scores at the same threshold (the shift curve's own 20% budget: 20.0%) · same decision **97.8%** (8 live only, 15 recorded only), score Spearman 0.993 · served **0.7065** vs 0.7052 recorded as served · 2 fallbacks (0.19%: intent labels `amex_support`, `failed_survey`) · 0 errors · 16.3 pairs/s, P95 3.5 s · $0.0238 | Phase 5 |
 | **Batch nondeterminism under load** | sustained run, each of the 392 pairs answered 99 times · graded answers: **4 of 290** pairs both right and wrong across passes, and 1 urgency pair wrong on every pass that the recorded run got right — net −1.2 pairs (−0.004), which is the whole served-quality gap · score spread across passes, median / p95: drafting **0.098 / 0.23**, urgency 0.012 / 0.033, intent 0.0003 / 0.012, PII 0.0002 / 0.003 · **34 pairs changed routing** between passes (27 drafting, 7 urgency); the aggregate rate did not move | Phase 5 |
 | **Derived cost per 1K at measured throughput** | $0.75/h assumed, as `runs/economics.json` · c32 sustained, 43.0/s: **$0.0048** (11.8× under GPT-4o-mini's $0.0572) · c64, 67.9/s: $0.0031 (18.6×) · c128, 91.2/s: $0.0023 (25×) · c256, 103.2/s: **$0.0020** (28×, P95 7.8 s) · break-even stays **3.64 req/s** — it depends on the hourly price and the frontier's, not the ceiling · `economics.json` still derives from M1's 23.6 | Phase 5 |
+| **Training variance, urgency / PII / drafting (F33, D37, D49)** | `scripts/gpu_training_variance_session.sh`: the served adapters and a second training run of each (same seed, rows and epochs; PII 8,000 rows / 3 epochs by override), regression-scored in one session · the reruns reproduced their originals: train loss drafting 0.7141 vs 0.7142, PII 0.0345 vs 0.0345, urgency 0.6394 vs 0.6378, the same best checkpoints, 23 / 35 / 61 min · newer libraries than the originals (torch 2.13.0, transformers 5.16.1, peft 0.20.0, bitsandbytes 0.50.2) · **random-split spread: urgency 0.0061 · PII 0.0027 · drafting 0.0225** · hard: 0.0747 · 0.0148 · 0.126 · the same served adapters across two sessions moved intent 0.0026, drafting 0.0081 — why the comparison is within one session | Phase 5 |
+| **Gate thresholds, re-derived (D37, D49)** | `evals/GATE_THRESHOLDS.json` — **enforcing all four:** intent **0.0117** (training) · urgency **0.0381** (inference 0.0127 over training 0.0061) · PII **0.0081** (training) · drafting **0.0675** (training) · M11's under-trained random-split drops 0.203 / 0.087 / 0.225 / 0.151 all exceed them · urgency's threshold is wider than its **0.0134** margin over the prompted baseline · the hard split stays report-only · `manifests/system.json` v4 carries the intent-only gate until its next promotion | Phase 5 |
+| **GPT-4o-mini under load (§8, §11)** | 5 min at concurrency 32 through the request path, frontier on · 9,765 requests, **31.9 pairs/s** (43.0 with it off) · escalated 20.0%, **20.2% answered by GPT-4o-mini**, 19.2–20.6% escalated per 30-s window · **0 frontier errors** at 387 calls/min, none rate-limited · frontier-answered P95 **5.5 s**, all-request P95 3.7 s · served 0.7127 vs 0.7115 recorded as served · $0.248, $0.0254 per 1K pairs · the 10,000-a-day cap lasts ~26 min at this rate | Phase 5 |
 | CI (§12) | `.github/workflows/ci.yml` — ruff and pytest on every push, weekly `verify-pins` · not yet run on GitHub | Phase 5 |
 | **int8 on the intent adapter (F27, N2)** | 770 golden items, merged adapter, Apple M4 CPU, 4 threads · fp32 **0.9312** (vLLM on the A10: 0.9286) · dynamic int8, per-tensor weights **0.6208**, per-channel 0.6623, labels outside the set on 7.3% / 6.0% · int8 weights with fp32 activations **0.9325**, 99.4% label agreement with fp32 · weights 6.17 → 2.48 GB · dynamic int8 2.1× slower on this CPU · not a serving figure | Phase 5 |
 
@@ -1197,6 +1221,34 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 5 · Every gate is now enforced and every under-trained checkpoint still falls outside it —
+but urgency's gate is wider than urgency's win.** Urgency, PII and drafting were each trained a second
+time at the configuration that produced the served adapter, and both versions were regression-scored in
+one session. The random-split spread was **0.0061** for urgency, **0.0027** for PII and **0.0225** for
+drafting, so the re-derived thresholds are intent 0.0117, urgency 0.0381, PII 0.0081 and drafting 0.0675,
+all enforced. M11's four under-trained checkpoints dropped 0.203, 0.087, 0.225 and 0.151 — each outside
+its task's gate. The same session put GPT-4o-mini under load for five minutes: 387 calls a minute with no
+errors, a frontier-answered P95 of 5.5 s, and 20.2% of 9,765 requests answered by it.
+
+*How it was found:* one script (`scripts/gpu_training_variance_session.sh`), after checking that a rerun
+could repeat its original — PII's served adapter came from 8,000 rows and 3 epochs set by override, which
+the code's defaults do not hold, so a plain rerun would have measured a config change. The reruns
+reproduced their originals to the loss: drafting 0.7141 against 0.7142, PII 0.0345 against 0.0345, urgency
+0.6394 against 0.6378, with the same best checkpoints and run times. The served adapters were re-scored in
+the session first, because the same adapters moved by up to 0.0081 between two sessions (D49).
+
+*Means:* the "provisional gates" limitation is closed, with two honest remainders. First, **urgency's
+threshold (0.0381) is wider than its 0.0134 margin over prompting**, so the gate would pass a release that
+lost urgency's edge — it guards against a broken adapter, not against a marginally worse one, on a task
+TF-IDF already wins. Second, the hard split moved far more than the random one between equivalent adapters
+(urgency 0.0068 → 0.0815, drafting +0.126): M11's finding again, seen from the other side, and the reason
+the split stays report-only whatever thresholds its spreads imply. With GPT-4o-mini answering, throughput
+at concurrency 32 fell from 43 to 32 pairs a second — escalated requests hold a slot while the API answers
+— and the daily request cap would last about 26 minutes at that rate.
+
+*Changes the plan:* the dashboard and PRD show four enforced gates. `manifests/system.json` v4 still carries
+the intent-only gate it was promoted with; carrying the new one is a promotion, left as a decision (D49).
 
 **Phase 5 · The A10 tops out near 104 pairs a second, the request path costs none of it, and 15
 minutes of load did not move a rate.** A second session (`scripts/gpu_load_session.sh`) ran what the
@@ -2263,8 +2315,8 @@ share-alike attribution still has to go in the README.
 | "Tell me about a fine-tuning project" | The architecture in one sentence, then evaluation: M7, then the negatives |
 | "How did you evaluate it?" | D6 two splits → D3 baseline choice → D9/D37 threshold from variance → M11, which showed the hard split cannot gate |
 | "Tell me about a bug you found in your own work" | D7, then the judge that could not see truncation |
-| "How do you know the model is good?" | Intent's smallest detectable regression is 0.0117, from two measured training runs — and the other tasks' gates are provisional because their training variance was never measured |
-| "What would you do differently?" | Mine hard cases from several models' failures; measure training variance for every task; D4 (an always-on GPU) |
+| "How do you know the model is good?" | Every task's smallest blocked regression comes from measured noise — 3× the larger of scoring spread and a same-configuration retrain's: intent 0.0117, urgency 0.0381, PII 0.0081, drafting 0.0675 — and urgency's gate is wider than its margin over prompting, which I say before anyone asks |
+| "What would you do differently?" | Mine hard cases from several models' failures; more than one retrain per task, so a training spread is an estimate rather than a single range; D4 (an always-on GPU) |
 | "Where did fine-tuning not help?" | Urgency — loses to TF-IDF (0.41 vs 0.55 macro-F1) and sits within noise of prompting |
 | "Is it cheaper than calling an API?" | Only above ~3.6 req/s of sustained load (D41) |
 | "Tell me about a result that surprised you" | D42: the router with the best AUC made worse escalation decisions — its label ignored the pairs escalation breaks |
