@@ -52,8 +52,12 @@ def test_m7_numbers_come_from_the_committed_run():
 
 
 @needs_runs
-def test_the_frontier_call_rate_is_labelled_offline():
-    assert "Not measured on traffic" in db.render(db.load())
+def test_the_frontier_call_rate_shows_live_and_offline_apart():
+    rendered = db.render(db.load())
+    section = rendered.split("## 3 · Frontier-call rate")[1].split("## 4 ·")[0]
+    assert "Measured live, on the curve's own pairs" in section
+    assert "The offline operating curve" in section
+    assert section.index("Measured live") < section.index("The offline operating curve")
 
 
 @needs_runs
@@ -61,7 +65,9 @@ def test_prd_7_misses_are_shown_as_misses():
     text = db.render(db.load())
     section = text[text.index("## 7 · PRD §7 targets"):text.index(db.FAILURE_HEADING)]
     assert section.count("**missed**") == 2          # PII and drafting P95 over 500 ms
-    assert "| pii on the A10" in section and "not recorded" in section
+    assert "| pii on the A10" in section
+    regression = next(line for line in section.splitlines() if "regression run < 25 min" in line)
+    assert regression.endswith("| met |") and "a10-v4" in regression
 
 
 @needs_runs

@@ -1,0 +1,6 @@
+  c=1   392 pairs in 334.2s · escalated 0.2143 · fallback 0.0026 · p95 3281.4 ms · served 0.7069 vs curve 0.7103 · $0.010234
+  c=4   392 pairs in 85.8s · escalated 0.2015 · fallback 0.0026 · p95 3292.6 ms · served 0.7103 vs curve 0.7103 · $0.010035
+  c=16  392 pairs in 26.0s · escalated 0.2066 · fallback 0.0026 · p95 3753.0 ms · served 0.7069 vs curve 0.7103 · $0.010254
+  c=32  392 pairs in 16.4s · escalated 0.2015 · fallback 0.0026 · p95 3720.3 ms · served 0.7069 vs curve 0.7103 · $0.009968
+
+  wrote runs/request_path__a10-v4.json

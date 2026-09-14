@@ -26,8 +26,8 @@ and in the phase column of §4.
 | **Spend** | **~$10.47** / $50.00 — ~$10 as reported plus $0.47 since; $6.40 itemised, the Phase 2 and Phase 4 GPU sessions not itemised |
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
 | **Blocking** | Nothing. |
-| **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · judge distilled (**M5**, Spearman 0.73) · under judge labels the router equals a task-name lookup and **confidence routing captures 57%** of available gain · hard split rebuilt (470) · **M2** on one server: intent +0.356, PII +0.376, urgency within noise, drafting **+1.38 under GPT-4o** · **M7 proven**: shuffled adapter detected (drop 0.923), blocked, forced, rolled back · **M11 negative** · **README (F23)** rewritten around results and negatives · **dashboard (F17)** rendered from committed runs · **cost per 1K derived** (D41): local is cheaper only above 3.64 req/s sustained · **Gradio demo (F22)** built (D40) · **router v2 (D42)**: three pre-registered fixes, all lose to confidence · **rules baseline (F26)**: a task-lookup rule captures 38%, still below confidence · **judge cost** measured · **frontier reference** on the golden sets measured · **model cards** with eval scores published to all four adapter repos · **demo live** as a static Space of recorded outputs (D43) · **PRD audit, CPU-only fixes (D44)**: operating curve **plotted** (F11), router decision latency **measured** (P95 24.9 ms per pair, inside §7's 50 ms), dashboard §7 targets section shows **PII and drafting missing the 500 ms P95**, README gains architecture / results / limitations, `regress` now records wall-clock · **router-misroute records (F29, F37, D45)**: 622 tagged decisions at the 20% operating point, reported not gated — the learned router spends **all 78** in-distribution escalations on urgency (14 harmful, 7 rescued) · **audit gaps built**: the request path (`serve-api`, D47) with live metrics and tracing, serving read from the manifest and manifest **v4** (M6, D46), the router/judge evidence rule, fallback rate recorded per regression run, routing decisions in both demos, CI, opt-in W&B · **int8 (F27)**: weight-only int8 matches fp32 on intent (0.9325 vs 0.9312); dynamic int8 loses 0.27–0.31 to 8-bit activations · **PRD v2.8** |
-| **Next action** | Needs approval before spend: a GPU session to put the request path in front of vLLM under load and run one regression run (records wall-clock and fallback rate); GPT-4o-mini enabled on the request path. Commit and push this batch. Optional, public: re-deploy the static Space with the routing tab (`demo/build_static.py --push`). |
+| **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · judge distilled (**M5**, Spearman 0.73) · under judge labels the router equals a task-name lookup and **confidence routing captures 57%** of available gain · hard split rebuilt (470) · **M2** on one server: intent +0.356, PII +0.376, urgency within noise, drafting **+1.38 under GPT-4o** · **M7 proven**: shuffled adapter detected (drop 0.923), blocked, forced, rolled back · **M11 negative** · **README (F23)** rewritten around results and negatives · **dashboard (F17)** rendered from committed runs · **cost per 1K derived** (D41): local is cheaper only above 3.64 req/s sustained · **Gradio demo (F22)** built (D40) · **router v2 (D42)**: three pre-registered fixes, all lose to confidence · **rules baseline (F26)**: a task-lookup rule captures 38%, still below confidence · **judge cost** measured · **frontier reference** on the golden sets measured · **model cards** with eval scores published to all four adapter repos · **demo live** as a static Space of recorded outputs (D43) · **PRD audit, CPU-only fixes (D44)**: operating curve **plotted** (F11), router decision latency **measured** (P95 24.9 ms per pair, inside §7's 50 ms), dashboard §7 targets section shows **PII and drafting missing the 500 ms P95**, README gains architecture / results / limitations, `regress` now records wall-clock · **router-misroute records (F29, F37, D45)**: 622 tagged decisions at the 20% operating point, reported not gated — the learned router spends **all 78** in-distribution escalations on urgency (14 harmful, 7 rescued) · **audit gaps built**: the request path (`serve-api`, D47) with live metrics and tracing, serving read from the manifest and manifest **v4** (M6, D46), the router/judge evidence rule, fallback rate recorded per regression run, routing decisions in both demos, CI, opt-in W&B · **int8 (F27)**: weight-only int8 matches fp32 on intent (0.9325 vs 0.9312); dynamic int8 loses 0.27–0.31 to 8-bit activations · **PRD v2.8** · **request path live with GPT-4o-mini**: the curve's 392 pairs through `serve-api` escalated **20.7%** against the curve's 19.9% and made the curve's decision on **96.7%** — after a scoring fix (D48) the first run exposed · **A10 session**: through vLLM at concurrency 1–32 the request path escalated **20.2–21.4%** against the curve's 19.9% at up to **23.9 pairs/s**, 1 fallback in 392 · regression run **75 s**, 0 fallbacks in 2,140 requests, every task at baseline |
+| **Next action** | Commit and push the A10 session's results. Optional, public: re-deploy the static Space with the routing tab (`demo/build_static.py --push`). Not yet measured — sustained load past a 16-second burst, the request path on the shifted population, and the A10's saturation throughput — and all three are one paid session, ready to run: `scripts/gpu_load_session.sh` (rehearsed against a stand-in vLLM; ~35 min, a few cents of GPT-4o-mini). |
 
 ### Milestone tracker
 
@@ -1043,6 +1043,27 @@ path has not served a representative load, so the dashboard's frontier-call rate
 **Interview angle:** "how did you pick the threshold?" — I didn't; the operating curve did, and the live
 path reads it from the committed file.
 
+### D48 · A live confidence score is the model's raw log-probability, as vLLM reports it
+**Rejected:** (a) scoring the processed logits `generate` returns; (b) moving the threshold to fit the
+laptop's scores; (c) turning the repetition penalty off in generation as well.
+**Why:** (a) Qwen2.5's `generation_config.json` sets `repetition_penalty: 1.1`, and transformers applies it
+even to greedy decoding. `compute_transition_scores` over `out.scores` normalises the penalised logits.
+Teacher-forcing 40 recorded drafting replies settled it: raw logits land 0.003 from vLLM's recorded mean
+log-probability, penalised ones 0.115 above it. The penalty only bites on repeated tokens, so one-word
+labels matched and drafting did not — and drafting holds most of the curve's escalations. The first live
+run escalated 5.4% instead of about 20%. (b) The threshold is the curve's (D47); fitting it to a
+mis-computed score would hide the bug behind a number that looks right. (c) vLLM 0.29.0 applies the penalty
+while generating: its log on the A10 reads "Default vLLM sampling parameters have been overridden by the
+model's `generation_config.json`" with `repetition_penalty: 1.1`, and the requests override only the
+temperature. So vLLM *generated* with the penalty and *reported* raw log-probabilities — which is what the
+fixed backend now does on both counts.
+**Stated limits:** the laptop's greedy replies still diverge from vLLM's on long drafts (33 of 88 identical
+in the first run), in bf16 on MPS; the score follows the reply it scores.
+
+**Interview angle:** "your live path escalated a quarter as often as your offline curve — which one was
+wrong?" — neither policy; the live score was computed on different logits, and a teacher-forced check
+found it in one run.
+
 ---
 
 ## 3. Trade-offs consciously accepted
@@ -1158,11 +1179,13 @@ Filled in as results arrive. **Empty is the correct state today.**
 | **Router decision latency, CPU (§7 < 50 ms)** | pinned router (`6310a4d3…`), 392 eval pairs, Apple M4 · one pair: P50 **15.3 ms**, P95 **24.9 ms** at 4 threads, P95 26.2 ms at 1 · one ticket's four pairs batched: P95 **70.8 ms** (4 threads) / 89.8 ms (1) · scores reproduce the committed `router_p_fail` to 2.4e-07 · load 0.2 s excluded | Phase 5 |
 | Adapter P95 vs §7's 500 ms | intent 136 ms and urgency 60 ms **met** · PII **2,259 ms** and drafting **3,000 ms** **missed** — the two long-output tasks (80 and 124 tokens generated on average) · from M1, no new run | Phase 5 |
 | Operating curve plotted (F11) | `runs/router__operating_curve__judged.png`, both populations, 8 budgets, confidence at 20% marked · drawn from the committed JSON | Phase 5 |
-| Regression run wall-clock (§7 < 25 min) | — · no committed run recorded it; `regress` records `wall_seconds` from the next run | Phase 5 |
+| **Regression run wall-clock (§7 < 25 min)** | **75.1 s** on the A10 (`regression__a10-v4`, vLLM 0.29.0), 2,140 requests at concurrency 16 — **met** · generation only: the judge scored its 413 drafts afterwards on the laptop · fallback rate **0 of 2,140** (F17) · every task at baseline: intent 0.9299 (drop −0.0013, threshold 0.0117), urgency macro-F1 0.4269, PII 0.9455 (drop 0.0007), drafting judge 4.274 · hard splits unchanged (intent 0.0, urgency 0.0068, as both baselines) | Phase 5 |
 | **Router misroutes at 20% (F29, F37)** | in-distribution, 78 escalations each — learned router: rescued **7**, harmful **14**, wasted 57, missed rescue 30 · confidence: rescued **22**, harmful **1**, wasted 55, missed rescue 15 · shift, 209 each — router 33 / 66 / 110 / 74 · confidence 58 / 12 / 139 / 49 · 622 records, quality reproduces the published curve, 0 overlap with the hard split | Phase 5 |
 | **Manifest v4 (D46)** | router `checkpoints/router__judged` (`26259c22…`) on its operating curve · judge `checkpoints/judge` (`0dbcc779…`) arrives with its calibration report · adapters and all seven splits unchanged · M7's forced v3 intact in history | Phase 5 |
 | Router decision latency, judge-labelled router (manifest v4) | one pair P95 **25.2 ms** (4 threads) / 26.6 ms (1) · one ticket P95 72.6 / 90.9 ms · scores reproduce to 2.3e-07 · supersedes the proxy router's row above, same architecture | Phase 5 |
 | **Request path smoke (§8, D47)** | `serve-api`, transformers backend on this Mac, confidence policy, GPT-4o-mini off, judge on · 5 hand-written tickets, 20 pairs: 0 fallbacks, 8 past the threshold, derived $0.0088 per 1K pairs · not traffic, and not a latency measurement | Phase 5 |
+| **Request path, live, GPT-4o-mini on (§8, §11)** | `request-path-run`: the curve's 392 in-distribution pairs as one-task tickets through `serve-api` — transformers backend on this Mac with benchmark caps, manifest v4, confidence at 0.393881, judge on · escalated **20.7%** (81) vs the curve's 19.9% (78) · same decision as the curve on **96.7%** (8 live only, 5 curve only), score Spearman **0.997** vs vLLM, median gap 0.0003 · fallback **1** (0.26%: intent label `automatic_top_up_failed`, not in the set) · 0 HTTP or frontier errors · intent/urgency/PII served **0.714** vs the curve's 0.710 at the operating point · drafting escalated 70.6% vs 68.6%, locally answered drafts judge mean 4.54 · $0.0103 spent, $0.0263 per 1K pairs derived · 0.29 pairs/s, client P95 10.9 s — a Mac, not a latency figure · before D48's fix: 5.4% escalated, 84.4% same decision | Phase 5 |
+| **Request path under load, A10 (§7, §8, §11)** | `scripts/gpu_request_path_session.sh`: vLLM 0.29.0, manifest v4, confidence at 0.393881, GPT-4o-mini on, judge off (its checkpoint is not in git) · the curve's 392 pairs, one pass at each concurrency 1 / 4 / 16 / 32 · escalated **21.4% / 20.2% / 20.7% / 20.2%** vs the curve's 19.9% · same decision as the curve **96.9% / 96.2% / 95.7% / 96.7%**, score Spearman 0.996–0.997, median gap 0.0003–0.0004 · fallback **1 pair** at every level, the same intent label outside the set · 0 HTTP or frontier errors · intent/urgency/PII served **0.707–0.710** vs the curve's 0.710 · **23.9 pairs/s at concurrency 32** (M1: 23.6 req/s) · P95 of locally answered pairs, all 1,568: intent **126 ms**, urgency **55 ms**, PII **1,655 ms**, drafting **3,343 ms** · escalated drafts P95 4.4–5.8 s · $0.0405 for the four passes, $0.0258 per 1K pairs derived · each pass is a burst of 16–334 s, not sustained load | Phase 5 |
 | CI (§12) | `.github/workflows/ci.yml` — ruff and pytest on every push, weekly `verify-pins` · not yet run on GitHub | Phase 5 |
 | **int8 on the intent adapter (F27, N2)** | 770 golden items, merged adapter, Apple M4 CPU, 4 threads · fp32 **0.9312** (vLLM on the A10: 0.9286) · dynamic int8, per-tensor weights **0.6208**, per-channel 0.6623, labels outside the set on 7.3% / 6.0% · int8 weights with fp32 activations **0.9325**, 99.4% label agreement with fp32 · weights 6.17 → 2.48 GB · dynamic int8 2.1× slower on this CPU · not a serving figure | Phase 5 |
 
@@ -1170,6 +1193,56 @@ Filled in as results arrive. **Empty is the correct state today.**
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 5 · On the A10, under concurrency, the live path escalates at the curve's rate and serves at
+M1's throughput.** The curve's 392 pairs went through `serve-api` in front of vLLM 0.29.0, one full pass at
+each client concurrency of 1, 4, 16 and 32, GPT-4o-mini on. Escalation stayed between **20.2% and 21.4%**
+against the curve's 19.9%, and the live decision matched the curve's on **95.7–96.9%** of pairs. Load did
+not move it: concurrency 32 escalated 20.2%. Served quality on intent, urgency and PII was 0.707–0.710
+against the curve's 0.710. At concurrency 32 the path answered **23.9 pairs a second**, M1's 23.6 through an
+extra HTTP hop and a routing decision. Locally answered pairs held M1's latency profile — intent P95 126 ms
+and urgency 55 ms inside §7's 500 ms, PII 1,655 ms and drafting 3,343 ms outside it. Before the load passes,
+the same session's regression run took **75 seconds** for 2,140 requests, answered every one of them, and
+landed every task on its baseline.
+
+*How it was found:* one script on one rented box (`scripts/gpu_request_path_session.sh`), after the laptop
+run had fixed the score (D48). Its first launch failed on a FlashInfer kernel package left at the version
+`uv.lock`'s vLLM 0.22.1 wanted; the script's vLLM check had pinned 0.29.0, and matching the kernels fixed it.
+
+*Means:* the frontier-call rate the dashboard reports can now come from the live path rather than the
+offline curve, and §7's 25-minute regression target is checked, not assumed — met twentyfold. The one
+fallback is the same pair every time, so it is a deterministic adapter output (`automatic_top_up_failed`
+for `automatic_top_up`), and GPT-4o-mini answered that pair wrongly too. Three limits stand: the pairs are
+the curve's own in-distribution eval split, not new traffic, and the shift population was not run live; the
+longest pass lasted 334 seconds, so this is burst, not sustained, load; and escalated drafts cost 4.4–5.8 s at
+P95, the price of GPT-4o-mini's latency on 70% of drafting.
+
+*Changes the plan:* no — it confirms it. The dashboard's live-rate sections switch to these runs.
+
+**Phase 5 · Live, the request path reproduces the offline operating point — once its confidence score
+was computed on the right logits.** The 392 held-out pairs the published curve counted went through
+`serve-api` one ticket at a time, GPT-4o-mini on: **20.7%** escalated against the curve's 19.9%, the live
+decision matched the curve's on **96.7%** of pairs, and the served answers on intent, urgency and PII
+scored **0.714** against the 0.710 the curve recorded for the same pairs at the same operating point. One
+pair fell back — an intent label that is not in the set — and GPT-4o-mini answered it. $0.0103 spent.
+
+*How it was found:* the first full run escalated **5.4%**, and only drafting had moved (13.7% against the
+curve's 68.6%). A score-clustering explanation was checked first and was wrong — only 10 of 102 drafting
+pairs sit within 0.01 of the threshold. The live drafting scores were instead uniformly about 0.12 below
+vLLM's, including on replies identical to vLLM's, so the difference was in the arithmetic, not the text.
+Qwen's generation config applies a 1.1 repetition penalty, and teacher-forcing recorded replies with and
+without it reproduced the whole gap (D48). A smoke run of 8 pairs had agreed on every decision because both of its
+drafts sat just *under* the threshold on vLLM (0.391 and 0.389 against 0.394), where a score pushed lower
+changes nothing.
+
+*Means:* the operating point is a property of the model's raw scores, and anything that reshapes logits —
+a generation config, a sampling default, a serving-framework version — moves the frontier-call rate
+without touching a line of routing code. The offline curve survives contact with a live path on this
+population; it has not yet met load, or vLLM rather than transformers.
+
+*Changes the plan:* yes, twice. The GPU session pins vLLM to 0.29.0, the version behind the recorded runs,
+and refuses to start on another; and a live run's agreement with the curve is now a number the request
+path reports, rather than an assumption.
 
 **Phase 5 · int8 weights cost the intent adapter nothing; 8-bit activations cost it 27–31 points
 (F27).** On all 770 golden items on this laptop's CPU, the merged adapter scored 0.9312 in fp32 — within

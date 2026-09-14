@@ -15,6 +15,7 @@ directly. This module only turns it into HTTP.
 # No `from __future__ import annotations`: FastAPI resolves the request model from the live
 # annotation, and a deferred string annotation on a module-level model is where that breaks.
 
+from contextlib import asynccontextmanager
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
@@ -24,6 +25,10 @@ from adapterops import __version__
 from adapterops.serve.pipeline import Service
 
 Task = Literal["intent", "urgency", "pii", "drafting"]
+MAX_THREADS = 256
+"""Concurrent tickets the API will run. A sync endpoint runs in anyio's worker pool, which defaults
+to 40 threads — so without raising it, any load test past 40 concurrent requests measures that pool
+rather than vLLM. Each ticket blocks one thread for the whole of its generation."""
 
 
 class TicketIn(BaseModel):
@@ -32,8 +37,15 @@ class TicketIn(BaseModel):
     ticket_id: str | None = Field(default=None, max_length=64)
 
 
-def create_app(service: Service) -> FastAPI:
-    app = FastAPI(title="AdapterOps request path", version=__version__)
+def create_app(service: Service, max_threads: int = MAX_THREADS) -> FastAPI:
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        import anyio.to_thread
+
+        anyio.to_thread.current_default_thread_limiter().total_tokens = max_threads
+        yield
+
+    app = FastAPI(title="AdapterOps request path", version=__version__, lifespan=lifespan)
 
     @app.post("/v1/tickets")
     def tickets(body: TicketIn) -> dict:
@@ -59,7 +71,8 @@ def create_app(service: Service) -> FastAPI:
 
 
 def main(backend: str, base_url: str, policy: str, frontier: bool, judge: bool, trace: str,
-         host: str, port: int, benchmark_caps: bool = False) -> int:
+         host: str, port: int, benchmark_caps: bool = False,
+         max_threads: int = MAX_THREADS) -> int:
     import uvicorn
 
     from adapterops.serve.pipeline import build_service
@@ -68,5 +81,5 @@ def main(backend: str, base_url: str, policy: str, frontier: bool, judge: bool, 
     service = build_service(backend=backend, base_url=base_url, policy=policy, frontier=frontier,
                             judge=judge, tracer=make_tracer(trace), benchmark_caps=benchmark_caps)
     print("  " + "  ·  ".join(f"{k}: {v}" for k, v in service.describe().items()))
-    uvicorn.run(create_app(service), host=host, port=port)
+    uvicorn.run(create_app(service, max_threads=max_threads), host=host, port=port)
     return 0

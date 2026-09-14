@@ -46,6 +46,8 @@ INPUTS = {
     "shuffled": "runs/regression__intent-shuffled.json",
     "m11": "runs/regression__all-m11.json",
     "system": "manifests/system.json",
+    "live": "runs/request_path__a10-v4.json",
+    "regression_live": "runs/regression__a10-v4.json",
 }
 HISTORY_GLOB = "manifests/history/system-*.json"
 OPERATING_BUDGET = 0.2
@@ -251,6 +253,35 @@ def failure_demo(data: dict) -> list[str]:
 ADAPTER_P95_MS = 500.0
 
 
+def live_rows(data: dict) -> list[str]:
+    """The request path's measured frontier-call rate, one row per client concurrency, beside the
+    rate the offline curve gives the same pairs."""
+    live = data["live"]
+    svc = live["service"]
+    lines = [
+        (f"**Measured live, on the curve's own pairs.** `adapterops request-path-run` sent the "
+         f"{live['pairs']} in-distribution pairs the curve counted through the request path — "
+         f"{svc['local_backend']}, manifest v{svc['manifest_version']}, {svc['policy']} at "
+         f"{svc['threshold']}, {svc['frontier']} on — one full pass per client concurrency. Served "
+         "quality covers intent, urgency and PII; drafting is routed but not graded here."),
+        "",
+        ("| concurrency | pairs/s | frontier-call rate | curve, same pairs | same decision as curve "
+         "| fallback rate | served quality | curve quality |"),
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for level in live["levels"]:
+        per_task = level["per_task"]
+        pairs = sum(t["pairs"] for t in per_task.values())
+        curve = sum(t["curve_escalation_rate"] * t["pairs"] for t in per_task.values()) / pairs
+        graded, agree = level["graded_tasks"], level["agreement_with_curve"]
+        lines.append(
+            f"| {level['concurrency']} | {level['throughput_pairs_per_s']} | "
+            f"{level['escalation_rate']:.1%} | {curve:.1%} | {agree['same_decision']:.1%} | "
+            f"{level['fallback_rate']:.2%} | {graded['served_success']:.3f} | "
+            f"{graded['curve_success_at_operating_point']:.3f} |")
+    return [*lines, ""]
+
+
 def targets_rows(data: dict) -> list[str]:
     """PRD §7's non-functional targets, each read against the run that measured it."""
     serving, lat = data["serving"], data["latency"]
@@ -276,11 +307,18 @@ def targets_rows(data: dict) -> list[str]:
         lines.append(f"| router decision < {four['target_ms']:.0f} ms | one ticket's four pairs "
                      f"batched, {threads} | P95 {four['p95_ms']:.1f} ms | {per_ticket} |")
     rps = serving["throughput_rps"]
+    top = max(data["live"]["levels"], key=lambda level: level["concurrency"])
+    reg = data["regression_live"]
     lines += [
         (f"| sustain 5–10 req/s briefly | four adapters at concurrency {serving['concurrency']}, M1 | "
          f"{rps} req/s for {serving['wall_seconds']:.0f} s | {'met' if rps >= 5 else '**missed**'} |"),
-        ("| regression run < 25 min | both splits, four tasks, judge scoring | not recorded — the "
-         "committed regression runs carry no timing | — |"), "",
+        (f"| sustain 5–10 req/s briefly | request path, routing and GPT-4o-mini included, "
+         f"concurrency {top['concurrency']} | {top['throughput_pairs_per_s']} pairs/s for "
+         f"{top['wall_seconds']:.0f} s | {'met' if top['throughput_pairs_per_s'] >= 5 else '**missed**'} |"),
+        (f"| regression run < 25 min | both splits, four tasks, `{reg['name']}` on the A10 | "
+         f"{reg['wall_seconds']:.0f} s for {reg['fallback']['requests']:,} requests; the judge "
+         f"scored its drafts in a separate step | "
+         f"{'met' if reg['wall_seconds'] < 25 * 60 else '**missed**'} |"), "",
         (f"Router timed on {lat['host']} against the manifest's pinned checkpoint, reproducing its "
          f"committed scores. §7 set one latency budget for every adapter with no allowance for "
          f"output length; the two misses are the two tasks that generate long outputs."), "",
@@ -309,10 +347,11 @@ def render(data: dict) -> str:
         "by construction**, which is why this split cannot gate — see M11 below."), "",
         *quality_rows(data, "hard"), "",
         "## 3 · Frontier-call rate", "",
-        ("**Not measured on traffic.** The request path (`adapterops serve-api`) routes each pair "
-         "live and reports this rate at `/v1/metrics`, but it has not served a representative "
-         "load, so what is shown is the offline operating curve over the router pool, read at a "
-         f"{OPERATING_BUDGET:.0%} escalation budget. Drafting is graded by GPT-4o on both arms."), "",
+        *live_rows(data),
+        ("**The offline operating curve** over the router pool, read at a "
+         f"{OPERATING_BUDGET:.0%} escalation budget — what the live threshold was taken from. "
+         "Drafting is graded by GPT-4o on both arms. The live pairs are this curve's in-distribution "
+         "eval split, so the shifted population has not been measured live."), "",
         *routing_rows(data), "",
         ("Chart of the full curves, both populations: `runs/router__operating_curve__judged.png` "
          "(`uv run adapterops router-plot`)."), "",
@@ -350,12 +389,22 @@ def render(data: dict) -> str:
     for task, r in serving["per_adapter"].items():
         lines.append(f"| {task} | {r['requests']:,} | {r['p50_ms']:,.0f} | {r['p95_ms']:,.0f} | "
                      f"{r['max_new_tokens']} | {r['mean_generated_tokens']} |")
+    reg, levels = data["regression_live"], data["live"]["levels"]
+    live_pairs = sum(level["pairs"] for level in levels)
+    live_fallbacks = sum(round(level["fallback_rate"] * level["pairs"]) for level in levels)
     lines += [
         "", "## 6 · Fallback rate", "",
-        (f"**{serving['fallback_rate']:.1%}** — {serving['errors']} errors in "
-        f"{serving['requests']:,} requests during M1. Measured once, on that run: the committed "
-        "regression runs did not record it. `regress` records it from its next run, and the "
-        "request path reports it live at `/v1/metrics`."), "",
+        "| run | fallbacks | requests | rate |", "|---|---|---|---|",
+        (f"| M1, four adapters, concurrency {serving['concurrency']} | {serving['errors']} | "
+         f"{serving['requests']:,} | {serving['fallback_rate']:.2%} |"),
+        (f"| regression run `{reg['name']}`, requests local serving failed | "
+         f"{reg['fallback']['errors']} | {reg['fallback']['requests']:,} | "
+         f"{reg['fallback']['fallback_rate']:.2%} |"),
+        (f"| request path, {len(levels)} passes, errors or unusable output | {live_fallbacks} | "
+         f"{live_pairs:,} | {live_fallbacks / live_pairs:.2%} |"), "",
+        ("A request-path fallback is local output the task cannot use — here one intent label "
+         "outside the label set, the same pair on every pass — answered by GPT-4o-mini and counted "
+         "apart from escalation."), "",
         *targets_rows(data),
         *failure_demo(data), "",
     ]

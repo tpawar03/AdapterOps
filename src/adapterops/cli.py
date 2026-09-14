@@ -98,7 +98,9 @@ def _cmd_router_latency(_: argparse.Namespace) -> int:
 def _cmd_request_path_run(args: argparse.Namespace) -> int:
     from adapterops.serve.request_run import main as run_main
 
-    return run_main(url=args.url, name=args.name, concurrency=args.concurrency, limit=args.limit)
+    return run_main(url=args.url, name=args.name, concurrency=args.concurrency, limit=args.limit,
+                    population=args.population, duration=args.duration, window=args.window,
+                    direct_vllm=args.direct_vllm)
 
 
 def _cmd_quantize_compare(args: argparse.Namespace) -> int:
@@ -115,7 +117,8 @@ def _cmd_serve_api(args: argparse.Namespace) -> int:
 
     return api_main(backend=args.backend, base_url=args.base_url, policy=args.policy,
                     frontier=not args.no_frontier, judge=not args.no_judge, trace=args.trace,
-                    host=args.host, port=args.port, benchmark_caps=args.benchmark_caps)
+                    host=args.host, port=args.port, benchmark_caps=args.benchmark_caps,
+                    max_threads=args.max_threads)
 
 
 def _cmd_frontier(args: argparse.Namespace) -> int:
@@ -339,6 +342,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_api.add_argument("--benchmark-caps", action="store_true",
                        help="transformers backend: generate drafting to 448 tokens, as the curve "
                             "did, instead of the demo's 200")
+    p_api.add_argument("--max-threads", type=int, default=256,
+                       help="concurrent tickets the API runs; anyio's default of 40 would cap a "
+                            "load test before vLLM does")
     p_api.add_argument("--trace", choices=["none", "jsonl", "langfuse"], default="jsonl")
     p_api.add_argument("--host", default="127.0.0.1")
     p_api.add_argument("--port", type=int, default=8080)
@@ -351,6 +357,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_rpr.add_argument("--concurrency", type=int, nargs="+", default=[1],
                        help="client concurrency levels; each is one full pass over the pairs")
     p_rpr.add_argument("--limit", type=int, default=None, help="pairs per task, for a smoke run")
+    p_rpr.add_argument("--population", choices=["router_in_distribution", "router_shift"],
+                       default="router_in_distribution",
+                       help="which curve population to send: 392 in-distribution or 1,047 shifted")
+    p_rpr.add_argument("--duration", type=float, default=None,
+                       help="seconds per concurrency level, cycling the pairs; default is one pass")
+    p_rpr.add_argument("--window", type=float, default=60.0,
+                       help="with --duration: seconds per summary window")
+    p_rpr.add_argument("--direct-vllm", default=None, metavar="URL",
+                       help="send straight to vLLM — no API, routing or frontier — for a ceiling")
     p_rpr.set_defaults(func=_cmd_request_path_run)
 
     p_q = sub.add_parser("quantize-compare",

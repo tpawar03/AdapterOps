@@ -17,34 +17,34 @@
       "concurrency": 1,
       "pairs": 392,
       "http_errors": 0,
-      "wall_seconds": 1235.0,
-      "throughput_pairs_per_s": 0.32,
-      "escalation_rate": 0.0536,
+      "wall_seconds": 1344.7,
+      "throughput_pairs_per_s": 0.29,
+      "escalation_rate": 0.2066,
       "fallback_rate": 0.0026,
       "unanswered": 0,
       "frontier_errors": 0,
-      "client_p50_ms": 1631.2,
-      "client_p95_ms": 10603.2,
-      "cost_usd": 0.004931,
-      "cost_per_1k_pairs_usd": 0.0126,
+      "client_p50_ms": 1697.8,
+      "client_p95_ms": 10913.4,
+      "cost_usd": 0.01032,
+      "cost_per_1k_pairs_usd": 0.0263,
       "per_task": {
         "drafting": {
           "pairs": 102,
-          "escalation_rate": 0.1373,
+          "escalation_rate": 0.7059,
           "curve_escalation_rate": 0.6863,
           "fallback_rate": 0.0,
-          "client_p95_ms": 17237.7,
-          "server_p95_ms": 17233.8,
-          "judge_mean_local": 4.346
+          "client_p95_ms": 19441.6,
+          "server_p95_ms": 19433.3,
+          "judge_mean_local": 4.54
         },
         "intent": {
           "pairs": 90,
-          "escalation_rate": 0.0,
+          "escalation_rate": 0.0222,
           "curve_escalation_rate": 0.0222,
           "fallback_rate": 0.0111,
-          "client_p95_ms": 609.3,
-          "server_p95_ms": 606.1,
-          "served_success": 0.9,
+          "client_p95_ms": 670.2,
+          "server_p95_ms": 666.0,
+          "served_success": 0.9111,
           "curve_local_only_success": 0.9
         },
         "pii": {
@@ -52,8 +52,8 @@
           "escalation_rate": 0.0,
           "curve_escalation_rate": 0.0,
           "fallback_rate": 0.0,
-          "client_p95_ms": 9602.4,
-          "server_p95_ms": 9598.3,
+          "client_p95_ms": 10232.7,
+          "server_p95_ms": 10228.0,
           "served_success": 0.73,
           "curve_local_only_success": 0.73
         },
@@ -62,9 +62,9 @@
           "escalation_rate": 0.07,
           "curve_escalation_rate": 0.06,
           "fallback_rate": 0.0,
-          "client_p95_ms": 709.6,
-          "server_p95_ms": 703.5,
-          "served_success": 0.53,
+          "client_p95_ms": 664.6,
+          "server_p95_ms": 659.0,
+          "served_success": 0.52,
           "curve_local_only_success": 0.51
         }
       },
@@ -81,11 +81,11 @@
       },
       "agreement_with_curve": {
         "pairs_compared": 391,
-        "same_decision": 0.844,
-        "escalated_live_not_on_curve": 2,
-        "escalated_on_curve_not_live": 59,
-        "score_spearman_vs_recorded": 0.9553,
-        "score_median_abs_diff": 0.0032,
+        "same_decision": 0.9668,
+        "escalated_live_not_on_curve": 8,
+        "escalated_on_curve_not_live": 5,
+        "score_spearman_vs_recorded": 0.9971,
+        "score_median_abs_diff": 0.0003,
         "note": "fallbacks carry no score and are left out; the recorded score is vLLM's -mean_logprob from the generation run"
       }
     }
@@ -94,39 +94,39 @@
     "since": "process start",
     "tickets": 392,
     "pairs": 392,
-    "frontier_call_rate": 0.0536,
+    "frontier_call_rate": 0.2066,
     "fallback_rate": 0.0026,
-    "cost_usd": 0.004931,
-    "cost_per_1k_pairs_usd": 0.0126,
-    "cost_per_1k_tickets_usd": 0.0126,
+    "cost_usd": 0.01032,
+    "cost_per_1k_pairs_usd": 0.0263,
+    "cost_per_1k_tickets_usd": 0.0263,
     "per_task": {
       "drafting": {
         "pairs": 102,
-        "frontier_call_rate": 0.1373,
+        "frontier_call_rate": 0.7059,
         "fallback_rate": 0.0,
         "unanswered": 0,
-        "p95_ms": 14781.6
+        "p95_ms": 16604.0
       },
       "intent": {
         "pairs": 90,
-        "frontier_call_rate": 0.0,
+        "frontier_call_rate": 0.0222,
         "fallback_rate": 0.0111,
         "unanswered": 0,
-        "p95_ms": 595.4
+        "p95_ms": 634.0
       },
       "pii": {
         "pairs": 100,
         "frontier_call_rate": 0.0,
         "fallback_rate": 0.0,
         "unanswered": 0,
-        "p95_ms": 9594.8
+        "p95_ms": 10217.2
       },
       "urgency": {
         "pairs": 100,
         "frontier_call_rate": 0.07,
         "fallback_rate": 0.0,
         "unanswered": 0,
-        "p95_ms": 702.7
+        "p95_ms": 654.4
       }
     }
   },

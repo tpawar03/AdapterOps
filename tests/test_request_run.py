@@ -1,4 +1,5 @@
-"""Guards on the live request-path run: grading by the curve's rule, agreement, failures as rows."""
+"""Guards on the live request-path run: grading by the curve's rule, agreement, failures as rows,
+duration runs, the direct-to-vLLM mode, and the API's thread limit."""
 
 import sys
 from pathlib import Path
@@ -8,6 +9,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from adapterops.serve import pipeline as pl
 from adapterops.serve import request_run as rr
 
 PAIRS = pd.DataFrame([
@@ -54,8 +56,9 @@ def test_served_answers_are_graded_by_the_curves_rule():
 
 
 def test_summary_compares_live_decisions_and_quality_with_the_curve():
-    live, _ = rr.drive(PAIRS, fake_send, concurrency=1)
-    s = rr.summarise(PAIRS, live, wall_s=2.0, policy="confidence")
+    pairs = rr.at_threshold(PAIRS, 0.4)
+    live, _ = rr.drive(pairs, fake_send, concurrency=1)
+    s = rr.summarise(pairs, live, wall_s=2.0, policy="confidence")
     assert s["http_errors"] == 1
     assert s["escalation_rate"] == round(1 / 3, 4)
     agree = s["agreement_with_curve"]
@@ -65,14 +68,81 @@ def test_summary_compares_live_decisions_and_quality_with_the_curve():
     assert graded["served_success"] == round(2 / 3, 4)
     # The curve escalated b and the frontier got it right; a and c stayed local and succeeded.
     assert graded["curve_success_at_operating_point"] == 1.0
+    assert graded["recorded_success_at_threshold"] == 1.0
     assert "judge_mean_local" in s["per_task"]["drafting"]
+
+
+def test_agreement_is_against_the_threshold_not_the_budget():
+    # The budget escalated b; the live threshold of 1.0 would not, and the live path did not.
+    pairs = rr.at_threshold(PAIRS, 1.0)
+
+    def never(body):
+        out = fake_send(body)
+        for pair in out["pairs"].values():
+            pair["route"] = "local"
+        return out
+
+    live, _ = rr.drive(pairs, never, concurrency=1)
+    s = rr.summarise(pairs, live, wall_s=1.0, policy="confidence")
+    assert s["agreement_with_curve"]["same_decision"] == 1.0
+    assert s["per_task"]["urgency"]["curve_escalation_rate"] == 1.0
+    assert s["per_task"]["urgency"]["threshold_escalation_rate"] == 0.0
+
+
+def test_a_duration_run_cycles_the_pairs_and_reports_windows():
+    pairs = rr.at_threshold(PAIRS, 0.4)
+    live, wall = rr.drive(pairs, fake_send, concurrency=3, duration=0.3, keep_output=False)
+    assert len(live) > len(pairs)                        # more than one pass
+    assert "output" not in live.columns
+    assert live.t_start_s.max() <= 0.301                 # nothing starts after the deadline (ms rounding)
+    s = rr.summarise(pairs, live, wall, policy="confidence", duration=0.3, window=0.1)
+    assert s["passes"] > 1
+    assert 1 <= len(s["windows"]) <= 3
+    assert all(w["start_s"] < 0.3 for w in s["windows"])
+    assert sum(w["requests"] for w in s["windows"]) == len(live)
+
+
+def test_direct_vllm_records_the_decision_without_acting_on_it(monkeypatch):
+    class FakeVLLM:
+        def __init__(self, base_url, timeout=30.0):
+            pass
+
+        def generate(self, task, text):
+            lp = -0.9 if task == "urgency" else -0.01
+            return pl.Generation(text={"intent": "card_arrival", "urgency": "high",
+                                       "pii": "GIVENNAME: Dana", "drafting": "Sure."}[task],
+                                 mean_logprob=lp, latency_s=0.02)
+
+    monkeypatch.setattr(pl, "VLLMBackend", FakeVLLM)
+    send = rr.vllm_sender("http://vllm", threshold=0.4)
+    urgency = send({"text": "server down", "tasks": ["urgency"], "ticket_id": "b"})["pairs"]["urgency"]
+    intent = send({"text": "card not here", "tasks": ["intent"], "ticket_id": "a"})["pairs"]["intent"]
+    assert urgency["route"] == "escalated" and urgency["served_by"] == "local"
+    assert urgency["cost_usd"] == 0.0 and urgency["output"] == {"label": "high"}
+    assert intent["route"] == "local"
 
 
 def test_the_run_writes_no_ticket_text(tmp_path, monkeypatch):
     monkeypatch.setattr(rr, "RUNS_DIR", tmp_path)
     monkeypatch.setattr(rr, "REPO_ROOT", tmp_path)
-    monkeypatch.setattr(rr, "request_set", lambda: PAIRS)
+    monkeypatch.setattr(rr, "request_set", lambda population=rr.POPULATION: PAIRS)
     assert rr.main(url="", name="t", concurrency=[1], send=fake_send) == 0
     written = (tmp_path / "request_path__t.json").read_text()
     pairs = pd.read_parquet(tmp_path / "request_path__t__pairs.parquet")
     assert "Dana Scott" not in written and "text" not in pairs.columns
+
+
+def test_the_api_raises_its_thread_limit_past_anyios_default():
+    import anyio.to_thread
+    from fastapi.testclient import TestClient
+
+    from adapterops.serve.api import create_app
+
+    app = create_app(service=None, max_threads=123)
+
+    @app.get("/threads")
+    async def threads() -> dict:                         # on the loop, where the limiter lives
+        return {"tokens": anyio.to_thread.current_default_thread_limiter().total_tokens}
+
+    with TestClient(app) as client:
+        assert client.get("/threads").json() == {"tokens": 123}

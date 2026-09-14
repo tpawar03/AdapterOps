@@ -1,6 +1,6 @@
 # PRD: Multi-Task Adapter Service with Cost-Aware Routing and Calibrated Evaluation
 
-**Version:** 2.8 (the audit's gaps built — request path, manifest-driven serving, int8)
+**Version:** 2.9 (measured live — the request path under load, the regression clock, the score it routes on)
 **Owner:** Solo build
 **Status:** Built — results in `STATUS.md` and `runs/DASHBOARD.md`
 **Estimated duration:** 9 weeks at 20 hrs/week (~180 hours) — hours not logged
@@ -9,7 +9,7 @@
 
 ## Changelog
 
-Two rounds of substantive revision, each triggered by the previous version claiming something it could not deliver. Nine changes fixed the original scope and infrastructure assumptions; nine more fixed the hard-cases split introduced in v2.1, which as written leaked into router training, gated on label noise, and had no evidence that it caught anything. Row 20 records a renumbering that changed nothing — logged rather than applied quietly, for the reason given in the row itself. Rows 21–29 record day-1 checks and data findings; rows 30–43 record what building and measuring the system proved wrong in the specification; rows 44–53 record the requirements an audit against v2.7 found unbuilt, and what building them found.
+Two rounds of substantive revision, each triggered by the previous version claiming something it could not deliver. Nine changes fixed the original scope and infrastructure assumptions; nine more fixed the hard-cases split introduced in v2.1, which as written leaked into router training, gated on label noise, and had no evidence that it caught anything. Row 20 records a renumbering that changed nothing — logged rather than applied quietly, for the reason given in the row itself. Rows 21–29 record day-1 checks and data findings; rows 30–43 record what building and measuring the system proved wrong in the specification; rows 44–53 record the requirements an audit against v2.7 found unbuilt, and what building them found; rows 54–56 record what running the request path live on a rented A10 measured and corrected.
 
 ### v1 → v2 — scope and infrastructure
 
@@ -104,6 +104,14 @@ Two rounds of substantive revision, each triggered by the previous version claim
 | 52 | **§12's CI is in place and W&B is opt-in; F28's unattended regression run stays infeasible.** Row 41's "unused" is narrowed. | GitHub Actions now runs lint and the test suite on every push and checks weekly that every pinned adapter revision still serves its pinned weights — the part of F28 a CPU runner can do. The regression run itself needs GPU inference and an always-on GPU the budget does not cover. Training logs to Weights & Biases with `--report-to wandb`; no run has used it. |
 | 53 | **§9's PII evaluation cannot see false positives, and the adapter produces them.** | Row 24 found the ai4privacy split has zero PII-free documents, so the PII adapter was never trained on, or scored on, a document with nothing to find. The request path's first live tickets showed the result: `AGE: 3, SEX: M` for a ticket about a late card, `IDCARDNUM: 1234567890` for a question about a PIN. On the one ticket that did contain personal data it found all four spans exactly. Its 0.946 span F1 is conditional on the input containing PII, and over-redaction on text without any is unmeasured. |
 
+### v2.8 → v2.9 — the request path measured live
+
+| # | Change | Reason |
+|---|---|---|
+| 54 | **§8's request path is measured live under concurrency; row 44's "has not served a representative load" is narrowed, not withdrawn.** | On a rented A10 with vLLM 0.29.0 and GPT-4o-mini on, the operating curve's own 392 held-out pairs went through `serve-api` once at each client concurrency of 1, 4, 16 and 32. The live frontier-call rate stayed between **20.2% and 21.4%** against the curve's 19.9%, the live decision matched the curve's on 95.7%–96.9% of pairs, and served quality on intent, urgency and PII was 0.707–0.710 against the curve's 0.710. One pair fell back on every pass — the same intent label outside the label set. At concurrency 32 the path answered **23.9 pairs a second**, M1's rate with routing and an HTTP hop added. What stays unmeasured: sustained load (the longest pass lasted 334 s), new traffic, and the shifted population live. |
+| 55 | **§7's regression wall-clock target is measured and met, and F17's fallback rate has its first regression-run value.** Row 48's "no new value exists yet" is superseded. | The same session's regression run took **75 seconds** for 2,140 requests across both splits and four tasks, against the 25-minute target, and local serving answered all of them: a fallback rate of **0%**. Every task landed on its baseline (intent's drop -0.0013 against its 0.0117 threshold). The figure is generation only: the judge checkpoint is not in git, so its drafts were scored afterwards on a laptop, a step the 75 seconds does not include. |
+| 56 | **The live confidence score is the model's raw log-probability, and serving pins the vLLM version the operating point was measured on.** | Qwen2.5's `generation_config.json` sets a 1.1 repetition penalty. The transformers backend normalised the penalised logits, which lifted drafting's mean log-probability by 0.115 on identical replies — one-word labels barely repeat, so only drafting moved — and the first live run escalated 5.4% instead of about 20%. vLLM 0.29.0 applies the penalty while generating but reports raw log-probabilities, which is what the curve ranked. An operating point is a property of those raw scores, so anything that reshapes logits moves the frontier-call rate without touching routing code; the GPU session therefore refuses to start on any vLLM but 0.29.0, including the 0.22.1 `uv.lock` resolves. |
+
 ---
 
 ## 1. Summary
@@ -116,7 +124,7 @@ Quality is measured on **two splits, never blended**: a random held-out golden s
 
 The deliverable is a live demo plus a public repo with recorded benchmark evidence, built solo in ~9 weeks for under $50.
 
-**As of v2.7 the system is built.** Results, including the negative ones, live in `STATUS.md` and `runs/DASHBOARD.md`. This document stays the specification: where the build proved it wrong, the text is corrected and the change logged in rows 30–53, and plans for outcomes that did not arrive — the risk table, the cut order — are left as written.
+**As of v2.7 the system is built.** Results, including the negative ones, live in `STATUS.md` and `runs/DASHBOARD.md`. This document stays the specification: where the build proved it wrong, the text is corrected and the change logged in rows 30–56, and plans for outcomes that did not arrive — the risk table, the cut order — are left as written.
 
 ---
 
@@ -269,8 +277,8 @@ The v2.2 revisions are themselves part of the signal. A split that leaks into tr
 |---|---|---|
 | Adapter inference latency (P95) | < 500 ms | **Measured only on dedicated rented GPU.** Colab free tier is shared and throttled; numbers from it are not reportable. **Missed for PII (2,259 ms) and drafting (3,000 ms); met for intent (136 ms) and urgency (60 ms)** — A10, four adapters at concurrency 16. Kept as written (changelog 37). |
 | Router decision latency | < 50 ms | 141M-param classifier (44M backbone + 98M embeddings), CPU-viable. Measured P95 25.2 ms per pair on CPU for the judge-labelled router manifest v4 pins (changelog 36). |
-| Throughput during benchmark | Sustain 5–10 req/s briefly | Demo-scale only. Measured 23.6 req/s over 246 s (M1). |
-| Regression run wall-clock | < 25 min | ~2,000 eval items across both splits and four tasks, plus judge scoring. Bounds GPU rental per run. Not recorded by the Phase 4 runs (changelog 37); `regress` records it from the next run (changelog 48). |
+| Throughput during benchmark | Sustain 5–10 req/s briefly | Demo-scale only. Measured 23.6 req/s over 246 s (M1), and 23.9 pairs/s through the request path at concurrency 32 (changelog 54). |
+| Regression run wall-clock | < 25 min | ~2,000 eval items across both splits and four tasks, plus judge scoring. Bounds GPU rental per run. Not recorded by the Phase 4 runs (changelog 37). Measured 75 s for 2,140 requests on the A10, judge scoring excluded (changelog 55). |
 | Cost ceiling | ≤ $50 total | Hard constraint |
 | Availability | Best-effort; demo may cold-start | No SLA (non-goal 5) |
 | Data retention | None. No real user data at any point. | §9 |
@@ -313,7 +321,7 @@ flowchart TB
     end
     REG --> MAN
 
-    subgraph Online["Online / Request Path — built, not load-tested"]
+    subgraph Online["Online / Request Path — built, burst-tested on the A10"]
         direction TB
         REQ["Incoming ticket"] --> SPLIT["Split into<br/>(ticket, task) pairs"]
         SPLIT --> ROUTE{"Router<br/>per pair"}
@@ -338,7 +346,7 @@ flowchart TB
     REG --> RUN
 ```
 
-> **As built — changelogs 41 and 44.** The request path is built (`adapterops serve-api`): it routes each pair on the adapter's confidence at the committed operating point, with the learned router selectable, and traces to a local file or Langfuse. It has not served a representative load, so its frontier-call and fallback rates exist as live counters, not measurements. The regression check, manifest and rollback in the lower subgraph are built and were proven end to end (M7).
+> **As built — changelogs 41 and 44.** The request path is built (`adapterops serve-api`): it routes each pair on the adapter's confidence at the committed operating point, with the learned router selectable, and traces to a local file or Langfuse. On a rented A10 it served the operating curve's 392 recorded pairs at concurrency 1–32 and escalated at the curve's rate, 20.2%–21.4% against 19.9% (changelog 54); it has not served sustained load or new traffic. The regression check, manifest and rollback in the lower subgraph are built and were proven end to end (M7).
 
 ### Two design decisions this document is built around
 
@@ -446,7 +454,7 @@ Replacement: hold task constant and shift style *within* each task's own pool. F
 |---|---|---|
 | Quality retained — random set | Weighted golden-set score vs. baseline manifest | 3× the larger of inference and training spread; enforced where training spread is measured (changelog 31) |
 | Quality retained — hard cases | Score on the mined, adjudicated failure split. Reported separately; never blended. | Report-only for two runs, then a threshold derived from observed variance (F33) |
-| Frontier-call rate | % of (ticket, task) pairs escalated — served live by the request path; the dashboard reads the offline operating curve until it has served representative load (changelogs 41, 44) | Sharp rise indicates router degradation masking as quality |
+| Frontier-call rate | % of (ticket, task) pairs escalated — served live by the request path; measured live on the curve's own pairs and shown beside the offline curve (changelogs 41, 44, 54) | Sharp rise indicates router degradation masking as quality |
 | Cost per 1K requests | Computed from token counts + local GPU amortization | Rise beyond threshold |
 | P95 latency | Measured on the rented GPU during the run | Rise beyond threshold |
 | **Fallback rate** | **% of requests where local inference errored** (timeout, OOM, malformed output) and fell back to frontier. Distinct from routed escalation. | Any sustained rise |
@@ -567,7 +575,7 @@ M11 sits last among the cuttable items because it is cheap — the checkpoint al
 - Multi-region or HA deployment; real traffic; SLAs.
 - Multilingual adapters.
 - Always-on scheduled monitoring.
-- The request path under representative load on the A10, with GPT-4o-mini enabled, so its frontier-call and fallback rates become measurements (changelog 44).
+- The request path under sustained load, and on new or shifted traffic — its A10 run used short bursts over the curve's own in-distribution pairs (changelog 54).
 - PII-free tickets scored for the PII adapter's false-positive rate (changelog 53).
 - A hard-cases split mined from several models' failures, frozen before the model it gates exists (changelog 32).
 - An expected-gain router — P(frontier succeeds) − P(adapter succeeds) — tested on a freshly frozen split.
