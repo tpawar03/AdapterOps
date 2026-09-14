@@ -6,7 +6,7 @@ Subpackages map to the build phases in BUILD-PLAN.md:
     eval      golden-set + hard-cases harness, split path as an arg (Phase 0-1, 4)
     router    (ticket, task) routing, baselines, operating curve    (Phase 2)
     judge     distilled evaluator + calibration                     (Phase 3)
-    serve     vLLM multi-LoRA launcher and FastAPI request path     (Phase 0-1)
+    serve     vLLM multi-LoRA launcher; no online request path yet  (Phase 0-1)
     manifest  load / pin / promote / roll back a system version     (Phase 4)
 """
 

@@ -21,13 +21,13 @@ and in the phase column of §4.
 | | |
 |---|---|
 | **Phase** | **Phase 5 done — README, results dashboard, model cards, and a public recorded demo at [huggingface.co/spaces/Tanny03/adapterops-demo](https://huggingface.co/spaces/Tanny03/adapterops-demo).** Phase 4 is recorded: M7 proven on real serving, M11 negative. |
-| **Spec** | PRD v2.6, published + in repo |
+| **Spec** | PRD v2.8, published + in repo — changelog 30–43 record what the build proved wrong in the spec; 44–53 the audit's gaps, built |
 | **Hours logged** | **not logged** / 180 — no per-session times were recorded, so no figure is claimed |
 | **Spend** | **~$10.47** / $50.00 — ~$10 as reported plus $0.47 since; $6.40 itemised, the Phase 2 and Phase 4 GPU sessions not itemised |
 | **Repo** | [tpawar03/AdapterOps](https://github.com/tpawar03/AdapterOps) — **public**, local clone at `~/Desktop/AdapterOps`, `main` pushed and tracking. uv project `adapterops`, Python 3.12.13, base env installs clean on macOS. |
 | **Blocking** | Nothing. |
-| **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · judge distilled (**M5**, Spearman 0.73) · under judge labels the router equals a task-name lookup and **confidence routing captures 57%** of available gain · hard split rebuilt (470) · **M2** on one server: intent +0.356, PII +0.376, urgency within noise, drafting **+1.38 under GPT-4o** · **M7 proven**: shuffled adapter detected (drop 0.923), blocked, forced, rolled back · **M11 negative** · **README (F23)** rewritten around results and negatives · **dashboard (F17)** rendered from committed runs · **cost per 1K derived** (D41): local is cheaper only above 3.64 req/s sustained · **Gradio demo (F22)** built (D40) · **router v2 (D42)**: three pre-registered fixes, all lose to confidence · **rules baseline (F26)**: a task-lookup rule captures 38%, still below confidence · **judge cost** measured · **frontier reference** on the golden sets measured · **model cards** with eval scores published to all four adapter repos · **demo live** as a static Space of recorded outputs (D43) |
-| **Next action** | None required. Optional: a live Gradio Space needs Hugging Face PRO (D43); the tested bundle is ready in `demo/build_space.py`. |
+| **Done so far** | All 8 day-1 checks · 4 datasets mirrored · all eval splits frozen · four adapters trained and published · Gate 0.5 · **M1 PASS**, 5,800 requests and 0 errors · judge distilled (**M5**, Spearman 0.73) · under judge labels the router equals a task-name lookup and **confidence routing captures 57%** of available gain · hard split rebuilt (470) · **M2** on one server: intent +0.356, PII +0.376, urgency within noise, drafting **+1.38 under GPT-4o** · **M7 proven**: shuffled adapter detected (drop 0.923), blocked, forced, rolled back · **M11 negative** · **README (F23)** rewritten around results and negatives · **dashboard (F17)** rendered from committed runs · **cost per 1K derived** (D41): local is cheaper only above 3.64 req/s sustained · **Gradio demo (F22)** built (D40) · **router v2 (D42)**: three pre-registered fixes, all lose to confidence · **rules baseline (F26)**: a task-lookup rule captures 38%, still below confidence · **judge cost** measured · **frontier reference** on the golden sets measured · **model cards** with eval scores published to all four adapter repos · **demo live** as a static Space of recorded outputs (D43) · **PRD audit, CPU-only fixes (D44)**: operating curve **plotted** (F11), router decision latency **measured** (P95 24.9 ms per pair, inside §7's 50 ms), dashboard §7 targets section shows **PII and drafting missing the 500 ms P95**, README gains architecture / results / limitations, `regress` now records wall-clock · **router-misroute records (F29, F37, D45)**: 622 tagged decisions at the 20% operating point, reported not gated — the learned router spends **all 78** in-distribution escalations on urgency (14 harmful, 7 rescued) · **audit gaps built**: the request path (`serve-api`, D47) with live metrics and tracing, serving read from the manifest and manifest **v4** (M6, D46), the router/judge evidence rule, fallback rate recorded per regression run, routing decisions in both demos, CI, opt-in W&B · **int8 (F27)**: weight-only int8 matches fp32 on intent (0.9325 vs 0.9312); dynamic int8 loses 0.27–0.31 to 8-bit activations · **PRD v2.8** |
+| **Next action** | Needs approval before spend: a GPU session to put the request path in front of vLLM under load and run one regression run (records wall-clock and fallback rate); GPT-4o-mini enabled on the request path. Commit and push this batch. Optional, public: re-deploy the static Space with the routing tab (`demo/build_static.py --push`). |
 
 ### Milestone tracker
 
@@ -35,10 +35,10 @@ and in the phase column of §4.
 |---|---|---|
 | M1 | 4 adapters served concurrently | **PASS** — 5,800 reqs, 0 errors, 23.6 rps |
 | M2 | Adapters vs prompted baseline | **measured, same server** — intent +0.356 over one-shot-per-class · PII +0.376 · urgency **+0.013, inside its own serving noise (0.0127)** · drafting **adapter wins under GPT-4o**, 4.24 vs 2.86, higher on 74% of pairs — the distilled judge had it the other way round (4.27 vs 4.70) · **frontier reference (GPT-4o-mini, golden):** adapters higher on intent, urgency and PII; GPT-4o-mini higher on drafting, 4.52 vs 4.24 |
-| M3 | Router operating curve vs 3 baselines | **measured** — under judge labels the confidence baseline captures **57%** of available gain; the learned router **−19%** (D3's negative) · **v2 (D42): three pre-registered fixes, all lose** |
+| M3 | Router operating curve vs 3 baselines | **measured and plotted** — under judge labels the confidence baseline captures **57%** of available gain; the learned router **−19%** (D3's negative) · **v2 (D42): three pre-registered fixes, all lose** · chart `runs/router__operating_curve__judged.png` |
 | M4 | Within-task distribution shift | **measured** — same shape under shift: confidence 43%, learned router −31% · no degradation in local quality |
 | M5 | Judge calibration reported | **reported** — Spearman **0.73**, Pearson 0.71, exact 0.73, within ±1 0.99 (a constant 4 scores 0.99) · N3 (≥ 0.80) not reached · **holds on the adapter's golden replies (0.74), fails on another generator's (0.33)** |
-| M6 | Manifest drives serving | **partly** — serving materialises the pin files the manifest is built from (`adapters.json`, candidate sets) at their pinned revisions; it does not read `system.json` itself |
+| M6 | Manifest drives serving | **met** — `serve/launch.py` and the request path read adapter revisions, the router and the judge from `system.json`; a test edits the manifest and the next launch serves the new revision · manifest **v4** pins the judge-labelled router every routing result uses, and the judge (D46) |
 | M7 | **detect → block → rollback proven** | **PROVEN on real serving** — shuffled-label intent adapter: drop 0.9234 vs threshold 0.0117 → blocked for that reason alone · forced as v3 with the override recorded · rolled back to v2 |
 | M8 | Live demo + public repo | **done** — recorded demo live at [huggingface.co/spaces/Tanny03/adapterops-demo](https://huggingface.co/spaces/Tanny03/adapterops-demo), verified in a browser · repo public · README · the live Gradio app runs locally (D43) |
 | M9 | Spend ≤ $50 | **met** — ~$10.47 of $50, with no further spend planned |
@@ -944,6 +944,107 @@ to the published number, and the page says plainly that it is recorded.
 
 ---
 
+### D44 · §7 targets are checked against the run that measured them, and router latency is per pair
+**Rejected:** (a) timing the judge-labelled router the curve uses instead of the pinned one; (b)
+reporting router latency per ticket only, or per pair only; (c) re-scoping §7's 500 ms to
+classification tasks after seeing PII and drafting miss it.
+**Why:** (a) A latency record is a statement about a deployed component, and the manifest names
+`checkpoints/router`. Both routers are DeBERTa-v3-small at max length 256, so the compute is the
+same — but the timed path also has to reproduce the published scores, and only the pinned
+checkpoint's committed predictions can be checked that way (max diff 2.4e-07). (b) §7 says "decision
+latency", and a decision is one pair: P95 24.9 ms, inside budget. §8 would call it with a ticket's
+four pairs at once, and that is 70.8 ms — over 50 if someone reads the budget per ticket. Both are
+recorded so neither reading can be picked after the fact. (c) The target was written before any
+latency existed; narrowing it once two tasks miss would be moving a bar to fit the result, which is
+the thing the manifest's split pins exist to prevent.
+**Interview angle:** a target nobody checks is an assertion. The dashboard printed PII's 2,259 ms
+P95 for three phases under a heading that never mentioned 500 ms — the number was visible, the miss
+was not.
+
+---
+
+### D45 · A misroute is a decision tagged by the gain from escalating it, at the operating point
+**Rejected:** (a) calling a decision a misroute when the router's prediction of adapter failure
+was wrong; (b) comparing each decision with the oracle's decision at the same budget; (c) adding a
+`component` column to the hard-cases split, as F29's "tagged by component" literally reads.
+**Why:** (a) is the v1 router's own label, and D42 showed that label is the defect. An escalated
+failure the frontier also fails, or an escalated success, can each be "correct" under it and still
+cost money or quality. (b) makes a pair's verdict depend on which other pairs the oracle picked
+first, so the same decision can flip with nothing about it changing. The gain from escalating,
+`frontier_success − success`, is a property of the pair alone. It is the quantity the oracle
+already ranks by (D32), and it separates the three costs a routing decision can have: harmful,
+wasted and missed. (c) `hard_cases.parquet` is pinned by sha256 in manifest v2. Editing it moves a
+split, which D39 allows only as a named re-freeze, and doing that for a label would be exactly the
+bar-moving the pin exists to catch. So misroutes live in their own file with `component="router"`,
+and adapter failures stay tagged by the file they live in.
+
+The records are only trusted if they reproduce the published curve's quality, and if that quality
+equals never-escalating plus `(rescued − harmful) / pairs` — an identity the tagging must satisfy
+or it is wrong.
+
+**Interview angle:** a router's AUC says how well it ranks. A misroute table says what each
+decision cost, and it showed that the router's whole budget went to one task.
+
+---
+
+### D46 · The manifest pins the router the results describe, and a router or judge moves on its own evidence
+**Rejected:** (a) re-pinning with `--force`; (b) accepting an adapter regression run as licence to move
+the router; (c) leaving the proxy-labelled router pinned and documenting the mismatch.
+**Why:** manifests v1–v3 pinned `checkpoints/router`, the proxy-labelled router, while every routing
+number since D38 comes from `checkpoints/router__judged`. Once the request path loads its router from the
+manifest (M6), that mismatch stops being a documentation gap and becomes serving a router no result
+describes, so (c) was out. (a) would make an ordinary re-pin look exactly like the forced bad release M7
+records — D39's objection, again. (b) is the subtle one: `blocking_reasons` asked for *a* regression run
+whenever a model moved, and a regression run scores adapters on the golden sets. It cannot see a router's
+escalation decisions or a judge's calibration, so any adapter run would have licensed any router.
+
+So the router and judge are `EVIDENCE_COMPONENTS`: moving either needs its own report attached —
+`--evidence router=runs/router__operating_curve__judged.json` — pinned by sha256 as `component_evidence`,
+and an adapter move still needs its regression run. Manifest **v4** pins the judged router (`26259c22…`)
+on its operating curve, and the judge (`0dbcc779…`) arrives with its calibration report.
+
+*Also caught, promoting it:* versions were numbered from the current manifest alone. After M7's rollback
+the current manifest was v2, so the first promotion came out as a second **v3** — and archiving it at the
+next promotion would have overwritten `history/system-0003.json`, the forced release M7 exists to record.
+Nothing was overwritten: the promotion was reverted, `next_version` now counts archived versions too, a
+test promotes after a rollback, and the manifest was re-promoted as v4. The one side effect kept is that
+v2's archive was re-written with the `rolled_back_from` field its current copy carried.
+
+**Interview angle:** a gate that asks for "evidence" without asking evidence *of what* is a formality. And
+the version bug is the kind the M7 demo itself would have hidden — the rollback worked, and the damage
+would only have appeared one promotion later.
+
+---
+
+### D47 · The request path makes the decision the published curve measured, and counts a fallback apart from an escalation
+**Rejected:** (a) the learned router as the default policy; (b) a threshold tuned on live traffic; (c)
+retrying GPT-4o-mini inside a request; (d) sending ticket text to traces by default; (e) the Langfuse SDK.
+**Why:** (a) it lost to confidence on every measurement and stays selectable (`--policy router`). (b) The
+threshold is the one each policy's committed curve used at the 20% operating point (confidence 0.393881,
+router 0.426448), so a live decision is the decision the published result describes; a threshold tuned on
+traffic would be a new, unmeasured policy. (c) One attempt per pair: a retry inside a request lengthens
+the request, and Phase 2 already showed retries spending quota faster than dollars. (d) The PII adapter's
+input is personal data by definition, so traces carry outputs, routes and costs and replace the ticket
+with its length. (e) Langfuse's ingestion API is the surface both SDK generations sit on; talking to it
+directly avoids a dependency whose client API changed between majors. It is tested against a mock
+transport, not a live project, and says so.
+
+Two definitions carry the design. **A fallback is not an escalation** (§11): local inference that errors,
+or returns a label outside the task's label set or PII lines that do not parse, falls back to GPT-4o-mini
+and is counted apart, because a rising fallback rate is a serving defect and a rising escalation rate is a
+routing one. A valid but wrong label is not a fallback — that is the gate's business. **The judge scores
+only a locally answered draft**, because it was calibrated on adapter-like replies and fails on another
+generator's (changelog 33).
+
+**Stated limits:** the thresholds were measured on vLLM log-probabilities; the transformers backend
+computes the same quantity in another precision, so its decisions near the threshold can differ. And the
+path has not served a representative load, so the dashboard's frontier-call rate stays offline.
+
+**Interview angle:** "how did you pick the threshold?" — I didn't; the operating curve did, and the live
+path reads it from the committed file.
+
+---
+
 ## 3. Trade-offs consciously accepted
 
 | Trade-off | Chosen | Cost of the choice |
@@ -1054,11 +1155,116 @@ Filled in as results arrive. **Empty is the correct state today.**
 | Distilled judge on GPT-4o-mini's golden replies | Spearman **0.575** with GPT-4o · means 4.49 vs 4.52 | Phase 5 |
 | Model cards on the Hub (PRD §9) | rendered from runs, pushed as README.md: intent `19b7e223` · urgency `26a15541` · PII `eeb4f6c3` · drafting `f7e0e286` · weights unchanged, `verify-pins` reports `main_moved_same_weights` for all four | Phase 5 |
 | **Public demo (M8)** | static Space, commit `a6f80552`: 1,670 golden items browsable with adapter and GPT-4o-mini outputs, 300 drafting requests with three GPT-4o-graded replies · the build reproduces every published score before writing · verified in a browser, no console errors | Phase 5 |
+| **Router decision latency, CPU (§7 < 50 ms)** | pinned router (`6310a4d3…`), 392 eval pairs, Apple M4 · one pair: P50 **15.3 ms**, P95 **24.9 ms** at 4 threads, P95 26.2 ms at 1 · one ticket's four pairs batched: P95 **70.8 ms** (4 threads) / 89.8 ms (1) · scores reproduce the committed `router_p_fail` to 2.4e-07 · load 0.2 s excluded | Phase 5 |
+| Adapter P95 vs §7's 500 ms | intent 136 ms and urgency 60 ms **met** · PII **2,259 ms** and drafting **3,000 ms** **missed** — the two long-output tasks (80 and 124 tokens generated on average) · from M1, no new run | Phase 5 |
+| Operating curve plotted (F11) | `runs/router__operating_curve__judged.png`, both populations, 8 budgets, confidence at 20% marked · drawn from the committed JSON | Phase 5 |
+| Regression run wall-clock (§7 < 25 min) | — · no committed run recorded it; `regress` records `wall_seconds` from the next run | Phase 5 |
+| **Router misroutes at 20% (F29, F37)** | in-distribution, 78 escalations each — learned router: rescued **7**, harmful **14**, wasted 57, missed rescue 30 · confidence: rescued **22**, harmful **1**, wasted 55, missed rescue 15 · shift, 209 each — router 33 / 66 / 110 / 74 · confidence 58 / 12 / 139 / 49 · 622 records, quality reproduces the published curve, 0 overlap with the hard split | Phase 5 |
+| **Manifest v4 (D46)** | router `checkpoints/router__judged` (`26259c22…`) on its operating curve · judge `checkpoints/judge` (`0dbcc779…`) arrives with its calibration report · adapters and all seven splits unchanged · M7's forced v3 intact in history | Phase 5 |
+| Router decision latency, judge-labelled router (manifest v4) | one pair P95 **25.2 ms** (4 threads) / 26.6 ms (1) · one ticket P95 72.6 / 90.9 ms · scores reproduce to 2.3e-07 · supersedes the proxy router's row above, same architecture | Phase 5 |
+| **Request path smoke (§8, D47)** | `serve-api`, transformers backend on this Mac, confidence policy, GPT-4o-mini off, judge on · 5 hand-written tickets, 20 pairs: 0 fallbacks, 8 past the threshold, derived $0.0088 per 1K pairs · not traffic, and not a latency measurement | Phase 5 |
+| CI (§12) | `.github/workflows/ci.yml` — ruff and pytest on every push, weekly `verify-pins` · not yet run on GitHub | Phase 5 |
+| **int8 on the intent adapter (F27, N2)** | 770 golden items, merged adapter, Apple M4 CPU, 4 threads · fp32 **0.9312** (vLLM on the A10: 0.9286) · dynamic int8, per-tensor weights **0.6208**, per-channel 0.6623, labels outside the set on 7.3% / 6.0% · int8 weights with fp32 activations **0.9325**, 99.4% label agreement with fp32 · weights 6.17 → 2.48 GB · dynamic int8 2.1× slower on this CPU · not a serving figure | Phase 5 |
 
 ### Findings log
 > Append entries as things are learned — especially the surprising and the negative.
 > Order by phase, not by date. Format: **phase · what happened · what it means ·
 > whether it changes the plan.**
+
+**Phase 5 · int8 weights cost the intent adapter nothing; 8-bit activations cost it 27–31 points
+(F27).** On all 770 golden items on this laptop's CPU, the merged adapter scored 0.9312 in fp32 — within
+2 items of vLLM on the A10 (0.9286), so the harness is the gate's. PyTorch dynamic int8 fell to
+**0.6208** with one weight scale per matrix and **0.6623** with one per row, and 6–7% of its outputs were
+not labels at all. Weights rounded to int8 with activations left in fp32 scored **0.9325**, agreeing
+with fp32 on 99.4% of items.
+
+*How it was found:* the first run had only the two dynamic recipes. Adding per-channel scales barely
+helped, which ruled out coarse weight scales and pointed at the other thing dynamic quantization changes —
+it quantizes every Linear layer's input to 8 bits per batch, and small decoders carry activation outliers
+that one 8-bit range clips. The weight-only variant was added to separate the two, and it separated them
+completely.
+
+*Means:* "int8 costs 30 points" would have been a property of one recipe reported as a property of int8.
+The measured claim is narrower: int8 *weights* are free on this adapter; 8-bit *activations* with
+per-tensor ranges are not. Weight-only int8 is also what most int8 LLM serving does, so it is the
+relevant number — but its speed was not measured here, because the simulation runs fp32 kernels.
+
+*Changes the plan:* no. A serving figure needs int8 kernels on the A10, which is a paid session.
+
+**Phase 5 · The request path works end to end, and its first live tickets showed the PII adapter
+inventing personal data.** Five hand-written tickets through `serve-api` — the transformers backend on
+this Mac, manifest v4, the confidence policy, GPT-4o-mini switched off, the pinned judge on: every pair
+answered, 0 fallbacks, 8 of 20 pairs past the escalation threshold, and a derived **$0.0088 per 1K
+pairs**, the figure `runs/economics.json` derives, so the cost path adds up. Those rates describe five
+tickets, not traffic.
+
+The PII adapter returned `AGE: 3, SEX: M` for "My card still hasn't arrived…", `GIVENNAME: I` for a
+ticket containing the word "I", `AGE: 18` for an outage report and `IDCARDNUM: 1234567890` for a question
+about a PIN. On the one ticket that did contain personal data it found all four spans exactly.
+
+*Why:* D21. The ai4privacy split has zero PII-free documents, so every training target held at least one
+span and the adapter never saw an empty answer. The golden set has none either, which is why a strict
+span F1 of 0.946 could not see it.
+
+*Means:* the PII score is conditional on the input containing PII. As a redaction step on arbitrary
+tickets the adapter would over-redact — the safer direction for compliance, but a real failure, and a
+metric measured only on positive documents cannot bound it.
+
+*Changes the plan:* recorded in the README's limitations and the demo's caveat. Measuring it needs
+PII-free tickets scored for false positives, and D21 showed negatives borrowed from another corpus bring
+their own confound. Not run.
+
+**Phase 5 · Tagged one decision at a time, the learned router's loss is one misallocation: it spends
+its whole budget on urgency.** At the 20% operating point, each decision was tagged against the gain
+from escalating it (D45):
+
+| in-distribution, 78 escalations | rescued | harmful | wasted | missed rescue | escalations on drafting / urgency |
+|---|---|---|---|---|---|
+| learned router | 7 | **14** | 57 | 30 | **0 / 78** |
+| confidence | **22** | 1 | 55 | 15 | 70 / 6 |
+
+Every one of the router's 78 escalations went to urgency, 78 of urgency's 100 pairs. Urgency is where
+GPT-4o-mini is worse than the adapter, so 14 of them broke a correct answer, and 22 drafting pairs it
+never escalated were rescues. Under shift the pattern holds: 193 of its 209 escalations are urgency,
+with 59 harmful. D42 diagnosed this from the per-task allocation table; the records show it at the
+level of individual pairs.
+
+*Also visible:* most escalations are wasted under *both* policies — 55 of confidence's 78 change
+nothing. The budget is spent on pairs both models get right, or both get wrong. That cost is invisible
+on the quality curve, which scores only what changes.
+
+*Means:* the router did not learn a weak signal badly. It learned "urgency fails often", which is
+true, and acted on it where escalating does not help. And at this operating point, seven escalations
+in ten buy nothing under the policy that wins.
+
+*Changes the plan:* no. It sharpens the expected-gain router D42 left as the next experiment. A
+cheaper follow-up for confidence alone would be to exclude pairs where GPT-4o-mini is unlikely to
+differ from the adapter, which the wasted count says is most of them.
+
+**Phase 5 · A PRD audit found a §7 target missed in plain sight, and a manifest pinning a different
+router from the one every routing number describes.** Two things the committed evidence already
+showed and no document said.
+
+*The 500 ms P95 target.* M1 recorded PII at **2,259 ms** and drafting at **3,000 ms** in Phase 2, and
+the dashboard printed both — under a heading that never mentioned the target. Intent (136 ms) and
+urgency (60 ms) meet it. The misses are the two tasks that generate long outputs (80 and 124 tokens
+on average against 5 and 2); §7 set one budget for every adapter with no allowance for output
+length. The router's own §7 budget, never measured until now, holds: P95 **24.9 ms** per pair on
+CPU, though four pairs batched as one ticket take 70.8 ms.
+
+*The router pin.* Manifest v2 pins `checkpoints/router` (`6310a4d3…`) — the proxy-labelled router
+from `runs/router__train.json`. The M3/M4 curve, the dashboard and the chart all use
+`checkpoints/router__judged` (`26259c22…`), retrained on D38's labels. Both lose to confidence, and
+they share an architecture, so the latency figure applies to either; but "the system version the
+manifest describes" and "the router the results describe" are not the same file.
+
+*Means:* reading a number is not the same as checking it against its target, and a pin is only
+as useful as the agreement between it and the results beside it.
+
+*Changes the plan:* the dashboard now carries a §7 targets section that renders misses as misses,
+and `regress` records wall-clock so the 25-minute target is checkable next run. Re-pinning the
+judged router is a promotion, so it is left for a deliberate `manifest promote` rather than done in
+passing.
 
 **Phase 5 · On the golden sets GPT-4o-mini is below the adapters on every classification task and
 above them on drafting.** The frontier arm's model, prompts and token caps, run on the same golden

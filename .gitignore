@@ -30,6 +30,9 @@ checkpoints/
 # No leading dot, deliberately (D20).
 _adapters/
 
+# Request-path traces (`adapterops serve-api --trace jsonl`) — local, and they hold task outputs.
+runs/traces/
+
 # Frontier run lock (adapterops.router.frontier) — process-local, never committed.
 data/router/frontier.lock
 

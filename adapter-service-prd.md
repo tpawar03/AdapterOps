@@ -1,15 +1,15 @@
 # PRD: Multi-Task Adapter Service with Cost-Aware Routing and Calibrated Evaluation
 
-**Version:** 2.6 (urgency source replaced; the urgency adapter loses to bag-of-words)
+**Version:** 2.8 (the audit's gaps built — request path, manifest-driven serving, int8)
 **Owner:** Solo build
-**Status:** Ready to start
-**Estimated duration:** 9 weeks at 20 hrs/week (~180 hours)
+**Status:** Built — results in `STATUS.md` and `runs/DASHBOARD.md`
+**Estimated duration:** 9 weeks at 20 hrs/week (~180 hours) — hours not logged
 
 ---
 
 ## Changelog
 
-Two rounds of substantive revision, each triggered by the previous version claiming something it could not deliver. Nine changes fixed the original scope and infrastructure assumptions; nine more fixed the hard-cases split introduced in v2.1, which as written leaked into router training, gated on label noise, and had no evidence that it caught anything. A final entry records a renumbering that changed nothing — logged rather than applied quietly, for the reason given in the row itself.
+Two rounds of substantive revision, each triggered by the previous version claiming something it could not deliver. Nine changes fixed the original scope and infrastructure assumptions; nine more fixed the hard-cases split introduced in v2.1, which as written leaked into router training, gated on label noise, and had no evidence that it caught anything. Row 20 records a renumbering that changed nothing — logged rather than applied quietly, for the reason given in the row itself. Rows 21–29 record day-1 checks and data findings; rows 30–43 record what building and measuring the system proved wrong in the specification; rows 44–53 record the requirements an audit against v2.7 found unbuilt, and what building them found.
 
 ### v1 → v2 — scope and infrastructure
 
@@ -70,6 +70,40 @@ Two rounds of substantive revision, each triggered by the previous version claim
 | 28 | **F2 is reported as a negative result: the urgency adapter loses to TF-IDF.** The adapter is kept and shipped anyway. | Adapter **0.470 micro / 0.421 macro-F1**; TF-IDF plus logistic regression **0.5467 / 0.5465**; chance on three balanced classes 0.3333. Ruled out: format failure (`exact_label_rate` 1.000), label noise (zero of 9,879 unique tickets carry contradictory priorities), and unlearnability (TF-IDF is 21 points above chance). The text-to-priority signal is simply weak — even TF-IDF is near-random on `medium`. Corroboration: the rejected Kaggle set predicted priority from account and incident *metadata*, so its designers did not treat this as a text problem either. Whether the gap to TF-IDF is fixable (LoRA rank, learning rate, or the ~2 supervised tokens per example after prompt masking) is untested and stated as such. |
 | 29 | **Adapter registry pins revisions, not `main`.** | A stale clone re-ran training against an old config and overwrote a published adapter's `main`; the recorded score then described weights that were no longer deployed. The weights were recoverable only because Hugging Face repos keep commit history. F16 already required revision pinning for reproducibility — this is the concrete failure that justifies it. |
 
+### v2.6 → v2.7 — what the build proved wrong in the spec
+
+| # | Change | Reason |
+|---|---|---|
+| 30 | **F30's adjudication rule replaced: quarantine a mined item only when an independent model gives the adapter's *same* wrong answer, and only where that agreement beats chance.** | §9's literal rule — quarantine when the frontier model also disagrees with gold — quarantined **64%** of intent's and urgency's mined candidates. The cause is selection: an item is a hard case because the adapter failed on it, so a second model failing too is what difficulty predicts, and the rule names hardness as label noise. Two models converging on one specific wrong answer is the pattern noise produces and difficulty does not. Intent: 37.5% same-answer agreement against 1.3% uniform chance — applied, **18 of 75 quarantined (24.0%)**. Urgency: 60.4% against 50% — reported, not applied. PII and drafting have no label to dispute this way and are declared not applicable. |
+| 31 | **F33's gate threshold takes the larger of inference and training variance; a task without measured training variance is provisional, not enforced.** The random-set thresholds (§11, §15) follow the same rule. | Two runs of an unchanged manifest can differ only through serving nondeterminism — intent's spread was 0.0013. A multiple of that would block a retrained adapter statistically identical to the one it replaces, since two training runs of the same configuration differed by ±0.0039. Thresholds are 3× the larger floor. Only intent has a measured training spread, so only intent's gate (0.0117) is enforced; urgency, PII and drafting stay provisional until retrained. On the hard split intent and urgency sit at a floor of 0, so no threshold exists there. |
+| 32 | **§11's gate-sensitivity outcomes gain a fourth, the one that happened: a hard split mined from one model's failures cannot gate that model's successors.** The split stays report-only; N5 is not reached. | §11 listed three outcomes. The random set flagged all four under-trained checkpoints; the hard split flagged only PII and scored the other three *higher* — intent 0 → 0.16. Every hard case is an item v1 got wrong, so v1 scores 0.0000 on intent's bucket by construction, and any model whose errors differ must score higher. The split measures difference from v1, not difficulty. A split that could gate would need failures mined from several models, frozen before the gated model exists. |
+| 33 | **Drafting's router labels and hard-case bucket come from GPT-4o grades, not token-F1 against the reference; the distilled judge's calibration is scoped to adapter-like replies.** | The token-F1 proxy agreed with GPT-4o at Spearman 0.28 and κ 0.14. 43% of drafting's router labels flipped under the teacher, and only 39 of the 150 proxy-mined hard cases survived as judged failures (113 rebuilt). Separately, the distilled judge tracks GPT-4o at Spearman 0.74 on the adapter's own replies but 0.33 on the prompted base model's, where it scored cut-off replies 4.70 against GPT-4o's 2.86. Drafting's M2 comparison is therefore settled by GPT-4o grades; the distilled judge gates only candidates from the same adapter family. |
+| 34 | **The hard-cases exclusion is an allocation, not a subtraction; §9's volumes are corrected to what was built.** | Mining hard cases from the pool and subtracting them from router data took nearly every failure out of the router's eval slice (22.5% failures → 2.5% on synthetic data); mining only from the training slice left router training at a 1.00 success rate. Failures are the scarce resource three consumers share, so the pool is drawn as disjoint slices — 750 router and 700 mining pairs per task, **5,800** pairs, not ~3,000. The split holds **470** items, not ~100 per task: intent 57 (a 93%-accurate adapter produces few failures), urgency 150, PII 150, drafting 113. The PII mirror is `openpii-1m` only; the `-200k` alternative was never used. |
+| 35 | **GPT-4o-mini is the frontier *reference*, not a ceiling.** | On the same golden sets it scored below the adapters on intent (0.687 vs 0.929 accuracy), urgency (0.382 vs 0.410 macro-F1) and PII (0.666 vs 0.946 span F1); it leads only on drafting (4.52 vs 4.24, graded by GPT-4o, its own family). A ceiling the measured system exceeds is not a ceiling, so scorecards call it a reference. |
+| 36 | **The router is 141M parameters, not 44M.** | 44M is DeBERTa-v3-small's backbone; its 128K-token embedding matrix adds about 98M. §7's < 50 ms CPU budget was estimated on the smaller figure. Measured on the pinned router: P95 **24.9 ms** per pair on an Apple M4 CPU, inside the budget anyway; four pairs batched as one ticket take 70.8 ms. |
+| 37 | **§7's targets carry their measured verdicts, and the 500 ms adapter P95 is kept as written after two adapters miss it.** | PII (**2,259 ms**) and drafting (**3,000 ms**) miss it on an A10 at concurrency 16; intent (136 ms) and urgency (60 ms) meet it. §7 set one budget for every adapter with no allowance for output length, and the misses are the two long-output tasks. Narrowing the target after the miss would move a bar to fit a result. Regression wall-clock was never recorded, so that target is unchecked; `regress` records it from the next run. |
+| 38 | **F29's router-misroute record is defined: each decision at the operating point, tagged by the gain from escalating it.** | F29 and F37 named the record but not what makes a decision wrong, and none was persisted until the build was audited against this document. A misroute is a harmful escalation (breaks a correct local answer), a wasted escalation (changes nothing), or a missed rescue. Records sit in their own file tagged `component=router`: the hard split is pinned by sha256, so adding a component column to it would move a gated split. They show the learned router spending all 78 in-distribution escalations on urgency, where GPT-4o-mini is worse than the adapter. |
+| 39 | **The judge is DeBERTa-v3-base, by §15's decision rule — a rule that could not evaluate the option §10 named.** | §15 picked whichever base trains faster on available compute. Without new spend that was a laptop CPU, where QLoRA's 4-bit path cannot run at all. DeBERTa-v3-base full fine-tuning took 2.74 s/step against 3.38 for Qwen2.5-0.5B with plain LoRA. QLoRA was unavailable, not beaten, and this row says so rather than reporting that DeBERTa trains faster than QLoRA. |
+| 40 | **The public demo is a static page of recorded outputs; the live Gradio app runs locally.** §5's primary flow and §12's demo row are annotated. | Hugging Face now requires a PRO subscription to host Gradio even on free CPU — creating the Space returned 402. Recorded outputs are held to a stricter standard than a live app: the build recomputes every published score from the exact rows the page shows and refuses to publish on a mismatch. Visitors cannot paste a ticket, and the ~$9 hosting contingency is unspent. |
+| 41 | **§8's online request path is marked not built: routing was evaluated offline, and four stack choices went unused.** | Nothing routes a live ticket. The router, confidence and rules policies were compared on recorded (ticket, task) pairs, so the frontier-call rate comes from the operating curve, not traffic. FastAPI orchestration and Langfuse tracing (F25, N4) were never wired, runs were recorded as committed JSON rather than in Weights & Biases, and tests ran locally without GitHub Actions. The diagram had drawn all of it as part of the system. |
+| 42 | **GPU work ran on Lambda A10s, not RunPod or Vast.ai A10G spot.** | §15 left the provider to pricing and availability on the day, and §12 had rejected Lambda as pricier for short bursts. Gate 0.5, M1, the adapter retrains and the Phase 4 regression runs all ran there at about $0.75 an hour. The whole project, API included, came to about **$10.47** of the $50 ceiling. |
+| 43 | **Status moves from "Ready to start" to built; §15's questions are answered in place, and the headline assumption is marked not borne out.** | §17 already strikes resolved day-1 assumptions rather than deleting them, and the open questions and headline claim get the same treatment. The claim said the service "cuts inference cost through learned routing". The learned router lost to the adapter's own confidence, and local serving undercuts GPT-4o-mini only above 3.64 requests per second sustained. The rollback proof (M7) and the measured gate sensitivity (M11) stand. |
+
+### v2.7 → v2.8 — the requirements an audit found unbuilt, built
+
+| # | Change | Reason |
+|---|---|---|
+| 44 | **§8's request path is built; row 41's "not built" is superseded.** | Routing had been evaluated only on recorded pairs. `adapterops serve-api` now splits a ticket into (ticket, task) pairs, answers each with its adapter, escalates to GPT-4o-mini when the adapter's confidence is below the committed 20% operating point (0.3939), falls back when local inference errors or returns unusable output — counted apart from escalation — has the distilled judge score local drafts, and serves live frontier-call rate, fallback rate, P95 latency and cost per 1K. The learned router is selectable and loses on the same evidence. It is exercised by unit tests and a five-ticket run on the real adapters; it has not served a representative load, so the dashboard's frontier-call rate is still the offline curve. |
+| 45 | **M6 is met, and its measure becomes an automated test: serving reads `system.json`, and manifest v4 pins the router the results describe.** | The launcher read `adapters.json`, the registry the manifest is built from, so editing the manifest changed nothing served. Separately, manifests v1–v3 pinned the proxy-labelled router, which no published routing number used. The launcher and the request path now resolve adapters, router and judge from the manifest, a router or judge whose weights no longer match their pin refuses to load, and a test edits the manifest and sees the next launch change. |
+| 46 | **F19 refined: moving the router or the judge needs that component's own evaluation report, not an adapter regression run.** | The gate accepted *a* regression run whenever a model moved, and a regression run scores adapters on the golden sets — it cannot see a router's escalation decisions or a judge's calibration, so any adapter run would have licensed any router. `--evidence router=<report>` attaches the operating curve or calibration report, pinned by sha256 in the promoted manifest; an adapter move still needs its regression run. |
+| 47 | **Manifest versions count archived versions, not only the current one.** | After M7's rollback the current manifest was v2, so the next promotion was numbered v3 again — and archiving it at the promotion after would have overwritten the forced release M7 exists to record. Caught while promoting v4, before anything was overwritten; a test now promotes after a rollback. |
+| 48 | **F17 and §7: every regression run records its fallback rate and wall-clock, and the request path serves the fallback rate live.** | The fallback rate had been measured once, during M1, and the 25-minute regression target could not be checked because no run recorded its duration. A failed request now scores as a wrong answer and is counted rather than aborting the run. No new value exists yet: both need the next GPU session. |
+| 49 | **F22: §5's step 3 is shown — live in the local app, recorded on the public page.** Row 40's annotation is narrowed. | The local Gradio app routes a pasted ticket through the request path and shows each task's decision, score, output, latency and cost. The public page cannot run a model, so it shows all 392 routing decisions behind the operating curve for both policies, with each misroute tagged, and its build refuses to publish unless those decisions reproduce the published curve. |
+| 50 | **F25: Langfuse tracing is wired through the public ingestion API, and traces leave the ticket text out by default.** | The SDK's client API changed between major versions; the ingestion endpoint both sit on did not, so the tracer posts to it directly and adds no dependency. The ticket text is the PII adapter's input, so a trace carries outputs, routes and costs and replaces the text with its length. It is tested against a mock transport, not a live Langfuse project. A failing tracer never fails a request. |
+| 51 | **F27 / N2 is run, on CPU: int8 *weights* change intent accuracy by +0.001; int8 *activations* cost at least 0.27.** | On all 770 golden items on a laptop CPU, the merged intent adapter scored **0.931** in fp32 — vLLM on the A10 gave 0.929, so the harness matches. PyTorch dynamic int8, which quantizes activations as well as weights, fell to **0.621** with one weight scale per matrix and 0.662 with one per row, and emitted labels outside the label set on up to 7.3% of items. The same weights rounded to int8 with activations left in fp32 scored **0.932**. The loss is 8-bit activations, not int8 weights. Weights shrink 2.5×, and dynamic int8 ran 2.1× slower on this CPU; speed and size are the laptop's, not a serving figure (§7). |
+| 52 | **§12's CI is in place and W&B is opt-in; F28's unattended regression run stays infeasible.** Row 41's "unused" is narrowed. | GitHub Actions now runs lint and the test suite on every push and checks weekly that every pinned adapter revision still serves its pinned weights — the part of F28 a CPU runner can do. The regression run itself needs GPU inference and an always-on GPU the budget does not cover. Training logs to Weights & Biases with `--report-to wandb`; no run has used it. |
+| 53 | **§9's PII evaluation cannot see false positives, and the adapter produces them.** | Row 24 found the ai4privacy split has zero PII-free documents, so the PII adapter was never trained on, or scored on, a document with nothing to find. The request path's first live tickets showed the result: `AGE: 3, SEX: M` for a ticket about a late card, `IDCARDNUM: 1234567890` for a question about a PIN. On the one ticket that did contain personal data it found all four spans exactly. Its 0.946 span F1 is conditional on the input containing PII, and over-redaction on text without any is unmeasured. |
+
 ---
 
 ## 1. Summary
@@ -81,6 +115,8 @@ A learned router, trained on the service's own computed success/failure outcomes
 Quality is measured on **two splits, never blended**: a random held-out golden set, and a hard-cases split mined from the failures the system itself produced and screened for source-label noise. The entire system is versioned as a single manifest and gated by a regression check proven against *two* deliberately injected failures — one gross, one subtle — so the gate's sensitivity is a measured number rather than an assertion.
 
 The deliverable is a live demo plus a public repo with recorded benchmark evidence, built solo in ~9 weeks for under $50.
+
+**As of v2.7 the system is built.** Results, including the negative ones, live in `STATUS.md` and `runs/DASHBOARD.md`. This document stays the specification: where the build proved it wrong, the text is corrected and the change logged in rows 30–53, and plans for outcomes that did not arrive — the risk table, the cut order — are left as written.
 
 ---
 
@@ -135,15 +171,15 @@ The v2.2 revisions are themselves part of the signal. A split that leaks into tr
 | # | Criterion | Target | How measured |
 |---|---|---|---|
 | M1 | All 4 adapters trained, versioned, served concurrently | vLLM serves all 4 from one process | Automated smoke test hitting all 4 |
-| M2 | Each adapter evaluated against a prompted baseline on the same golden set | Report (not gate): accuracy delta vs. base+few-shot, cost/1K, P95 latency, per task. Gated metric is micro-accuracy for intent, macro-F1 for urgency, **span-level F1 for PII**, judge score for drafting. | Golden-set eval script — 770 held-out for intent, 300 for the rest (§11) |
+| M2 | Each adapter evaluated against a prompted baseline on the same golden set | Report (not gate): accuracy delta vs. base+few-shot, cost/1K, P95 latency, per task. Gated metric is micro-accuracy for intent, macro-F1 for urgency, **span-level F1 for PII**, judge score for drafting — GPT-4o grades where the compared replies are not the adapter's (changelog 33). | Golden-set eval script — 770 held-out for intent, 300 for the rest (§11) |
 | M3 | Router evaluated as an operating curve against 3 baselines | Curve of quality-retained vs. frontier-call-rate across ≥5 thresholds, plotted against always-cheap, always-frontier, and confidence-based routing | Held-out router eval set, disjoint from the hard-cases split |
 | M4 | Router tested for distribution shift | Reported degradation (or lack of it) on a within-task lexical-cluster and length holdout, with every task present on both sides | Shift eval (§11) |
 | M5 | Judge calibration reported | Spearman/Pearson correlation **and** agreement-within-±1, both reported with no pass threshold | 150-example held-out calibration set |
-| M6 | System versioned as one manifest | Editing the manifest changes what is served | Manual test |
+| M6 | System versioned as one manifest | Editing the manifest changes what is served | Automated test: editing `system.json` changes the next launch (changelog 45) |
 | M7 | **Proven failure/recovery cycle** | Deliberately regressed adapter deployed → detected → promotion blocked → manifest rolled back, recorded end to end | Recorded walkthrough |
 | M8 | Live demo + public repo | Demo reachable by URL; repo README explains architecture and results | Manual check |
 | M9 | Budget | Total spend ≤ $50 | Running cost log, updated every session |
-| M10 | Hard-cases split mined, adjudicated, versioned, scored separately | Both scores reported on every run from Phase 4. Split excluded from router training. Quarantine rate reported. Gating threshold derived from two observed runs and recorded — not asserted up front. | Two dashboard rows; split committed and versioned |
+| M10 | Hard-cases split mined, adjudicated, versioned, scored separately | Both scores reported on every run from Phase 4. Split excluded from router training. Quarantine rate reported. Gating threshold derived from two observed runs and training variance, and recorded — not asserted up front (changelog 31). | Two dashboard rows; split committed and versioned |
 | M11 | **Gate sensitivity measured, not claimed** | A second, subtle injected regression (under-trained checkpoint) scored on both splits. The result is reported whichever way it lands, including "the hard split adds nothing here." | Recorded in the failure-demo view alongside M7 |
 
 **Note on M5:** v1 set a 0.70 correlation target. That number had no empirical basis, so it is removed. The criterion is *reporting* the numbers honestly, not clearing an invented bar.
@@ -172,9 +208,11 @@ The v2.2 revisions are themselves part of the signal. A split that leaks into tr
 4. Opens the **results view**: adapter scorecards with random-set and hard-cases scores side by side, the router operating curve with the chosen operating point marked, and judge calibration numbers.
 5. Opens the **failure demo view**: the recorded detect → block → rollback sequence for the gross regression, and the sensitivity result for the subtle one.
 
+> **As built — changelogs 40 and 49.** Step 3 runs in the local app (`demo/app.py`): a pasted ticket is routed through the request path, with each task's decision, score, output, latency and cost. The public page cannot run a model, so it shows the 392 recorded routing decisions behind the operating curve instead. Steps 4 and 5 are the page's Results and Failure demo tabs.
+
 ### Secondary use cases
 
-- **Reviewer inspects one adapter's scorecard** — random-set score, hard-cases score, prompted baseline, frontier ceiling, cost and latency.
+- **Reviewer inspects one adapter's scorecard** — random-set score, hard-cases score, prompted baseline, frontier reference, cost and latency.
 - **Reviewer compares routing policies** — the operating curve chart with all four policies on the same axes.
 - **Reviewer inspects the hard-cases split itself** — the mined examples are in the repo, bucketed by failure type, with quarantined label-noise items listed separately. The eval set is auditable, not a number to take on trust.
 - **You re-run the regression check locally** — confirms the pipeline is reproducible from the repo.
@@ -194,7 +232,7 @@ The v2.2 revisions are themselves part of the signal. A split that leaks into tr
 | F7 | Router training-data pipeline: (ticket, task) → adapter output → harness-scored label | P0 |
 | F8 | Implement always-cheap and always-frontier baselines | P0 |
 | F9 | **Implement confidence-based routing baseline** | P0 |
-| F10 | Train router (DeBERTa-v3-small) with task as an input feature | P0 |
+| F10 | Train router (DeBERTa-v3-small, 141M) with task as an input feature | P0 |
 | F11 | Evaluate router as an operating curve against all three baselines | P0 |
 | F12 | Evaluate router under within-task distribution shift (F36) | P0 |
 | F13 | Generate GPT-4o judgments on drafting outputs | P0 |
@@ -202,22 +240,22 @@ The v2.2 revisions are themselves part of the signal. A split that leaks into tr
 | F15 | Validate judge: correlation + ±1 agreement | P0 |
 | F16 | Define and implement system manifest format | P0 |
 | F17 | Build 6-metric results dashboard | P0 |
-| F18 | Build on-demand regression run script | P0 |
+| F18 | Build on-demand regression run script — records fallback rate and wall-clock (changelog 48) | P0 |
 | F19 | Implement promotion-blocking logic | P0 |
 | F20 | Implement manifest rollback | P0 |
 | F21 | Build shuffled-label regressed adapter and run the failure demo end to end | P0 |
-| F22 | Build demo UI (Gradio) | P0 |
+| F22 | Build demo UI (Gradio) — the public page is recorded outputs; the live app runs locally (changelog 40); routing decisions shown live locally and recorded on the public page (changelog 49) | P0 |
 | F23 | Write public README/writeup including negative results | P0 |
 | F24 | Cost tracking log, updated every session | P0 |
-| F25 | Wire Langfuse tracing | P1 |
+| F25 | Wire Langfuse tracing — through the ingestion API (changelog 50) | P1 |
 | F26 | Rules-based routing baseline (keyword/length) as a fourth comparison | P1 |
-| F27 | int8 quantization comparison | P2 |
-| F28 | Unattended scheduled regression runs | P2 (likely infeasible) |
-| F29 | Persist adapter-failure and router-misroute records from the Phase 2 pipeline instead of discarding them, tagged by component and failure type | P0 |
-| F30 | Frontier adjudication screen: quarantine mined items where the frontier model also disagrees with the gold label; report the quarantine rate per task | P0 |
+| F27 | int8 quantization comparison — run on CPU (changelog 51) | P2 |
+| F28 | Unattended scheduled regression runs — weekly CI pin check only; the GPU run stays infeasible (changelog 52) | P2 (likely infeasible) |
+| F29 | Persist adapter-failure and router-misroute records from the Phase 2 pipeline instead of discarding them, tagged by component and failure type — misroute defined in changelog 38 | P0 |
+| F30 | Adjudication screen: quarantine mined items where an independent frontier model gives the adapter's same wrong answer, applied only where that agreement beats chance; report the quarantine rate per task — rule replaced, see changelog 30 | P0 |
 | F31 | Build hard-cases split from **adapter failures only**, bucketed by failure type, capped per task, and **excluded from the router training set** | P0 |
 | F32 | Report random-set and hard-cases scores as separate dashboard rows; never blend them | P0 |
-| F33 | Derive the hard-cases gating threshold from run-to-run variance observed across the first two Phase 4 runs; record the derivation in the repo | P0 |
+| F33 | Derive gating thresholds from the larger of run-to-run variance across the first two Phase 4 runs and measured training variance; a task without measured training variance is provisional; record the derivation in the repo — see changelog 31 | P0 |
 | F34 | Build the subtle regression (under-trained checkpoint) and score it on both splits; publish the outcome either way | P0 |
 | F35 | Per-task golden-set sizing: intent 770 gated on micro-accuracy; urgency, PII, drafting 300 (PII = 300 documents, ~1,800 spans) | P0 |
 | F36 | Within-task shift set: TF-IDF cluster holdout plus top/bottom length deciles, every task present on both sides | P0 |
@@ -229,10 +267,10 @@ The v2.2 revisions are themselves part of the signal. A split that leaks into tr
 
 | Dimension | Target | Note |
 |---|---|---|
-| Adapter inference latency (P95) | < 500 ms | **Measured only on dedicated rented GPU.** Colab free tier is shared and throttled; numbers from it are not reportable. |
-| Router decision latency | < 50 ms | 44M-param classifier, CPU-viable. Estimate. |
-| Throughput during benchmark | Sustain 5–10 req/s briefly | Demo-scale only |
-| Regression run wall-clock | < 25 min | ~2,000 eval items across both splits and four tasks, plus judge scoring. Bounds GPU rental per run. |
+| Adapter inference latency (P95) | < 500 ms | **Measured only on dedicated rented GPU.** Colab free tier is shared and throttled; numbers from it are not reportable. **Missed for PII (2,259 ms) and drafting (3,000 ms); met for intent (136 ms) and urgency (60 ms)** — A10, four adapters at concurrency 16. Kept as written (changelog 37). |
+| Router decision latency | < 50 ms | 141M-param classifier (44M backbone + 98M embeddings), CPU-viable. Measured P95 25.2 ms per pair on CPU for the judge-labelled router manifest v4 pins (changelog 36). |
+| Throughput during benchmark | Sustain 5–10 req/s briefly | Demo-scale only. Measured 23.6 req/s over 246 s (M1). |
+| Regression run wall-clock | < 25 min | ~2,000 eval items across both splits and four tasks, plus judge scoring. Bounds GPU rental per run. Not recorded by the Phase 4 runs (changelog 37); `regress` records it from the next run (changelog 48). |
 | Cost ceiling | ≤ $50 total | Hard constraint |
 | Availability | Best-effort; demo may cold-start | No SLA (non-goal 5) |
 | Data retention | None. No real user data at any point. | §9 |
@@ -246,7 +284,7 @@ The v2.2 revisions are themselves part of the signal. A split that leaks into tr
 flowchart TB
     subgraph Offline["Offline / Training Path"]
         direction TB
-        D1["Public datasets:<br/>mteb/banking77, Kaggle tickets,<br/>ai4privacy (en), Bitext"] --> T1["QLoRA training<br/>x4 adapters"]
+        D1["Public datasets:<br/>mteb/banking77, Tobi-Bueck tickets,<br/>ai4privacy (en), Bitext"] --> T1["QLoRA training<br/>x4 adapters"]
         T1 --> REG["HF Hub registry<br/>(adapter revisions)"]
         REG --> E1["Eval harness:<br/>adapter vs prompted<br/>vs frontier"]
         E1 --> REG
@@ -259,11 +297,11 @@ flowchart TB
         RT2 --> MIS["Router-misroute set<br/>(diagnostic, not gated)"]
 
         RP3 --> FAIL["Retained adapter-failure<br/>records, tagged by type"]
-        FAIL --> ADJ{"Frontier adjudication:<br/>is the gold label sound?"}
-        ADJ -->|"disputed"| QUAR["Quarantine:<br/>suspected label noise<br/>(rate reported)"]
-        ADJ -->|"sound"| HARD["Hard-cases split<br/>bucketed, capped ~150/task"]
+        FAIL --> ADJ{"Adjudication: same wrong<br/>answer as the adapter?"}
+        ADJ -->|"yes, beyond chance"| QUAR["Quarantine:<br/>suspected label noise<br/>(rate reported)"]
+        ADJ -->|"no"| HARD["Hard-cases split<br/>bucketed, capped ~150/task"]
         HARD --> E1
-        HARD -.->|"excluded from"| RT1
+        HARD -.->|"disjoint slice from"| RT1
 
         J1["Drafting adapter outputs"] --> J2["GPT-4o judgments"]
         J2 --> J3["Train distilled judge"]
@@ -275,7 +313,7 @@ flowchart TB
     end
     REG --> MAN
 
-    subgraph Online["Online / Request Path"]
+    subgraph Online["Online / Request Path — built, not load-tested"]
         direction TB
         REQ["Incoming ticket"] --> SPLIT["Split into<br/>(ticket, task) pairs"]
         SPLIT --> ROUTE{"Router<br/>per pair"}
@@ -300,6 +338,8 @@ flowchart TB
     REG --> RUN
 ```
 
+> **As built — changelogs 41 and 44.** The request path is built (`adapterops serve-api`): it routes each pair on the adapter's confidence at the committed operating point, with the learned router selectable, and traces to a local file or Langfuse. It has not served a representative load, so its frontier-call and fallback rates exist as live counters, not measurements. The regression check, manifest and rollback in the lower subgraph are built and were proven end to end (M7).
+
 ### Two design decisions this document is built around
 
 **The router sits after the split into (ticket, task) pairs, not before.** Each pair gets its own routing decision, with task identity as an input feature. This resolves the ambiguity in v1 where a single ticket could produce contradictory success labels across adapters.
@@ -316,10 +356,10 @@ flowchart TB
 | Urgency | `Tobi-Bueck/customer-support-tickets` | 20K avail. → 11,922 English | **CC BY-NC 4.0** — non-commercial, attribution required. The only non-permissive source; the derived adapter inherits it (changelog 27) | Pre-labeled. English rows only (source is 40% German); rows missing `body` or `priority` dropped | 300 golden, **stratified 100/class** — the source is imbalanced 2:1, and the gated metric is macro-F1 so accuracy cannot be won by ignoring `low` |
 | PII | `ai4privacy/pii-masking-openpii-1m` | 1,143,397 train avail. → ~3K subsample, **English rows only** | **CC-BY-4.0** — verified | Pre-labeled, synthetic. Multilingual: filter on the `language` column (non-goal 11). **Span offsets, not a document label** — the split has zero PII-free rows (changelog 24) | 70/15/15, 300 golden |
 | Drafting | `bitext/Bitext-customer-support-llm-chatbot-training-dataset` | 26,872 avail. → ~2K | CDLA-Sharing 1.0 — verified (attribution + share-alike; attribution goes in the README) | Pre-labeled instruction/response pairs | 70/15/15, 300 golden |
-| Router | Generated: ticket pool → adapter outputs → harness scoring | ~3,000 pairs | Inherits source licenses | **Computed automatically** | Held-out eval + within-task shift set. **Hard-cases items removed before training.** |
-| Judge | GPT-4o judgments on drafting outputs | ~1,200 | N/A (generated) | LLM-generated | 150 held out for calibration |
-| Hard cases | Mined from retained **adapter-failure** records, then frontier-adjudicated | ~150 mined → ~100 retained per task | Inherits source licenses | **Computed**, then screened by a frontier adjudication pass | Held separate from the random golden set *and* from router training. Versioned; grows in capped batches, never continuously. |
-| Quarantine | Mined items where the frontier model also disputes the gold label | the remainder | Inherits source licenses | Computed | Never gated on. Listed in the repo and reported as a per-task label-noise rate. |
+| Router | Generated: ticket pool → adapter outputs → harness scoring | 5,800 pairs (3,000 router + 2,800 mining) | Inherits source licenses | **Computed automatically** | Held-out eval + within-task shift set. **Drawn as a slice disjoint from the mining slice the hard cases come from** (changelog 34). |
+| Judge | GPT-4o judgments on drafting outputs | 1,950 grades (1,200 adapter + 750 frontier) | N/A (generated) | LLM-generated | 150 held out for calibration |
+| Hard cases | Mined from retained **adapter-failure** records, then frontier-adjudicated | 470 retained — intent 57 · urgency 150 · PII 150 · drafting 113 | Inherits source licenses | **Computed**, then screened by a frontier adjudication pass | Held separate from the random golden set *and* from router training. Versioned; grows in capped batches, never continuously. |
+| Quarantine | Mined items where an independent model gives the adapter's same wrong answer, beyond chance | 18 (intent) | Inherits source licenses | Computed | Never gated on. Listed in the repo and reported as a per-task label-noise rate. |
 
 **No manual labeling is required at any point.** Every label is either already attached to a public dataset, computed by a script comparing predictions to those existing labels, or generated by an API call. The adjudication screen (F30) is a model pass, not a human pass.
 
@@ -329,7 +369,9 @@ A set built from "examples the adapter got wrong" is not a neutral sample of har
 
 Gating promotion on an unscreened failure-mined set therefore means blocking releases for failing to reproduce annotation errors. The screen splits mined items in two: where the frontier model agrees with the gold label, the adapter really is wrong and the item is a legitimate hard case; where the frontier model also disputes the label, the item is quarantined. The **quarantine rate is reported per task** — it is a measurement of the source data's label quality and one of the more interesting numbers the project produces.
 
-**PII handling.** No real user or customer data is ingested. The PII adapter uses only ai4privacy's synthetic spans. The demo UI states this.
+**Rule replaced in v2.7 (changelog 30).** The screen as written — quarantine when the frontier model also disputes gold — confuses difficulty with noise, because every mined item was chosen for being hard. Items are now quarantined only when an independent model gives the adapter's same wrong answer, and only for tasks where that agreement beats chance.
+
+**PII handling.** No real user or customer data is ingested. The PII adapter uses only ai4privacy's synthetic spans. The demo UI states this. Every training and golden document contains PII, so the adapter's span F1 says nothing about text without any — and on such text it invents spans (changelog 53).
 
 **Versioning.** Each dataset snapshot is mirrored locally and committed to the repo. Adapters, router, judge *and both eval splits* are versioned, with model cards recording eval scores at upload time. The manifest pins split versions so that a change in the bar is always visible as a diff.
 
@@ -342,10 +384,10 @@ Gating promotion on an unscreened failure-mined set therefore means blocking rel
 | Component | Base | Method | Reasoning |
 |---|---|---|---|
 | 4 adapters | Qwen2.5-1.5B-Instruct | QLoRA, 4-bit | Fits free T4 (16 GB); strong instruction-following at this size. **Verify the checkpoint's license before publishing.** |
-| Router | DeBERTa-v3-small (44M) | Full fine-tune | Small enough that full fine-tuning is appropriate and cheap; adds method diversity |
-| Judge | DeBERTa-v3-base or Qwen2.5-0.5B | Full FT / QLoRA | Decided in Phase 3 based on which trains faster on available compute (§15) |
-| Judge teacher | GPT-4o | API, ~1,200 labels | Better supervision is worth ~$4 at this volume. Resolves the v2.1 contradiction. |
-| Escalation target + frontier ceiling | GPT-4o-mini | API | The cheap model on the request path and the reference ceiling in scorecards are the same model, so the routing tradeoff and the scorecard use one consistent frontier number. |
+| Router | DeBERTa-v3-small (141M) | Full fine-tune | Small enough that full fine-tuning is appropriate and cheap; adds method diversity |
+| Judge | DeBERTa-v3-base | Full fine-tune | Chosen in Phase 3 by §15's rule: 2.74 s/step against 3.38 for Qwen2.5-0.5B with LoRA on the only compute available, a CPU. QLoRA could not run there, so it was unavailable rather than beaten (changelog 39). |
+| Judge teacher | GPT-4o | API, 1,950 grades | Better supervision is worth ~$4 at this volume; the grades cost $2.40. Resolves the v2.1 contradiction. |
+| Escalation target + frontier reference | GPT-4o-mini | API | The cheap model on the request path and the reference in scorecards are the same model, so the routing tradeoff and the scorecard use one consistent frontier number. It scored below the adapters on three of four tasks, so it is a reference, not a ceiling (changelog 35). |
 
 **Prompted baseline.** Qwen2.5-1.5B-Instruct (same base, no adapter) with a strong few-shot prompt, per task.
 
@@ -364,11 +406,11 @@ Gating promotion on an unscreened failure-mined set therefore means blocking rel
 | What | Dataset | When | Tooling |
 |---|---|---|---|
 | Per-adapter quality vs. prompted baseline vs. frontier | Random golden set — 770 intent, 300 urgency/PII (documents)/drafting | Every training run | Custom eval script |
-| **Hard-cases score** | Mined, adjudicated failure split (~100/task), held separately | Every regression run from Phase 4 | Same eval script, second split |
+| **Hard-cases score** | Mined, adjudicated failure split (470 items), held separately | Every regression run from Phase 4 | Same eval script, second split |
 | Cost and latency per adapter | Random golden set, **on dedicated rented GPU only** | Once per adapter version; re-run if serving stack changes | Async load script |
 | Router operating curve | Held-out router eval set (disjoint from hard cases) | Every router training run | Custom script + matplotlib |
 | Router within-task shift | TF-IDF cluster holdout + length deciles, all tasks on both sides | Every router training run | Same script, second split |
-| Router-misroute diagnostic | Misroute records from the Phase 2 pipeline | Every run, reported not gated | Dashboard panel |
+| Router-misroute diagnostic | Misroute records at the operating point (changelog 38) | After each router report, reported not gated — computed on recorded pairs, where both arms' outcomes are known | Dashboard panel |
 | Judge calibration | 150-example held-out set | Every judge training run | scipy + ±1 agreement |
 | **Gate sensitivity (M11)** | Under-trained adapter checkpoint, scored on both splits | Once, Phase 5 | Same harness, recorded |
 
@@ -383,6 +425,8 @@ This exists because a model can improve on average while getting worse on exactl
 v2.1 said "any drop here blocks promotion even if the random-set score improves," and separately listed block-versus-warn as an open question. Both cannot be true, and the first is unworkable: a ~100-example split, whose items sit by construction near the decision boundary, will swing by several points between identical runs. "Any drop blocks" on that set reintroduces exactly the unfalsifiable gate that raising the golden set from 100 to 300 was meant to eliminate.
 
 The corrected policy: the hard-cases score is **reported but not gating for its first two runs**. Those two runs, against an unchanged manifest, measure the split's own run-to-run variance. The gating threshold is then set to a multiple of that observed variance, written into the manifest, and the derivation committed to the repo. If the observed variance is so wide that no useful threshold exists, that is the finding, and the split stays report-only — which is still more than v2 had.
+
+**Refined in v2.7 (changelog 31).** Two runs of an unchanged manifest measure only serving noise. The threshold is 3× the larger of that and training variance, and it is enforced only where training variance was measured — intent, at 0.0117. On the hard split intent and urgency sit at a floor of 0, so no threshold exists, and the split stays report-only for the reason changelog 32 gives.
 
 ### Golden-set sizing — corrected, and now per task
 
@@ -400,9 +444,9 @@ Replacement: hold task constant and shift style *within* each task's own pool. F
 
 | Metric | Definition | Regression trigger |
 |---|---|---|
-| Quality retained — random set | Weighted golden-set score vs. baseline manifest | Threshold calibrated after Phase 1 (§15) |
+| Quality retained — random set | Weighted golden-set score vs. baseline manifest | 3× the larger of inference and training spread; enforced where training spread is measured (changelog 31) |
 | Quality retained — hard cases | Score on the mined, adjudicated failure split. Reported separately; never blended. | Report-only for two runs, then a threshold derived from observed variance (F33) |
-| Frontier-call rate | % of (ticket, task) pairs escalated | Sharp rise indicates router degradation masking as quality |
+| Frontier-call rate | % of (ticket, task) pairs escalated — served live by the request path; the dashboard reads the offline operating curve until it has served representative load (changelogs 41, 44) | Sharp rise indicates router degradation masking as quality |
 | Cost per 1K requests | Computed from token counts + local GPU amortization | Rise beyond threshold |
 | P95 latency | Measured on the rented GPU during the run | Rise beyond threshold |
 | **Fallback rate** | **% of requests where local inference errored** (timeout, OOM, malformed output) and fell back to frontier. Distinct from routed escalation. | Any sustained rise |
@@ -413,11 +457,12 @@ Replacement: hold task constant and shift style *within* each task's own pool. F
 
 The Phase 5 injected failure is a shuffled-label adapter: grossly broken, and caught by the random golden set on its own. It proves the detect → block → rollback machinery works, which is M7's job. It proves nothing about whether the hard-cases split earns its place, because a set of hard examples is not needed to notice a model that has stopped working.
 
-So a second version is injected: an **intentionally under-trained adapter** — an early checkpoint saved from a training run that happens anyway, so it costs no extra GPU time. Both splits score it. Three outcomes, all publishable:
+So a second version is injected: an **intentionally under-trained adapter** — an early checkpoint saved from a training run that happens anyway, so it costs no extra GPU time. Both splits score it. Three outcomes were listed, all publishable — and the build produced a fourth:
 
 - **Hard flags, random passes** — the split is justified. This is the result the design predicts, and N5 records it as the nice-to-hit.
 - **Both flag it** — the split is redundant at this severity. Say so, and report the smallest regression the random set alone can see.
 - **Neither flags it** — the gate has a blind spot at this severity. Report the blind spot and state the smallest regression the harness can actually detect, which is a more useful number than a pass.
+- **Hard split improves — observed** — The under-trained checkpoints scored *higher* on the hard split for intent, urgency and drafting. Mined from v1's own failures, it measures difference from v1, not difficulty, so it cannot gate v1's successors and stays report-only (changelog 32).
 
 **Scheduling reality.** GitHub Actions free runners are CPU-only and cannot run GPU inference against the served adapters. The regression check is an **on-demand script executed during rented GPU sessions**, with results committed to the repo so the dashboard reflects real historical runs. True unattended scheduling requires an always-on GPU endpoint, which the budget does not support. Documented in the README rather than papered over.
 
@@ -434,17 +479,21 @@ So a second version is injected: an **intentionally under-trained adapter** — 
 | Experiment tracking | Weights & Biases (free tier) | Standard; free at this scale | TensorBoard (weaker run comparison) | Free |
 | Tracing | Langfuse | Consolidating industry standard; open-source, self-hostable | LangSmith (natural with LangChain, unused here) | Free |
 | Orchestration | FastAPI | Full control over router/judge wiring; no framework weight | LangChain (unnecessary here) | Free |
-| Demo UI | Gradio on HF Spaces | Free hosting; standard for ML demos | Streamlit (comparable) | Free, or ~$9/mo |
-| Benchmark GPU | RunPod or Vast.ai A10G spot | Clean, reportable latency numbers away from Colab throttling | Lambda Labs (pricier for short bursts) | ~$0.25–0.40/hr |
-| Training compute | Colab/Kaggle free T4 | Sufficient for QLoRA on 1.5B | Paid GPU for training (unnecessary) | Free |
+| Demo UI | Static HF Space of recorded outputs; Gradio app run locally | Free hosting, and a page that cannot drift from the recorded evidence | Live Gradio Space (now needs HF PRO — changelog 40); Streamlit (comparable) | Free |
+| Benchmark GPU | Lambda A10 | Clean, reportable latency numbers away from Colab throttling; available on the day | RunPod or Vast.ai A10G spot (the plan; not used — changelog 42) | ~$0.75/hr |
+| Training compute | Colab/Kaggle free T4, plus Lambda A10 for retrains | Sufficient for QLoRA on 1.5B | Paid GPU for every run (free tiers covered the first; the PII and drafting runs took ~$1.50 of A10) | Free |
 | CI | GitHub Actions | Free for public repos; adequate for lint/unit tests | Airflow (overkill) | Free |
-| Judge teacher | GPT-4o | ~1,200 judgments at ~1M input / ~120K output tokens | GPT-4o-mini as teacher (weaker supervision for ~$3 saved) | ~$4 |
-| Escalation + ceiling | GPT-4o-mini | Escalation target on the request path and frontier reference in scorecards | Claude Haiku (comparable; one family kept for consistency) | ~$6 |
+| Judge teacher | GPT-4o | 1,950 judgments at list price | GPT-4o-mini as teacher (weaker supervision for ~$3 saved) | $2.40 |
+| Escalation + reference | GPT-4o-mini | Escalation target on the request path and frontier reference in scorecards | Claude Haiku (comparable; one family kept for consistency) | ~$6 |
 | Adjudication screen | GPT-4o-mini | ~600 label-soundness checks across four tasks | Human adjudication (breaks the no-manual-labeling invariant) | <$1 |
+
+> **Chosen, then built — changelogs 41, 44, 50 and 52.** FastAPI now fronts the request path, Langfuse tracing is wired through its ingestion API, and GitHub Actions runs lint and tests on every push. Weights & Biases is opt-in (`--report-to wandb`) and has not logged a run — every result is still recorded as committed JSON.
 
 **Budget allocation:** ~$20 GPU rental, ~$10 API (all three uses), ~$9 contingency demo hosting, ~$11 buffer for failed runs. **Total ceiling $50.**
 
 GPU rises from $18 to $20 because the ninth week adds regression sessions; API falls from $12 to $10 because the itemised figures (≈$4 + ≈$6 + <$1) come in under the round number v2 carried. The ceiling is unchanged.
+
+**Actual spend: about $10.47** of the $50 ceiling, API included — itemised in `COST-LOG.md`, with the Phase 2 and Phase 4 GPU sessions derived from the account total rather than itemised.
 
 ---
 
@@ -461,7 +510,7 @@ Ordered so the riskiest unknown — whether train → serve → evaluate works e
 | **4 — Manifest, splits + dashboard** | Manifest format, 6-metric dashboard, on-demand regression script, **hard-cases split built and adjudicated** | Dashboard shows real numbers from ≥2 runs with both quality rows separate; quarantine rate reported; hard-cases variance measured and gating threshold derived; manifest rollback tested | 2 weeks |
 | **5 — Failure demos + polish** | Shuffled-label regressed adapter; full detect → block → rollback recorded. **Subtle regression scored on both splits (M11).** Demo live; README written | M7, M8 and M11 satisfied | 1 week |
 
-**Total: 9 weeks · ~180 hours at 20 hrs/week.**
+**Total: 9 weeks · ~180 hours at 20 hrs/week.** Hours were not logged per session, so this estimate was never checked against actuals.
 
 **Honest note on effort.** v1 claimed 8 weeks at 15 hrs/week (~120 hours) for phase estimates that realistically require 150–170. v2.1 added the hard-cases split and expressed the cost as "1.5 weeks + ~2 days", which is a way of not counting. Mining, adjudicating, bucketing, versioning and variance-measuring a second eval split is half a week of real work, so Phase 4 is 2 weeks and the total is 9.
 
@@ -494,16 +543,16 @@ M11 sits last among the cuttable items because it is cheap — the checkpoint al
 
 ## 15. Open questions
 
-| Question | What resolves it | When |
+| Question | Answer | Resolved |
 |---|---|---|
-| Does vLLM multi-LoRA run on the chosen rented instance and, separately, on any free HF Spaces tier? | Phase 0 deployment test | Week 1 |
-| Exact regression thresholds for the random-set metrics | Calibrate from real Phase 1 baseline variance | End of Phase 1 |
-| DeBERTa-v3-base vs. Qwen2.5-0.5B for the judge | Whichever trains faster on available compute | Phase 3 |
-| RunPod vs. Vast.ai | Spot pricing and availability on the day | Phase 0 |
-| Whether the confidence baseline is strong enough to make the learned router redundant | Phase 2 results | Phase 2 |
-| What the hard-cases gating threshold should be — *not* whether it gates, which §11 now settles | Two Phase 4 runs against an unchanged manifest, measuring the split's own variance (F33) | Phase 4 |
-| What fraction of mined failures are source label noise rather than genuine adapter errors | Adjudication quarantine rate, per task (F30) | Phase 4 |
-| Whether the hard-cases split detects anything the random set misses | M11 — the subtle regression, scored on both splits | Phase 5 |
+| Does vLLM multi-LoRA run on the chosen rented instance and, separately, on any free HF Spaces tier? | **Rented: yes.** Gate 0.5 served two adapters at 159 req/s and M1 four at 23.6 req/s, 0 errors in 5,800 requests, on a Lambda A10. **Free Spaces: not tested** — hosting Gradio there now needs PRO (changelog 40). | Phase 0 · 2 |
+| Exact regression thresholds for the random-set metrics | 3× the larger of inference and training spread. Enforced for intent only (0.0117); urgency, PII and drafting are provisional until their training variance is measured (changelog 31). | Phase 4 |
+| DeBERTa-v3-base vs. Qwen2.5-0.5B for the judge | DeBERTa-v3-base — 2.74 s/step against 3.38 on CPU, where QLoRA could not run (changelog 39). | Phase 3 |
+| RunPod vs. Vast.ai | Neither — Lambda A10 (changelog 42). | Phase 0 |
+| Whether the confidence baseline is strong enough to make the learned router redundant | **Yes.** Confidence captures 57% of the oracle's available gain at 20% escalation; the learned router scores −19%, and three pre-registered fixes all lost. | Phase 4 · 5 |
+| What the hard-cases gating threshold should be — *not* whether it gates, which §11 now settles | **None.** Intent and urgency sit at a floor of 0 on the hard split; PII and drafting are provisional. The split stays report-only (changelogs 31, 32). | Phase 4 |
+| What fraction of mined failures are source label noise rather than genuine adapter errors | Intent **24.0%** (18 of 75) under the replacement rule; urgency not separable from chance; PII and drafting not applicable (changelog 30). | Phase 4 |
+| Whether the hard-cases split detects anything the random set misses | **No.** The random set flagged all four under-trained checkpoints; the hard split flagged only PII (changelog 32). | Phase 4 |
 
 ---
 
@@ -518,6 +567,10 @@ M11 sits last among the cuttable items because it is cheap — the checkpoint al
 - Multi-region or HA deployment; real traffic; SLAs.
 - Multilingual adapters.
 - Always-on scheduled monitoring.
+- The request path under representative load on the A10, with GPT-4o-mini enabled, so its frontier-call and fallback rates become measurements (changelog 44).
+- PII-free tickets scored for the PII adapter's false-positive rate (changelog 53).
+- A hard-cases split mined from several models' failures, frozen before the model it gates exists (changelog 32).
+- An expected-gain router — P(frontier succeeds) − P(adapter succeeds) — tested on a freshly frozen split.
 
 ---
 
@@ -525,10 +578,10 @@ M11 sits last among the cuttable items because it is cheap — the checkpoint al
 
 ### Assumptions
 
-- **Effort:** 20 hrs/week solo, ~180 hours. If this is wrong, §13's fallback applies.
-- **Compute:** free Colab/Kaggle T4 for training; rented A10G spot for all reportable latency numbers.
+- **Effort:** 20 hrs/week solo, ~180 hours. If this is wrong, §13's fallback applies. Hours were not logged, so it was never checked.
+- ~~**Compute:** free Colab/Kaggle T4 for training; rented A10G spot for all reportable latency numbers.~~ **Resolved:** free T4s plus Lambda A10s for training; every reportable latency number from a Lambda A10 (changelog 42).
 - **Audience:** portfolio only — no real users, evaluated by reviewers and interviewers.
-- **Headline claim:** *"A multi-adapter LLM service that cuts inference cost through learned routing — evaluated on both random and failure-mined splits, and proven, via two injected failures, to detect and roll back its own regressions."*
+- **Headline claim:** *"A multi-adapter LLM service that cuts inference cost through learned routing — evaluated on both random and failure-mined splits, and proven, via two injected failures, to detect and roll back its own regressions."* **Not borne out as worded:** the learned router lost to the adapter's own confidence, and local serving undercuts GPT-4o-mini only above 3.64 req/s sustained. The rollback proof stands, and the hard split was measured to add no sensitivity (changelogs 32, 43).
 - **Done means:** live demo + public repo with recorded benchmark evidence. No production uptime obligations.
 - **Day one is zero.** No prior code, data, or infrastructure carries over.
 - Qwen2.5-1.5B-Instruct is **Apache-2.0** — verified day 1.
@@ -542,8 +595,8 @@ M11 sits last among the cuttable items because it is cheap — the checkpoint al
 - **Operating curve** — a plotted tradeoff (quality retained vs. frontier-call rate) across a range of decision thresholds, rather than a single number at a single threshold.
 - **Confidence-based routing** — using the adapter's own output probability as the escalation signal; the cheapest realistic alternative to a learned router, and its most important baseline.
 - **Fallback rate** — % of requests where local inference *errored* and fell back to frontier, as distinct from deliberate routed escalation.
-- **Hard-cases split** — an eval set mined from the system's own recorded adapter failures rather than sampled randomly, screened for source-label noise, and scored separately from the random golden set so an average-case improvement cannot hide a worst-case regression.
-- **Adjudication / quarantine** — the frontier-model pass that asks, of each mined failure, whether the gold label is sound. Items where the frontier model also disputes the label are quarantined — reported as a label-noise rate, never gated on.
+- **Hard-cases split** — an eval set mined from the system's own recorded adapter failures rather than sampled randomly, screened for source-label noise, and scored separately from the random golden set so an average-case improvement cannot hide a worst-case regression. Mined from one model's failures, it was measured to track difference from that model rather than difficulty (changelog 32).
+- **Adjudication / quarantine** — the model pass that asks, of each mined failure, whether its gold label is contestable. An item is quarantined when an independent model gives the adapter's same wrong answer, where that agreement beats chance — reported as a label-noise rate, never gated on (changelog 30).
 - **Gate sensitivity** — the smallest regression the harness can actually distinguish from run-to-run noise. Measured here by injecting a deliberately under-trained adapter, rather than assumed.
 
 ### References

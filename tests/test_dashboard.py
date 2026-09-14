@@ -53,7 +53,15 @@ def test_m7_numbers_come_from_the_committed_run():
 
 @needs_runs
 def test_the_frontier_call_rate_is_labelled_offline():
-    assert "Not measured live" in db.render(db.load())
+    assert "Not measured on traffic" in db.render(db.load())
+
+
+@needs_runs
+def test_prd_7_misses_are_shown_as_misses():
+    text = db.render(db.load())
+    section = text[text.index("## 7 · PRD §7 targets"):text.index(db.FAILURE_HEADING)]
+    assert section.count("**missed**") == 2          # PII and drafting P95 over 500 ms
+    assert "| pii on the A10" in section and "not recorded" in section
 
 
 @needs_runs

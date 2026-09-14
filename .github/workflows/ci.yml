@@ -1,0 +1,49 @@
+# CPU checks on every push (PRD §12): lint and the unit suite. GitHub's free runners are CPU-only,
+# so the regression run itself stays on-demand in a rented GPU session (D4).
+#
+# The weekly schedule is the part of F28 a CPU runner can do: re-run the suite and check that
+# every pinned adapter revision still serves the weights it was pinned to (`verify-pins`). An
+# unattended *regression* run needs an always-on GPU, which the budget does not support.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install locked environment
+        run: uv sync --frozen
+      - name: Lint
+        run: uv run ruff check src tests demo
+      - name: Unit tests
+        run: uv run pytest
+
+  pins:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install locked environment
+        run: uv sync --frozen
+      - name: Pinned adapters still serve their pinned weights
+        run: uv run adapterops verify-pins

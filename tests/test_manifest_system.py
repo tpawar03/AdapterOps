@@ -215,3 +215,64 @@ def test_a_refreeze_with_no_moved_split_is_refused(repo):
     system.promote(note="baseline")
     assert system.promote(note="nothing moved", refreeze="D39") == 1
     assert system.load_current()["version"] == 1
+
+
+def test_a_promotion_after_a_rollback_never_reuses_a_version_number(repo):
+    """Numbered from the current manifest alone, the promotion after a rollback reused the
+    rolled-back version's number, and archiving it later would overwrite that version's record."""
+    _, pin_adapters = repo
+    system.promote(note="v1")
+    pin_adapters("bbb2")
+    system.promote(note="v2", regression={"per_task": {}})
+    system.rollback()                                  # current is v1 again; v2 is archived
+
+    pin_adapters("ccc3")
+    assert system.promote(note="after rollback", regression={"per_task": {}}) == 0
+    assert system.load_current()["version"] == 3
+    assert json.loads((system.HISTORY / "system-0002.json").read_text())["note"] == "v2"
+
+
+def _router(tmp: Path, weights: bytes) -> None:
+    d = tmp / "checkpoints" / "router__judged"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "model.safetensors").write_bytes(weights)
+    (d / "config.json").write_text("{}")
+
+
+def test_a_moved_router_needs_its_evaluation_report_not_an_adapter_regression_run(repo):
+    """D46: an adapter regression run cannot measure a router, so it cannot license moving one.
+    The router's own evidence is its operating curve, and that is what has to be attached."""
+    tmp, _ = repo
+    _router(tmp, b"router-v1")
+    system.promote(note="baseline")
+    _router(tmp, b"router-v2")
+
+    assert system.promote(note="router, no report", regression={"per_task": {}}) == 1
+    reasons = system.blocking_reasons(system.build(), {"per_task": {}})
+    assert any("router" in r and "evaluation report" in r for r in reasons)
+
+    report = tmp / "runs" / "router__curve.json"
+    report.parent.mkdir()
+    report.write_text('{"populations": {}}')
+    assert system.promote(note="router with its curve", evidence={"router": report}) == 0
+    current = system.load_current()
+    assert current["component_evidence"]["router"]["file"] == "runs/router__curve.json"
+    assert "promoted_despite" not in current, "an evidenced move was recorded as a forced release"
+
+
+def test_router_evidence_does_not_license_an_adapter_move(repo):
+    tmp, pin_adapters = repo
+    system.promote(note="baseline")
+    pin_adapters("bbb2")
+    report = tmp / "curve.json"
+    report.write_text("{}")
+    assert system.promote(note="adapter via router evidence", evidence={"router": report}) == 1
+
+
+def test_evidence_that_is_not_on_disk_is_refused(repo):
+    tmp, _ = repo
+    _router(tmp, b"router-v1")
+    system.promote(note="baseline")
+    _router(tmp, b"router-v2")
+    assert system.promote(note="missing report", evidence={"router": tmp / "nope.json"}) == 1
+    assert system.load_current()["version"] == 1

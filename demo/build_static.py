@@ -1,4 +1,4 @@
-"""Static Hugging Face Space: recorded outputs, results and the failure demo (M8, D43).
+"""Static Hugging Face Space: recorded outputs, routing decisions, results and the failure demo (M8, D43).
 
 Hugging Face no longer hosts Gradio Spaces on its free CPU tier — creating one returned 402, PRO
 required — and only static Spaces stay free. So the public demo is one static page built from
@@ -10,10 +10,17 @@ A10, greedy, pinned revisions), GPT-4o-mini's from the golden-set frontier refer
 base model's drafting replies from its M2 run, and GPT-4o's grades and one-line reasons for all three
 drafting sides.
 
+**Routing decisions are §5's step 3, recorded (F22).** No model runs on a static page, so the page
+cannot route a pasted ticket. What it shows instead is every routing decision the published operating
+curve counted: the 392 held-out (ticket, task) pairs, each with the adapter's answer, GPT-4o-mini's,
+the score each policy ranked it by, whether it escalated at the 20% operating point, and whether that
+was a misroute (F37). Pasting a ticket needs the live app.
+
 **The page cannot contradict the scores.** Before writing anything, the build recomputes each system's
-score from the exact rows it is about to publish and fails if any differs from the recorded run. A
-browser full of examples that did not add up to the published number would be the demo disagreeing
-with the dashboard.
+score from the exact rows it is about to publish and fails if any differs from the recorded run — and
+the routing decisions must reproduce the published curve's quality at the operating point. A browser
+full of examples that did not add up to the published number would be the demo disagreeing with the
+dashboard.
 
 **Text is never interpreted as markup.** Dataset text and model output reach the page through
 `textContent`; the embedded JSON has `</` escaped so no string can close its script tag; the dashboard
@@ -59,6 +66,8 @@ SOURCES = {
     "prompted_urgency": "runs/urgency__prompted-fewshot.json",
     "prompted_pii": "runs/pii__prompted-fewshot.json",
     "urgency_adapter": "runs/urgency__adapter.json",
+    "curve": "runs/router__operating_curve__judged.json",
+    "frontier_pool": "data/router/frontier.parquet",
     "dashboard": "runs/DASHBOARD.md",
 }
 
@@ -74,9 +83,9 @@ short_description: Recorded outputs, results and failure demo for AdapterOps
 ---
 
 Recorded demo for [AdapterOps](https://github.com/tpawar03/AdapterOps): saved outputs from the four
-adapters and GPT-4o-mini on the frozen golden sets, the six-metric results dashboard and the
-detect → block → rollback failure demo. Not live inference — the live Gradio app is `demo/app.py` in
-the repository.
+adapters and GPT-4o-mini on the frozen golden sets, the recorded routing decisions behind the operating
+curve, the six-metric results dashboard and the detect → block → rollback failure demo. Not live
+inference — the live Gradio app is `demo/app.py` in the repository.
 
 Data: Banking77 (MIT); `Tobi-Bueck/customer-support-tickets` (CC BY-NC 4.0 — non-commercial, attribution
 required); `ai4privacy/pii-masking-openpii-1m` (CC BY 4.0, synthetic); Bitext customer-support dataset
@@ -176,6 +185,56 @@ def drafting(adapter: pd.DataFrame, grades: pd.DataFrame) -> tuple[list[dict], d
     return items, means
 
 
+def routing() -> dict:
+    """Every routing decision the published operating curve counted, for both policies (F22, F37).
+
+    The decisions come from the curve's own ranking code, and each policy's quality at the operating
+    point must match the published curve before anything is written (`misroute.check`).
+    """
+    from adapterops.router.baselines import escalation_scores
+    from adapterops.router.misroute import BUDGET, frames, summarise, tag
+    from adapterops.router.misroute import check as check_decisions
+
+    population = "router_in_distribution"
+    block = _read("curve")["populations"][population]["all_tasks"]
+    frame = frames()[population]
+    frontier = _read("frontier_pool").set_index("pair_id").prediction
+
+    tagged, policies = {}, {}
+    for policy, key in (("confidence", "confidence"), ("router_p_fail", "router")):
+        t = tag(frame, escalation_scores(frame, policy))
+        s = summarise(t)
+        row = next(r for r in block["curve"] if r["policy"] == policy and r["budget"] == BUDGET)
+        check_decisions(s, row["quality"], population, policy)
+        tagged[key] = t.set_index("pair_id")
+        policies[key] = {k: s[k] for k in ("escalated", "rescued", "harmful_escalation",
+                                           "wasted_escalation", "missed_rescue", "quality")}
+        policies[key]["threshold"] = row["threshold"]
+
+    items = []
+    for i, pair_id in enumerate(tagged["confidence"].index):
+        c, r = tagged["confidence"].loc[pair_id], tagged["router"].loc[pair_id]
+        items.append({
+            "id": i, "task": c.task, "text": str(c.text),
+            "adapter": str(c.prediction).strip(), "frontier": str(frontier[pair_id]).strip(),
+            "adapter_ok": bool(c.success), "frontier_ok": bool(c.frontier_success),
+            "confidence": {"score": round(float(c.escalation_score), 4),
+                           "escalated": bool(c.escalated), "misroute": c.failure_type},
+            "router": {"score": round(float(r.escalation_score), 4),
+                       "escalated": bool(r.escalated), "misroute": r.failure_type},
+        })
+    return {
+        "population": population, "pairs": len(items), "budget": BUDGET,
+        "local_quality": block["local_quality"], "frontier_quality": block["frontier_quality"],
+        "policies": policies,
+        "caption": (f"{len(items)} held-out (ticket, task) pairs from the router's in-distribution "
+                    f"eval split — every decision the published operating curve counted. Each policy "
+                    f"escalates the {BUDGET:.0%} of pairs it ranks highest. Drafting success is a "
+                    f"GPT-4o grade of 4 or more on both sides; the other tasks are exact match."),
+        "items": items,
+    }
+
+
 def build_payload() -> dict:
     adapter_all, frontier_all = _read("adapter"), _read("frontier")
     adapter_run, frontier_run = _read("adapter_run")["per_split"], _read("frontier_run")["per_task"]
@@ -244,7 +303,7 @@ def build_payload() -> dict:
                     "family is a preference that cannot be separated from quality without human labels."),
         "items": items,
     }
-    return {"tasks": tasks, "sources": SOURCES}
+    return {"tasks": tasks, "routing": routing(), "sources": SOURCES}
 
 
 def render_dashboard() -> tuple[str, str]:

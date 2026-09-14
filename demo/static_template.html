@@ -105,6 +105,7 @@ summary { cursor: pointer; color: var(--muted); }
 
   <nav role="tablist">
     <button class="tab" role="tab" data-tab="browse" aria-selected="true">Browse outputs</button>
+    <button class="tab" role="tab" data-tab="routing" aria-selected="false">Routing decisions</button>
     <button class="tab" role="tab" data-tab="results" aria-selected="false">Results</button>
     <button class="tab" role="tab" data-tab="failure" aria-selected="false">Failure demo</button>
     <button class="tab" role="tab" data-tab="about" aria-selected="false">Data &amp; licences</button>
@@ -142,9 +143,146 @@ summary { cursor: pointer; color: var(--muted); }
     </ul>
     <p>Portfolio project: no real users, no real customer data.</p>
   </section>
+
+  <section data-panel="routing" hidden>
+    <p class="notice"><strong>Recorded decisions.</strong> Each (ticket, task) pair below was answered by
+      its adapter and by GPT-4o-mini during the committed runs, and each routing policy decided whether to
+      escalate it. A live page could route a ticket you paste; this one shows the decisions the published
+      operating curve counted, and refuses to build unless they reproduce it. Routing a new ticket needs the
+      live app (<code>demo/app.py</code>) or the request path (<code>adapterops serve-api</code>).</p>
+    <div class="summary" id="route-summary"></div>
+    <p class="caption" id="route-caption"></p>
+    <div class="controls">
+      <select id="route-policy" aria-label="Routing policy">
+        <option value="confidence">Confidence — the operating policy</option>
+        <option value="router">Learned DeBERTa router</option>
+      </select>
+      <select id="route-filter" aria-label="Decision filter">
+        <option value="all">All decisions</option>
+        <option value="escalated">Escalated</option>
+        <option value="local">Kept local</option>
+        <option value="harmful_escalation">Harmful escalations</option>
+        <option value="wasted_escalation">Wasted escalations</option>
+        <option value="missed_rescue">Missed rescues</option>
+      </select>
+      <select id="route-task" aria-label="Task">
+        <option value="all">All tasks</option>
+        <option value="intent">Intent</option>
+        <option value="urgency">Urgency</option>
+        <option value="pii">PII</option>
+        <option value="drafting">Drafting</option>
+      </select>
+    </div>
+    <div id="route-count" class="meta"></div>
+    <div id="route-cards"></div>
+    <div class="pager">
+      <button class="chip" id="route-prev">Previous</button>
+      <span id="route-page"></span>
+      <button class="chip" id="route-next">Next</button>
+    </div>
+  </section>
 </div>
 
 <script type="application/json" id="data">%%DATA%%</script>
+<script>
+(function () {
+  "use strict";
+  const R = JSON.parse(document.getElementById("data").textContent).routing;
+  if (!R) return;
+  const PAGE = 10;
+  const st = { policy: "confidence", filter: "all", task: "all", page: 0 };
+  const MISROUTE = { harmful_escalation: "harmful escalation", wasted_escalation: "wasted escalation",
+                     missed_rescue: "missed rescue" };
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined && text !== null) n.textContent = String(text);
+    return n;
+  }
+
+  function stat(label, value, note) {
+    const d = el("div", "stat");
+    d.appendChild(el("div", "label", label));
+    d.appendChild(el("div", "metric", value));
+    if (note) d.appendChild(el("div", "note", note));
+    return d;
+  }
+
+  function renderSummary() {
+    const s = R.policies[st.policy];
+    const box = document.getElementById("route-summary");
+    box.replaceChildren(
+      stat("Escalated", s.escalated + " of " + R.pairs, "threshold " + s.threshold.toFixed(4)),
+      stat("Quality", s.quality.toFixed(3), "never escalating " + R.local_quality.toFixed(3)),
+      stat("Rescued", s.rescued, "escalation fixed a local failure"),
+      stat("Harmful", s.harmful_escalation, "escalation broke a correct answer"),
+      stat("Wasted", s.wasted_escalation, "escalated, nothing changed"),
+      stat("Missed rescues", s.missed_rescue, "kept local, GPT-4o-mini would succeed"));
+    document.getElementById("route-caption").textContent = R.caption;
+  }
+
+  function visible() {
+    return R.items.filter(function (it) {
+      const d = it[st.policy];
+      if (st.task !== "all" && it.task !== st.task) return false;
+      if (st.filter === "all") return true;
+      if (st.filter === "escalated") return d.escalated;
+      if (st.filter === "local") return !d.escalated;
+      return d.misroute === st.filter;
+    });
+  }
+
+  function outcome(ok, task) {
+    if (task === "drafting") return ok ? "GPT-4o grade ≥ 4" : "GPT-4o grade < 4";
+    return ok ? "correct" : "wrong";
+  }
+
+  function card(it) {
+    const d = it[st.policy];
+    const c = el("article", "card");
+    c.appendChild(el("div", "meta", it.task + " · score " + d.score + " vs " +
+      R.policies[st.policy].threshold.toFixed(4) + " · " + (d.escalated ? "escalated" : "kept local") +
+      (d.misroute ? " · misroute: " + MISROUTE[d.misroute] : "")));
+    c.appendChild(el("p", "input", it.text));
+    const rows = el("div", "rows");
+    [["Adapter", it.adapter, it.adapter_ok, !d.escalated], ["GPT-4o-mini", it.frontier, it.frontier_ok, d.escalated]]
+      .forEach(function (side) {
+        const r = el("div", "row " + (side[2] ? "good" : "bad"));
+        r.appendChild(el("div", "who", side[0] + (side[3] ? " · served" : "")));
+        r.appendChild(el("div", "out", side[1] || "(no output)"));
+        r.appendChild(el("span", "badge", outcome(side[2], it.task)));
+        rows.appendChild(r);
+      });
+    c.appendChild(rows);
+    return c;
+  }
+
+  function renderCards() {
+    const items = visible();
+    const pages = Math.max(1, Math.ceil(items.length / PAGE));
+    st.page = Math.min(st.page, pages - 1);
+    const box = document.getElementById("route-cards");
+    box.replaceChildren();
+    items.slice(st.page * PAGE, (st.page + 1) * PAGE).forEach(function (it) { box.appendChild(card(it)); });
+    if (!items.length) box.appendChild(el("p", "empty", "No decisions match."));
+    document.getElementById("route-count").textContent = items.length + " of " + R.pairs + " decisions";
+    document.getElementById("route-page").textContent = "Page " + (st.page + 1) + " of " + pages;
+    document.getElementById("route-prev").disabled = st.page === 0;
+    document.getElementById("route-next").disabled = st.page >= pages - 1;
+  }
+
+  [["route-policy", "policy"], ["route-filter", "filter"], ["route-task", "task"]].forEach(function (pair) {
+    document.getElementById(pair[0]).addEventListener("change", function (e) {
+      st[pair[1]] = e.target.value; st.page = 0; renderSummary(); renderCards();
+    });
+  });
+  document.getElementById("route-prev").addEventListener("click", function () { st.page -= 1; renderCards(); });
+  document.getElementById("route-next").addEventListener("click", function () { st.page += 1; renderCards(); });
+  renderSummary();
+  renderCards();
+})();
+</script>
 <script>
 (function () {
   "use strict";

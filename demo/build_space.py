@@ -1,8 +1,10 @@
 """Assemble a self-contained Hugging Face Space bundle in `demo/_space/` (M8).
 
-The Space gets the app, the package source it imports, the pin file and the rendered dashboard —
-and nothing else: no data, no checkpoints, no runs beyond `DASHBOARD.md`. The bundle is gitignored
-and rebuilt from the repo, so it can never hold a number the repo does not.
+The Space gets the app, the package source it imports, and the committed files the request path
+reads — the system manifest, the operating curve its threshold comes from, the cost assumptions,
+and the two classification label sets — plus the rendered dashboard. No checkpoints: the distilled
+judge stays off the Space, and the app says so. The bundle is gitignored and rebuilt from the repo,
+so it can never hold a number the repo does not.
 
 **The Space runs the versions this machine tested, read from what is installed.** The card's
 `sdk_version` is the local gradio, and `requirements.txt` pins the local transformers, peft, torch
@@ -27,8 +29,19 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 OUT = HERE / "_space"
 
-PINNED = ("torch", "transformers", "peft", "huggingface-hub", "pandas")
+PINNED = ("torch", "transformers", "peft", "huggingface-hub", "pandas", "pyarrow", "openai")
+"""pyarrow because the request path reads the golden label sets as parquet; openai for escalation."""
 CPU_TORCH_INDEX = "https://download.pytorch.org/whl/cpu"
+
+FILES = (
+    "runs/DASHBOARD.md",
+    "manifests/system.json",
+    "runs/router__operating_curve__judged.json",
+    "runs/economics.json",
+    "evals/golden/intent.parquet",
+    "evals/golden/urgency.parquet",
+)
+"""Everything the app and `adapterops.serve.pipeline` read, and nothing else."""
 
 CARD = """---
 title: AdapterOps
@@ -64,16 +77,16 @@ def card() -> str:
 
 
 def main() -> int:
-    for need in (ROOT / "runs" / "DASHBOARD.md", ROOT / "manifests" / "adapters.json"):
-        if not need.exists():
-            print(f"missing {need.relative_to(ROOT)} — see the docstring")
-            return 2
+    missing = [rel for rel in FILES if not (ROOT / rel).exists()]
+    if missing:
+        print(f"missing {', '.join(missing)} — see the docstring")
+        return 2
     shutil.rmtree(OUT, ignore_errors=True)
-    (OUT / "runs").mkdir(parents=True)
-    (OUT / "manifests").mkdir()
+    OUT.mkdir(parents=True)
     shutil.copy(HERE / "app.py", OUT / "app.py")
-    shutil.copy(ROOT / "runs" / "DASHBOARD.md", OUT / "runs" / "DASHBOARD.md")
-    shutil.copy(ROOT / "manifests" / "adapters.json", OUT / "manifests" / "adapters.json")
+    for rel in FILES:
+        (OUT / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(ROOT / rel, OUT / rel)
     shutil.copytree(ROOT / "src" / "adapterops", OUT / "src" / "adapterops",
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     (OUT / "requirements.txt").write_text(requirements())

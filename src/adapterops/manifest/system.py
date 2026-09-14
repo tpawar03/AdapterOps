@@ -18,8 +18,13 @@ only once it has been derived from two baseline runs against an unchanged manife
 Until then `gate.state` is `report_only`, and `promote()` refuses to enforce a threshold
 that does not exist rather than inventing one.
 
+**The manifest is what gets served (M6).** `serve/launch.py` and the request path read adapter
+revisions, the router and the judge from `system.json`, so a promotion or a rollback changes the
+next launch.
+
     uv run adapterops manifest show
     uv run adapterops manifest promote --note "router v1"
+    uv run adapterops manifest promote --note "..." --evidence router=runs/router__operating_curve__judged.json
     uv run adapterops manifest rollback
 """
 
@@ -45,8 +50,17 @@ SPLIT_FILES = {
     "hard_cases": "evals/hard/hard_cases.parquet",      # Phase 4; absent until mined
 }
 
-ROUTER_FILES = ("checkpoints/router/model.safetensors",
-                "checkpoints/router/config.json")
+ROUTER_FILES = ("checkpoints/router__judged/model.safetensors",
+                "checkpoints/router__judged/config.json")
+"""The judge-labelled router (D38), the one every published routing number describes. Manifests
+v1–v3 pinned `checkpoints/router`, the proxy-labelled router no result used (D46)."""
+
+JUDGE_FILES = ("checkpoints/judge/model.safetensors",
+               "checkpoints/judge/config.json")
+
+EVIDENCE_COMPONENTS = ("router", "judge")
+"""Components an adapter regression run cannot measure. The router is judged by its operating
+curve and the judge by its calibration, so moving either needs that report attached instead (D46)."""
 
 
 def _sha256(path: Path) -> str:
@@ -58,6 +72,13 @@ def _pin_file(rel: str) -> dict | None:
     if not path.exists():
         return None
     return {"file": rel, "bytes": path.stat().st_size, "sha256": _sha256(path)}
+
+
+def _rel(path: Path) -> str:
+    try:
+        return str(Path(path).relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
 
 
 def current_gate() -> dict:
@@ -93,6 +114,7 @@ def build(note: str = "", pins: Path | None = None) -> dict:
     # gate judges the weights that were actually served and regressed.
     adapters = json.loads(source.read_text())["components"] if source.exists() else {}
     router = {name: _pin_file(name) for name in ROUTER_FILES}
+    judge = {name: _pin_file(name) for name in JUDGE_FILES}
     return {
         "version": next_version(),
         "note": note,
@@ -102,7 +124,7 @@ def build(note: str = "", pins: Path | None = None) -> dict:
             "adapters": {t: adapters.get(t) for t in
                          ("intent", "urgency", "pii", "drafting")},
             "router": router if any(router.values()) else None,
-            "judge": None,                      # Phase 3
+            "judge": judge if any(judge.values()) else None,
         },
         "eval_splits": {name: _pin_file(rel) for name, rel in SPLIT_FILES.items()},
         "gate": current_gate(),
@@ -110,15 +132,24 @@ def build(note: str = "", pins: Path | None = None) -> dict:
             name: _pin_file(f"runs/{name}")
             for name in ("intent__adapter.json", "pii__adapter.json",
                          "urgency__adapter.json", "m1_serving.json",
-                         "router__train.json", "router__operating_curve.json")
+                         "router__train__judged.json", "router__operating_curve__judged.json",
+                         "judge__report.json")
         },
     }
 
 
 def next_version() -> int:
-    if not CURRENT.exists():
-        return 1
-    return int(json.loads(CURRENT.read_text())["version"]) + 1
+    """One more than any version ever written — current or archived.
+
+    The current manifest alone is not enough after a rollback. Rolling v3 back to v2 leaves v3 in
+    history, and a promotion numbered from the current v2 becomes a second "v3" whose archiving
+    later overwrites the first — which here is the forced release M7 records. Found promoting
+    D46's manifest, before anything was overwritten.
+    """
+    versions = [int(json.loads(CURRENT.read_text())["version"])] if CURRENT.exists() else []
+    if HISTORY.exists():
+        versions += [int(p.stem.split("-")[1]) for p in HISTORY.glob("system-*.json")]
+    return max(versions, default=0) + 1
 
 
 def load_current() -> dict | None:
@@ -154,7 +185,8 @@ def diff(old: dict | None, new: dict) -> dict:
 
 
 def blocking_reasons(new: dict, regression: dict | None,
-                     refreeze: str | None = None) -> list[str]:
+                     refreeze: str | None = None,
+                     evidence: dict[str, Path] | None = None) -> list[str]:
     """Why this manifest must not be promoted (F19). Empty means promote.
 
     `regression` is the result of a regression run — the on-demand script from Phase 4.
@@ -171,6 +203,12 @@ def blocking_reasons(new: dict, regression: dict | None,
     **Splits move only by a deliberate re-freeze (D39).** `refreeze` names the decision that
     records it, and is refused when an already-pinned model moves in the same promotion: a
     regression measured across a moved bar compares nothing.
+
+    **A router or judge moves on its own evidence, not on an adapter regression run (D46).** A
+    regression run scores adapters against the golden sets and says nothing about a router's
+    escalation decisions or a judge's calibration, so accepting one would let any adapter run
+    license a router change. The evidence is the component's own report — the operating curve,
+    the calibration report — attached by path and pinned by sha256 in the promoted manifest.
     """
     reasons = []
     old = load_current()
@@ -178,19 +216,31 @@ def blocking_reasons(new: dict, regression: dict | None,
     if old is None:
         return reasons          # baseline: there is no previous version to regress from
 
-    model_keys = [k for k, change in moved["changed"].items()
-                  if k.startswith("components.") and change["from"] is not None]
+    evidence = evidence or {}
+    moved_models = [k for k, change in moved["changed"].items()
+                    if k.startswith("components.") and change["from"] is not None]
+    evidenced = [k for k in moved_models if k.split(".")[1] in EVIDENCE_COMPONENTS]
+    model_keys = [k for k in moved_models if k not in evidenced]
     if model_keys and regression is None:
         reasons.append(
             f"components moved ({', '.join(model_keys)}) with no regression run attached — "
             f"run the regression script and pass its result")
+    for component in sorted({k.split(".")[1] for k in evidenced}):
+        report = evidence.get(component)
+        if report is None:
+            reasons.append(
+                f"{component} moved with no evaluation report attached — pass it with "
+                f"--evidence {component}=<path>; an adapter regression run cannot measure a "
+                f"{component}")
+        elif not Path(report).exists():
+            reasons.append(f"{component} evaluation report {report} does not exist")
 
     if refreeze and not moved["eval_splits_moved"]:
         reasons.append(f"--refreeze-splits {refreeze} given, but no eval split moved")
-    elif refreeze and model_keys:
+    elif refreeze and moved_models:
         reasons.append(
             f"re-freezing splits ({', '.join(moved['eval_splits_moved'])}) while models move "
-            f"({', '.join(model_keys)}) — re-freeze in a promotion of its own first")
+            f"({', '.join(moved_models)}) — re-freeze in a promotion of its own first")
     elif moved["eval_splits_moved"] and not refreeze:
         reasons.append(
             f"eval splits moved ({', '.join(moved['eval_splits_moved'])}) — a score "
@@ -207,9 +257,10 @@ def blocking_reasons(new: dict, regression: dict | None,
 
 
 def promote(note: str = "", regression: dict | None = None, force: bool = False,
-            pins: Path | None = None, refreeze: str | None = None) -> int:
+            pins: Path | None = None, refreeze: str | None = None,
+            evidence: dict[str, Path] | None = None) -> int:
     new = build(note, pins)
-    reasons = blocking_reasons(new, regression, refreeze)
+    reasons = blocking_reasons(new, regression, refreeze, evidence)
     if reasons and not force:
         print("  PROMOTION BLOCKED:")
         for r in reasons:
@@ -229,6 +280,10 @@ def promote(note: str = "", regression: dict | None = None, force: bool = False,
     if refreeze and new["diff_from_previous"]["eval_splits_moved"]:
         new["refrozen_splits"] = {"decision": refreeze,
                                   "splits": new["diff_from_previous"]["eval_splits_moved"]}
+    if evidence:
+        new["component_evidence"] = {component: _pin_file(_rel(Path(path)))
+                                     for component, path in sorted(evidence.items())
+                                     if Path(path).exists()}
     MANIFEST_DIR.mkdir(parents=True, exist_ok=True)
     CURRENT.write_text(json.dumps(new, indent=2) + "\n", encoding="utf-8")
     print(f"  promoted manifest v{new['version']}"
@@ -274,6 +329,11 @@ def show() -> int:
     for task, pin in (current["components"]["adapters"] or {}).items():
         rev = (pin or {}).get("revision", "—")
         print(f"    adapter {task:9s} {str(rev)[:8]}")
+    for component in ("router", "judge"):
+        pins = current["components"].get(component) or {}
+        weights = next((v for k, v in pins.items() if k.endswith("model.safetensors")), None)
+        if weights:
+            print(f"    {component:7s} {weights['file']}  {weights['sha256'][:12]}")
     for name, pin in current["eval_splits"].items():
         state = (pin or {}).get("sha256", "not present")[:12]
         print(f"    split   {name:16s} {state}")

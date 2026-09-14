@@ -158,5 +158,6 @@
     "splits": [
       "eval_splits.hard_cases"
     ]
-  }
+  },
+  "rolled_back_from": 3
 }

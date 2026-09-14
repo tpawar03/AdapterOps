@@ -1,6 +1,6 @@
 {
-  "version": 2,
-  "note": "Re-freeze: pin the D38 hard split the Phase 4 baselines were measured on, the router checkpoint, and the F33 gate",
+  "version": 4,
+  "note": "D46: pin the judge-labelled router every routing result describes, and the distilled judge; serving now reads this manifest (M6)",
   "pins": null,
   "components": {
     "base_model": {
@@ -42,18 +42,29 @@
       }
     },
     "router": {
-      "checkpoints/router/model.safetensors": {
-        "file": "checkpoints/router/model.safetensors",
+      "checkpoints/router__judged/model.safetensors": {
+        "file": "checkpoints/router__judged/model.safetensors",
         "bytes": 567598552,
-        "sha256": "6310a4d396220019cc41a67331a5527df2f36f8fcaf58f77baf9a7f76855a2fa"
+        "sha256": "26259c22f65776106e8477dbe1148f9ae1117156d72ef797425ee8cc4e7efe65"
       },
-      "checkpoints/router/config.json": {
-        "file": "checkpoints/router/config.json",
+      "checkpoints/router__judged/config.json": {
+        "file": "checkpoints/router__judged/config.json",
         "bytes": 940,
         "sha256": "c1a4609e221bb180f9aefa1b874c510890ce02dadf131bf7bfdc9ba438b637e3"
       }
     },
-    "judge": null
+    "judge": {
+      "checkpoints/judge/model.safetensors": {
+        "file": "checkpoints/judge/model.safetensors",
+        "bytes": 737716196,
+        "sha256": "0dbcc779c409abbbc6709c26158846f2e0e8fe9dd6c611561142d8d7fb7c7475"
+      },
+      "checkpoints/judge/config.json": {
+        "file": "checkpoints/judge/config.json",
+        "bytes": 1019,
+        "sha256": "79b6da065af6948cac7947b2cf0a9ed91bc9420874fe47eff7aa9d9b160f59f9"
+      }
+    }
   },
   "eval_splits": {
     "golden_intent": {
@@ -122,42 +133,62 @@
       "bytes": 1384,
       "sha256": "5e0407c3c3e632dab297a729bfd32e4450ce049084a142b48a2daefbce9f970c"
     },
-    "router__train.json": {
-      "file": "runs/router__train.json",
-      "bytes": 2806,
-      "sha256": "694257444f280bf2854feb2a14ba0277a94f861f180b5e70db58bfb0f0f5a606"
+    "router__train__judged.json": {
+      "file": "runs/router__train__judged.json",
+      "bytes": 2814,
+      "sha256": "bb0ff1a791c137ea4ddeeb102519ec6c46418bbdbd08c8522816118fd1866c2c"
     },
-    "router__operating_curve.json": {
-      "file": "runs/router__operating_curve.json",
-      "bytes": 66891,
-      "sha256": "9c1a8a8bbe5379cf3cd946bd8b52defbd0035ecc84b7efd366fad06d0150bcc3"
+    "router__operating_curve__judged.json": {
+      "file": "runs/router__operating_curve__judged.json",
+      "bytes": 72297,
+      "sha256": "266b9bf3713fae9474a2e6f3d2632c6aa606877db3804b9b29affce729d9c18b"
+    },
+    "judge__report.json": {
+      "file": "runs/judge__report.json",
+      "bytes": 1592,
+      "sha256": "8153037b3d6daf2120571d1ff1191e2f82a9dd8b241555157a3444fb9f7b4682"
     }
   },
-  "promoted_over": 1,
+  "promoted_over": 2,
   "diff_from_previous": {
     "changed": {
+      "components.judge.checkpoints/judge/config.json": {
+        "from": null,
+        "to": "79b6da065af6948cac7947b2cf0a9ed91bc9420874fe47eff7aa9d9b160f59f9"
+      },
+      "components.judge.checkpoints/judge/model.safetensors": {
+        "from": null,
+        "to": "0dbcc779c409abbbc6709c26158846f2e0e8fe9dd6c611561142d8d7fb7c7475"
+      },
       "components.router.checkpoints/router/config.json": {
+        "from": "c1a4609e221bb180f9aefa1b874c510890ce02dadf131bf7bfdc9ba438b637e3",
+        "to": null
+      },
+      "components.router.checkpoints/router/model.safetensors": {
+        "from": "6310a4d396220019cc41a67331a5527df2f36f8fcaf58f77baf9a7f76855a2fa",
+        "to": null
+      },
+      "components.router.checkpoints/router__judged/config.json": {
         "from": null,
         "to": "c1a4609e221bb180f9aefa1b874c510890ce02dadf131bf7bfdc9ba438b637e3"
       },
-      "components.router.checkpoints/router/model.safetensors": {
+      "components.router.checkpoints/router__judged/model.safetensors": {
         "from": null,
-        "to": "6310a4d396220019cc41a67331a5527df2f36f8fcaf58f77baf9a7f76855a2fa"
-      },
-      "eval_splits.hard_cases": {
-        "from": null,
-        "to": "b46c2f0b052fe67d69c7ca7c968159c17ca5f0ded12920cef4f10294d65de4ed"
+        "to": "26259c22f65776106e8477dbe1148f9ae1117156d72ef797425ee8cc4e7efe65"
       }
     },
-    "eval_splits_moved": [
-      "eval_splits.hard_cases"
-    ]
+    "eval_splits_moved": []
   },
-  "refrozen_splits": {
-    "decision": "D39",
-    "splits": [
-      "eval_splits.hard_cases"
-    ]
-  },
-  "rolled_back_from": 3
+  "component_evidence": {
+    "judge": {
+      "file": "runs/judge__report.json",
+      "bytes": 1592,
+      "sha256": "8153037b3d6daf2120571d1ff1191e2f82a9dd8b241555157a3444fb9f7b4682"
+    },
+    "router": {
+      "file": "runs/router__operating_curve__judged.json",
+      "bytes": 72297,
+      "sha256": "266b9bf3713fae9474a2e6f3d2632c6aa606877db3804b9b29affce729d9c18b"
+    }
+  }
 }

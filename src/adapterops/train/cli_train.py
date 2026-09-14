@@ -20,6 +20,8 @@ def main(argv: list[str] | None = None) -> int:
                     help="frozen split to train on, e.g. train_shuffled for F21")
     ap.add_argument("--variant", default=None,
                     help="names the outputs; required for any split other than train")
+    ap.add_argument("--report-to", default=None, choices=["wandb"],
+                    help="also log the run to Weights & Biases (needs WANDB_API_KEY)")
     args = ap.parse_args(argv)
 
     # A non-default split trained under the task's own names would overwrite the real
@@ -34,6 +36,8 @@ def main(argv: list[str] | None = None) -> int:
                  "output_dir": f"checkpoints/{name}"}
     if args.subsample is not None:
         overrides["train_subsample"] = args.subsample
+    if args.report_to:
+        overrides["report_to"] = [args.report_to]
     cfg = config_for(args.task, **overrides)
     print(f"  {args.task}: seq {cfg.max_seq_length}, batch {cfg.batch_size}x{cfg.grad_accum}, "
           f"{cfg.epochs:.0f} epochs, subsample {cfg.train_subsample}")

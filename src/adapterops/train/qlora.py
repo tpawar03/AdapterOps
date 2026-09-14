@@ -101,6 +101,9 @@ class TrainConfig:
     """Which frozen training split to read. `train_shuffled` is F21's deliberately broken
     variant — intent labels permuted across rows, texts untouched. Validation always uses
     the real `val` split, so checkpoint selection still sees true labels."""
+    report_to: list[str] = field(default_factory=list)
+    """Experiment trackers for the Trainer, e.g. `["wandb"]` (PRD §12). Empty by default: every run
+    is also written as committed JSON under `runs/`, which is what the results are rendered from."""
 
 
 def label_column(task: str) -> str:
@@ -298,7 +301,7 @@ def train(cfg: TrainConfig) -> dict:
         "greater_is_better": False,
         **precision,
         "optim": "paged_adamw_8bit",
-        "report_to": [],
+        "report_to": cfg.report_to,
         "seed": SEED,
     }
     # Fail with something actionable rather than a bare TypeError halfway through a

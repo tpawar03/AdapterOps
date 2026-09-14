@@ -3,8 +3,12 @@
 #
 # Run on the rented GPU box. Blocks; run the generation client in a second shell:
 #     uv run python -m adapterops.router.generate
+# or put the request path in front of it (PRD §8):
+#     uv run adapterops serve-api --backend vllm --base-url http://localhost:8000
+# or run the whole request-path-under-load session, regression included, in one go:
+#     bash scripts/gpu_request_path_session.sh
 #
-# Adapters are resolved through manifests/adapters.json and downloaded at their pinned
+# Adapters are resolved through manifests/system.json (M6) and downloaded at their pinned
 # revision, so what is served does not depend on where `main` points today. Verify the
 # pins before spending anything:
 #     uv run adapterops verify-pins
@@ -24,7 +28,7 @@ MAX_LORAS="${MAX_LORAS:-4}"            # all four resident in one batch — this
 MAX_MODEL_LEN="${MAX_MODEL_LEN:-1536}" # PII prompts reach ~320 tok; drafting generates ~400
 
 # PINS=manifests/candidates/<name>.json serves a candidate set (M7, M11) under the same
-# adapter names; without it, manifests/adapters.json is served.
+# adapter names; without it, the adapter pins in manifests/system.json are served.
 eval "$(python -m adapterops.serve.launch --print-args ${PINS:+--pins "$PINS"})"
 echo "  base:    $BASE @ ${BASE_REVISION:0:8}"
 echo "  pin set:  $PIN_SET"

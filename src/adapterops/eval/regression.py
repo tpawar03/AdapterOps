@@ -142,24 +142,54 @@ def compare(candidate: dict, baseline: dict) -> dict:
 
 def http_predictor(base_url: str, concurrency: int = 16) -> Predictor:
     """The served adapters, addressed by task name as scripts/phase2_serve.sh registers them."""
+    import threading
+
     from adapterops.router.generate import MAX_TOKENS, complete
     from adapterops.train.qlora import PROMPTS
 
+    stats = {"requests": 0, "errors": 0}
+    lock = threading.Lock()
+
     def predict(task: str, texts: Sequence[str]) -> list[str]:
         def one(text: str) -> str:
-            return complete(base_url, task, PROMPTS[task].format(text=text),
-                            MAX_TOKENS[task])["prediction"]
+            # A failed request scores as a wrong answer rather than aborting the run, and is
+            # counted: F17's fallback rate is the share of requests local serving could not answer.
+            try:
+                prediction, failed = complete(base_url, task, PROMPTS[task].format(text=text),
+                                              MAX_TOKENS[task])["prediction"], False
+            except Exception:                            # noqa: BLE001 - counted below
+                prediction, failed = "", True
+            with lock:
+                stats["requests"] += 1
+                stats["errors"] += failed
+            return prediction
 
         with ThreadPoolExecutor(max_workers=concurrency) as pool:
             return list(pool.map(one, texts))
 
+    predict.stats = stats
     return predict
+
+
+def fallback_summary(stats: dict) -> dict:
+    n = stats["requests"]
+    return {"requests": n, "errors": stats["errors"],
+            "fallback_rate": round(stats["errors"] / n, 4) if n else None,
+            "definition": "share of requests local serving failed to answer (PRD §11)"}
 
 
 def main(base_url: str, name: str, baseline: str | None = None,
          save_predictions: bool = False) -> int:
+    import time
+
     rows: list[dict] | None = [] if save_predictions else None
-    result = {"name": name, **run(http_predictor(base_url), collect=rows)}
+    predictor = http_predictor(base_url)
+    started = time.perf_counter()
+    result = {"name": name, **run(predictor, collect=rows)}
+    # PRD §7 budgets a regression run at < 25 min; the Phase 4 runs recorded no timing, so the
+    # target could not be checked. Generation and judge scoring, not the file writes.
+    result["wall_seconds"] = round(time.perf_counter() - started, 1)
+    result["fallback"] = fallback_summary(predictor.stats)
     if baseline:
         result["comparison"] = compare(result, json.loads(Path(baseline).read_text()))
     RUNS_DIR.mkdir(exist_ok=True)

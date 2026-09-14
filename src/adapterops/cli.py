@@ -52,9 +52,16 @@ def _cmd_manifest(args: argparse.Namespace) -> int:
                 print(f"  {args.regression} has no comparison — run regress with --baseline")
                 return 2
             regression = run["comparison"]
+        evidence = {}
+        for item in args.evidence or []:
+            component, sep, path = item.partition("=")
+            if not sep or component not in ("router", "judge"):
+                print(f"  --evidence takes router=<path> or judge=<path>, got {item!r}")
+                return 2
+            evidence[component] = Path(path).resolve()
         return system.promote(note=args.note, force=args.force, regression=regression,
                               pins=Path(args.pins) if args.pins else None,
-                              refreeze=args.refreeze_splits)
+                              refreeze=args.refreeze_splits, evidence=evidence or None)
     return system.rollback(to=args.to)
 
 
@@ -68,6 +75,47 @@ def _cmd_router_report(args: argparse.Namespace) -> int:
     from adapterops.router.report import main as report_main
 
     return report_main(judged=args.judged)
+
+
+def _cmd_router_plot(_: argparse.Namespace) -> int:
+    from adapterops.router.plot import main as plot_main
+
+    return plot_main()
+
+
+def _cmd_router_misroutes(_: argparse.Namespace) -> int:
+    from adapterops.router.misroute import main as misroute_main
+
+    return misroute_main()
+
+
+def _cmd_router_latency(_: argparse.Namespace) -> int:
+    from adapterops.router.latency import main as latency_main
+
+    return latency_main()
+
+
+def _cmd_request_path_run(args: argparse.Namespace) -> int:
+    from adapterops.serve.request_run import main as run_main
+
+    return run_main(url=args.url, name=args.name, concurrency=args.concurrency, limit=args.limit)
+
+
+def _cmd_quantize_compare(args: argparse.Namespace) -> int:
+    import os
+
+    os.environ.setdefault("HF_HUB_OFFLINE", "1")
+    from adapterops.eval.quantize import main as quantize_main
+
+    return quantize_main(limit=args.limit)
+
+
+def _cmd_serve_api(args: argparse.Namespace) -> int:
+    from adapterops.serve.api import main as api_main
+
+    return api_main(backend=args.backend, base_url=args.base_url, policy=args.policy,
+                    frontier=not args.no_frontier, judge=not args.no_judge, trace=args.trace,
+                    host=args.host, port=args.port, benchmark_caps=args.benchmark_caps)
 
 
 def _cmd_frontier(args: argparse.Namespace) -> int:
@@ -254,6 +302,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_man.add_argument("--refreeze-splits", default=None, metavar="DECISION",
                        help="re-pin moved eval splits deliberately, citing the decision that "
                             "records it; refused if a pinned model moves in the same promotion")
+    p_man.add_argument("--evidence", action="append", default=None, metavar="COMPONENT=PATH",
+                       help="the report that licenses moving the router or judge (D46), e.g. "
+                            "router=runs/router__operating_curve__judged.json; repeatable")
     p_man.set_defaults(func=_cmd_manifest)
 
     p_rt = sub.add_parser("router-train", help="train the DeBERTa router (F10)")
@@ -263,6 +314,50 @@ def build_parser() -> argparse.ArgumentParser:
     p_rr.add_argument("--judged", action="store_true",
                       help="D38: drafting graded by GPT-4o on both arms, from the __judged files")
     p_rr.set_defaults(func=_cmd_router_report)
+
+    p_rp = sub.add_parser("router-plot",
+                          help="draw the operating curve from the committed report (F11/M3)")
+    p_rp.set_defaults(func=_cmd_router_plot)
+
+    p_rm = sub.add_parser("router-misroutes",
+                          help="persist router-misroute records at the operating point (F29/F37)")
+    p_rm.set_defaults(func=_cmd_router_misroutes)
+
+    p_rl = sub.add_parser("router-latency",
+                          help="time the pinned router's decisions on CPU (PRD §7, < 50 ms)")
+    p_rl.set_defaults(func=_cmd_router_latency)
+
+    p_api = sub.add_parser("serve-api", help="the online request path over HTTP (PRD §8)")
+    p_api.add_argument("--backend", choices=["vllm", "transformers"], default="vllm",
+                       help="vllm: the served adapters; transformers: the same pins on CPU/MPS")
+    p_api.add_argument("--base-url", default="http://localhost:8000", help="the vLLM server")
+    p_api.add_argument("--policy", choices=["confidence", "router", "never"],
+                       default="confidence")
+    p_api.add_argument("--no-frontier", action="store_true",
+                       help="never call GPT-4o-mini, even with OPENAI_API_KEY set")
+    p_api.add_argument("--no-judge", action="store_true")
+    p_api.add_argument("--benchmark-caps", action="store_true",
+                       help="transformers backend: generate drafting to 448 tokens, as the curve "
+                            "did, instead of the demo's 200")
+    p_api.add_argument("--trace", choices=["none", "jsonl", "langfuse"], default="jsonl")
+    p_api.add_argument("--host", default="127.0.0.1")
+    p_api.add_argument("--port", type=int, default=8080)
+    p_api.set_defaults(func=_cmd_serve_api)
+
+    p_rpr = sub.add_parser("request-path-run",
+                           help="send the curve's 392 recorded pairs through a running serve-api")
+    p_rpr.add_argument("--url", default="http://127.0.0.1:8080", help="the serve-api to drive")
+    p_rpr.add_argument("--name", required=True, help="names runs/request_path__<name>.json")
+    p_rpr.add_argument("--concurrency", type=int, nargs="+", default=[1],
+                       help="client concurrency levels; each is one full pass over the pairs")
+    p_rpr.add_argument("--limit", type=int, default=None, help="pairs per task, for a smoke run")
+    p_rpr.set_defaults(func=_cmd_request_path_run)
+
+    p_q = sub.add_parser("quantize-compare",
+                         help="fp32 vs dynamic int8 on the intent adapter, CPU (F27, N2)")
+    p_q.add_argument("--limit", type=int, default=None,
+                     help="golden items to use, kept class-balanced (default: all 770)")
+    p_q.set_defaults(func=_cmd_quantize_compare)
 
     p_fr = sub.add_parser("frontier", help="measure frontier success on the pool (F8/F11)")
     p_fr.add_argument("--limit", type=int, default=None,

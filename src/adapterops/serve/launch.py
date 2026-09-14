@@ -9,7 +9,8 @@ the Hub's current state.
 **A candidate is served by swapping the pin file, not the adapter name.** M7 and M11 both need
 a different set of intent weights served *as* `intent`, so the regression run addresses them
 exactly as it would the real adapter. `--pins` takes a candidate pin set built by
-`adapterops pin-candidate`; without it, `manifests/adapters.json` is served.
+`adapterops pin-candidate`; without it, the adapter pins in `manifests/system.json` are served —
+the manifest decides what runs (M6).
 
 **Downloads are namespaced by pin set.** Both pin sets define `intent`. Downloaded into the same
 `_adapters/intent` directory, the second set would overwrite the first, and vLLM would serve
@@ -25,14 +26,23 @@ import argparse
 import json
 from pathlib import Path
 
-from adapterops.manifest.registry import MANIFEST, REPO_ROOT
+from adapterops.manifest.registry import REPO_ROOT
 
 ADAPTER_DIR = REPO_ROOT / "_adapters"
 """Gitignored scratch on the rented box. Named without a leading dot on purpose (D20)."""
 
+SYSTEM = REPO_ROOT / "manifests" / "system.json"
+
 
 def load_components(pins: Path | None = None) -> dict:
-    return json.loads((pins or MANIFEST).read_text())["components"]
+    """What gets served. **Without `--pins`, the system manifest decides (M6)**: editing the adapter
+    revisions in `manifests/system.json` — which only a promotion or a rollback does — changes
+    what the next launch serves. `manifests/adapters.json` is the registry the manifest is built
+    from, not the thing served."""
+    if pins is not None:
+        return json.loads(Path(pins).read_text())["components"]
+    components = json.loads(SYSTEM.read_text())["components"]
+    return {"base_model": components["base_model"], **components["adapters"]}
 
 
 def adapter_dir(pins: Path | None, task: str) -> Path:
@@ -77,7 +87,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f'BASE="{components["base_model"]["repo"]}"')
         print(f'BASE_REVISION="{components["base_model"]["revision"]}"')
         print(f'LORA_MODULES="{modules}"')
-        print(f'PIN_SET="{pins or MANIFEST.relative_to(REPO_ROOT)}"')
+        shown = SYSTEM.relative_to(REPO_ROOT) if SYSTEM.is_relative_to(REPO_ROOT) else SYSTEM
+        print(f'PIN_SET="{pins or shown}"')
     else:
         for task, path in sorted(paths.items()):
             print(f"  {task:9s} {components[task]['revision'][:8]} -> {path}")

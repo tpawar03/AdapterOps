@@ -1,0 +1,64 @@
+{
+  "prd": "\u00a77 router decision latency < 50 ms",
+  "router": {
+    "checkpoint": "checkpoints/router__judged",
+    "sha256": "26259c22f65776106e8477dbe1148f9ae1117156d72ef797425ee8cc4e7efe65",
+    "pinned_in_manifest_version": 4,
+    "trained_by": "runs/router__train__judged.json",
+    "max_length": 256
+  },
+  "pairs": 392,
+  "pairs_source": "data/router/router_eval_scored__judged.parquet",
+  "decision": "tokenise + forward + softmax; model load excluded",
+  "load_seconds": 0.41,
+  "score_check": {
+    "max_abs_diff_vs_committed": 2.3096799850463867e-07,
+    "tolerance": 0.001
+  },
+  "device": "cpu",
+  "host": "Darwin arm64 (arm)",
+  "runs": {
+    "threads_4": {
+      "torch_threads": 4,
+      "batch_1_per_pair": {
+        "n": 392,
+        "p50_ms": 15.59,
+        "p95_ms": 25.21,
+        "max_ms": 46.47,
+        "mean_ms": 17.88,
+        "target_ms": 50.0,
+        "p95_within_target": true
+      },
+      "batch_4_per_ticket": {
+        "n": 90,
+        "p50_ms": 48.57,
+        "p95_ms": 72.58,
+        "max_ms": 80.28,
+        "mean_ms": 50.62,
+        "target_ms": 50.0,
+        "p95_within_target": false
+      }
+    },
+    "threads_1": {
+      "torch_threads": 1,
+      "batch_1_per_pair": {
+        "n": 392,
+        "p50_ms": 16.34,
+        "p95_ms": 26.63,
+        "max_ms": 36.65,
+        "mean_ms": 18.14,
+        "target_ms": 50.0,
+        "p95_within_target": true
+      },
+      "batch_4_per_ticket": {
+        "n": 90,
+        "p50_ms": 57.16,
+        "p95_ms": 90.93,
+        "max_ms": 101.7,
+        "mean_ms": 59.69,
+        "target_ms": 50.0,
+        "p95_within_target": false
+      }
+    }
+  }
+}

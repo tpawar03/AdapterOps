@@ -1,0 +1,193 @@
+{
+  "prd": "F29 router-misroute records, F37 diagnostic set \u2014 reported, never gated",
+  "budget": 0.2,
+  "definition": {
+    "gain": "frontier_success - success, on the judged report's labels (D38)",
+    "harmful_escalation": "escalated, gain -1 \u2014 costs quality and money",
+    "wasted_escalation": "escalated, gain 0 \u2014 costs money only",
+    "missed_rescue": "kept local, gain +1 \u2014 forgoes quality"
+  },
+  "records": {
+    "file": "evals/misroutes/misroutes.parquet",
+    "rows": 622
+  },
+  "checks": [
+    "quality matches runs/router__operating_curve__judged.json",
+    "quality = never-escalate + (rescued - harmful) / pairs",
+    "no misroute pair is in evals/hard/hard_cases.parquet"
+  ],
+  "populations": {
+    "router_in_distribution": {
+      "router_p_fail": {
+        "pairs": 392,
+        "escalated": 78,
+        "rescued": 7,
+        "harmful_escalation": 14,
+        "wasted_escalation": 57,
+        "missed_rescue": 30,
+        "rescues_available": 37,
+        "budget_could_cover_all_rescues": true,
+        "quality": 0.7092,
+        "quality_from_tags": 0.7092,
+        "per_task": {
+          "drafting": {
+            "pairs": 102,
+            "escalated": 0,
+            "harmful_escalation": 0,
+            "wasted_escalation": 0,
+            "missed_rescue": 22
+          },
+          "intent": {
+            "pairs": 90,
+            "escalated": 0,
+            "harmful_escalation": 0,
+            "wasted_escalation": 0,
+            "missed_rescue": 3
+          },
+          "pii": {
+            "pairs": 100,
+            "escalated": 0,
+            "harmful_escalation": 0,
+            "wasted_escalation": 0,
+            "missed_rescue": 0
+          },
+          "urgency": {
+            "pairs": 100,
+            "escalated": 78,
+            "harmful_escalation": 14,
+            "wasted_escalation": 57,
+            "missed_rescue": 5
+          }
+        }
+      },
+      "confidence": {
+        "pairs": 392,
+        "escalated": 78,
+        "rescued": 22,
+        "harmful_escalation": 1,
+        "wasted_escalation": 55,
+        "missed_rescue": 15,
+        "rescues_available": 37,
+        "budget_could_cover_all_rescues": true,
+        "quality": 0.7806,
+        "quality_from_tags": 0.7806,
+        "per_task": {
+          "drafting": {
+            "pairs": 102,
+            "escalated": 70,
+            "harmful_escalation": 0,
+            "wasted_escalation": 50,
+            "missed_rescue": 2
+          },
+          "intent": {
+            "pairs": 90,
+            "escalated": 2,
+            "harmful_escalation": 0,
+            "wasted_escalation": 1,
+            "missed_rescue": 2
+          },
+          "pii": {
+            "pairs": 100,
+            "escalated": 0,
+            "harmful_escalation": 0,
+            "wasted_escalation": 0,
+            "missed_rescue": 0
+          },
+          "urgency": {
+            "pairs": 100,
+            "escalated": 6,
+            "harmful_escalation": 1,
+            "wasted_escalation": 4,
+            "missed_rescue": 11
+          }
+        }
+      }
+    },
+    "router_shift": {
+      "router_p_fail": {
+        "pairs": 1047,
+        "escalated": 209,
+        "rescued": 33,
+        "harmful_escalation": 66,
+        "wasted_escalation": 110,
+        "missed_rescue": 74,
+        "rescues_available": 107,
+        "budget_could_cover_all_rescues": true,
+        "quality": 0.6867,
+        "quality_from_tags": 0.6867,
+        "per_task": {
+          "drafting": {
+            "pairs": 243,
+            "escalated": 0,
+            "harmful_escalation": 0,
+            "wasted_escalation": 0,
+            "missed_rescue": 52
+          },
+          "intent": {
+            "pairs": 299,
+            "escalated": 0,
+            "harmful_escalation": 0,
+            "wasted_escalation": 0,
+            "missed_rescue": 13
+          },
+          "pii": {
+            "pairs": 253,
+            "escalated": 16,
+            "harmful_escalation": 7,
+            "wasted_escalation": 9,
+            "missed_rescue": 2
+          },
+          "urgency": {
+            "pairs": 252,
+            "escalated": 193,
+            "harmful_escalation": 59,
+            "wasted_escalation": 101,
+            "missed_rescue": 7
+          }
+        }
+      },
+      "confidence": {
+        "pairs": 1047,
+        "escalated": 209,
+        "rescued": 58,
+        "harmful_escalation": 12,
+        "wasted_escalation": 139,
+        "missed_rescue": 49,
+        "rescues_available": 107,
+        "budget_could_cover_all_rescues": true,
+        "quality": 0.7622,
+        "quality_from_tags": 0.7622,
+        "per_task": {
+          "drafting": {
+            "pairs": 243,
+            "escalated": 162,
+            "harmful_escalation": 2,
+            "wasted_escalation": 113,
+            "missed_rescue": 5
+          },
+          "intent": {
+            "pairs": 299,
+            "escalated": 12,
+            "harmful_escalation": 1,
+            "wasted_escalation": 6,
+            "missed_rescue": 8
+          },
+          "pii": {
+            "pairs": 253,
+            "escalated": 0,
+            "harmful_escalation": 0,
+            "wasted_escalation": 0,
+            "missed_rescue": 2
+          },
+          "urgency": {
+            "pairs": 252,
+            "escalated": 35,
+            "harmful_escalation": 9,
+            "wasted_escalation": 20,
+            "missed_rescue": 34
+          }
+        }
+      }
+    }
+  }
+}

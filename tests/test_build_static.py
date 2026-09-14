@@ -55,3 +55,13 @@ def test_dashboard_markdown_cannot_inject_html():
 def test_the_space_card_is_static_and_attributes_the_nc_data():
     assert "sdk: static" in bs.CARD
     assert "CC BY-NC 4.0" in bs.CARD
+
+
+def test_recorded_routing_decisions_reproduce_the_published_operating_point():
+    """§5 step 3 on the static page: every decision shown must add up to the published curve."""
+    r = bs.routing()
+    confidence = r["policies"]["confidence"]
+    assert r["pairs"] == 392
+    assert confidence["quality"] == pytest.approx(0.7806, abs=1e-4)
+    assert sum(i["confidence"]["escalated"] for i in r["items"]) == confidence["escalated"] == 78
+    assert sum(i["router"]["misroute"] == "harmful_escalation" for i in r["items"]) == 14

@@ -1,0 +1,91 @@
+{
+  "prd": "F27 / N2 \u2014 int8 quantization comparison on one adapter",
+  "adapter": {
+    "task": "intent",
+    "repo": "Tanny03/adapterops-intent",
+    "revision": "a7eb75ec67386805b1026aeacffa4f6c27d2de7e",
+    "manifest_version": 4
+  },
+  "method": {
+    "common": "adapter merged into the base; every nn.Linear including lm_head; greedy, 12 new tokens, batch 16",
+    "int8_per_tensor": "torch dynamic quantization (qnnpack), default qconfig \u2014 int8 weights per tensor, int8 activations per batch",
+    "int8_per_channel": "as above with per_channel_dynamic_qconfig \u2014 one weight scale per row",
+    "int8_weight_only_simulated": "weights rounded to per-channel symmetric int8 and back; activations fp32. Quality of weight-only int8; runs fp32 kernels, so speed is not measured"
+  },
+  "items": 770,
+  "subset": null,
+  "host": "Darwin arm64, CPU, 4 threads",
+  "torch": "2.11.0",
+  "variants": {
+    "fp32": {
+      "n": 770,
+      "micro_accuracy": 0.9312,
+      "macro_f1": 0.9302,
+      "exact_label_rate": 1.0,
+      "seconds": 133.5,
+      "seconds_per_item": 0.173,
+      "weights_bytes": 6174857216,
+      "weights_bytes_method": "tensor storage, tied weights once"
+    },
+    "int8_per_tensor": {
+      "n": 770,
+      "micro_accuracy": 0.6208,
+      "macro_f1": 0.3867,
+      "exact_label_rate": 0.9273,
+      "seconds": 287.2,
+      "seconds_per_item": 0.373,
+      "weights_bytes": 2480877115,
+      "weights_bytes_method": "serialised state_dict"
+    },
+    "int8_per_channel": {
+      "n": 770,
+      "micro_accuracy": 0.6623,
+      "macro_f1": 0.4269,
+      "exact_label_rate": 0.9403,
+      "seconds": 283.8,
+      "seconds_per_item": 0.369,
+      "weights_bytes": 2493717443,
+      "weights_bytes_method": "serialised state_dict"
+    },
+    "int8_weight_only_simulated": {
+      "n": 770,
+      "micro_accuracy": 0.9325,
+      "macro_f1": 0.9317,
+      "exact_label_rate": 1.0,
+      "seconds": null,
+      "seconds_per_item": null,
+      "weights_bytes": 2480832000,
+      "weights_bytes_method": "analytic: int8 Linear weights + per-row scales, rest fp32"
+    }
+  },
+  "vs_fp32": {
+    "int8_per_tensor": {
+      "micro_accuracy": -0.3104,
+      "macro_f1": -0.5435,
+      "label_agreement": 0.6351,
+      "cpu_time_ratio": 2.15,
+      "size_ratio_fp32_over_int8": 2.49
+    },
+    "int8_per_channel": {
+      "micro_accuracy": -0.2689,
+      "macro_f1": -0.5033,
+      "label_agreement": 0.6753,
+      "cpu_time_ratio": 2.13,
+      "size_ratio_fp32_over_int8": 2.48
+    },
+    "int8_weight_only_simulated": {
+      "micro_accuracy": 0.0013,
+      "macro_f1": 0.0015,
+      "label_agreement": 0.9935,
+      "cpu_time_ratio": null,
+      "size_ratio_fp32_over_int8": 2.49
+    }
+  },
+  "benchmark_check": {
+    "vllm_a10_micro_accuracy": 0.9286,
+    "cpu_fp32_micro_accuracy": 0.9312,
+    "comparable": true,
+    "note": "the same weights through vLLM on the A10; only a full 770-item run compares"
+  },
+  "not_reportable": "speed and size are this CPU's (PRD \u00a77: latency only on a rented GPU)"
+}

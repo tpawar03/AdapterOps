@@ -33,10 +33,12 @@ INPUTS = {
     "baseline_b": "runs/regression__v1-baseline-2.json",
     "thresholds": "evals/GATE_THRESHOLDS.json",
     "serving": "runs/m1_serving.json",
+    "latency": "runs/router__latency.json",
     "economics": "runs/economics.json",
     "curve": "runs/router__operating_curve__judged.json",
     "router_v2": "runs/router__v2.json",
     "rules": "runs/router__rules.json",
+    "misroutes": "runs/router__misroutes.json",
     "judge_cost": "runs/judge__cost.json",
     "ceiling": "runs/frontier__golden.json",
     "ceiling_drafting": "runs/drafting__m2_gpt4o__frontier.json",
@@ -169,6 +171,28 @@ def rules_rows(data: dict) -> list[str]:
     return [*lines, ""]
 
 
+def misroute_rows(data: dict) -> list[str]:
+    m = data["misroutes"]
+    lines = [
+        (f"**Router-misroute diagnostic (F37), reported, never gated.** Each decision at a "
+         f"{m['budget']:.0%} budget, against the gain from escalating it. Records: "
+         f"`{m['records']['file']}` ({m['records']['rows']:,} rows)."),
+        "",
+        ("| population | policy | escalated | rescued | harmful escalation | wasted escalation | "
+         "missed rescue |"),
+        "|---|---|---|---|---|---|---|",
+    ]
+    for population, by_policy in m["populations"].items():
+        for policy, s in by_policy.items():
+            lines.append(f"| {population} | {policy} | {s['escalated']:,} | {s['rescued']:,} | "
+                         f"{s['harmful_escalation']:,} | {s['wasted_escalation']:,} | "
+                         f"{s['missed_rescue']:,} |")
+    return [*lines, "",
+            ("*Harmful*: escalation broke a pair the adapter got right. *Wasted*: escalation "
+             "changed nothing but cost. *Missed rescue*: kept local where GPT-4o-mini would have "
+             "succeeded."), ""]
+
+
 def failure_demo(data: dict) -> list[str]:
     derivation = data["thresholds"]["derivation"]["per_task"]
     intent = data["shuffled"]["comparison"]["per_task"]["intent"]
@@ -224,6 +248,46 @@ def failure_demo(data: dict) -> list[str]:
     return out
 
 
+ADAPTER_P95_MS = 500.0
+
+
+def targets_rows(data: dict) -> list[str]:
+    """PRD §7's non-functional targets, each read against the run that measured it."""
+    serving, lat = data["serving"], data["latency"]
+    lines = [
+        "## 7 · PRD §7 targets", "",
+        ("Each non-functional target read against the run that measured it. A miss is shown as a "
+         "miss, and a target nothing measured says so."), "",
+        "| target | scope | measured | verdict |", "|---|---|---|---|",
+    ]
+    for task, r in serving["per_adapter"].items():
+        verdict = "met" if r["p95_ms"] < ADAPTER_P95_MS else "**missed**"
+        lines.append(f"| adapter P95 < {ADAPTER_P95_MS:,.0f} ms | {task} on the A10, M1, "
+                     f"{r['mean_generated_tokens']} tokens generated on average | "
+                     f"{r['p95_ms']:,.0f} ms | {verdict} |")
+    for run in lat["runs"].values():
+        one, four = run["batch_1_per_pair"], run["batch_4_per_ticket"]
+        threads = f"{run['torch_threads']} CPU thread{'s' if run['torch_threads'] > 1 else ''}"
+        lines.append(f"| router decision < {one['target_ms']:.0f} ms | one pair, {threads} | "
+                     f"P95 {one['p95_ms']:.1f} ms | "
+                     f"{'met' if one['p95_within_target'] else '**missed**'} |")
+        per_ticket = ("within it per ticket" if four["p95_within_target"]
+                      else f"met per pair ({four['p95_ms'] / 4:.1f} ms), over it per ticket")
+        lines.append(f"| router decision < {four['target_ms']:.0f} ms | one ticket's four pairs "
+                     f"batched, {threads} | P95 {four['p95_ms']:.1f} ms | {per_ticket} |")
+    rps = serving["throughput_rps"]
+    lines += [
+        (f"| sustain 5–10 req/s briefly | four adapters at concurrency {serving['concurrency']}, M1 | "
+         f"{rps} req/s for {serving['wall_seconds']:.0f} s | {'met' if rps >= 5 else '**missed**'} |"),
+        ("| regression run < 25 min | both splits, four tasks, judge scoring | not recorded — the "
+         "committed regression runs carry no timing | — |"), "",
+        (f"Router timed on {lat['host']} against the manifest's pinned checkpoint, reproducing its "
+         f"committed scores. §7 set one latency budget for every adapter with no allowance for "
+         f"output length; the two misses are the two tasks that generate long outputs."), "",
+    ]
+    return lines
+
+
 def render(data: dict) -> str:
     econ = data["economics"]
     work = econ["same_workload"]
@@ -245,12 +309,16 @@ def render(data: dict) -> str:
         "by construction**, which is why this split cannot gate — see M11 below."), "",
         *quality_rows(data, "hard"), "",
         "## 3 · Frontier-call rate", "",
-        ("**Not measured live — no router runs in the serving path.** What exists is the offline "
-        f"operating curve over the router pool, read at a {OPERATING_BUDGET:.0%} escalation "
-        "budget. Drafting is graded by GPT-4o on both arms."), "",
+        ("**Not measured on traffic.** The request path (`adapterops serve-api`) routes each pair "
+         "live and reports this rate at `/v1/metrics`, but it has not served a representative "
+         "load, so what is shown is the offline operating curve over the router pool, read at a "
+         f"{OPERATING_BUDGET:.0%} escalation budget. Drafting is graded by GPT-4o on both arms."), "",
         *routing_rows(data), "",
+        ("Chart of the full curves, both populations: `runs/router__operating_curve__judged.png` "
+         "(`uv run adapterops router-plot`)."), "",
         *router_v2_rows(data),
         *rules_rows(data),
+        *misroute_rows(data),
         ("The adapter's own confidence is the only policy that pays. The learned router is worse "
         "than never escalating, and GPT-4o-mini on its own scores below the local adapters."), "",
         "## 4 · Cost per 1K requests — derived, not billed", "",
@@ -285,8 +353,10 @@ def render(data: dict) -> str:
     lines += [
         "", "## 6 · Fallback rate", "",
         (f"**{serving['fallback_rate']:.1%}** — {serving['errors']} errors in "
-        f"{serving['requests']:,} requests during M1. Measured once, on that run; the regression "
-        "runs did not record it."), "",
+        f"{serving['requests']:,} requests during M1. Measured once, on that run: the committed "
+        "regression runs did not record it. `regress` records it from its next run, and the "
+        "request path reports it live at `/v1/metrics`."), "",
+        *targets_rows(data),
         *failure_demo(data), "",
     ]
     return "\n".join(lines)
