@@ -82,10 +82,12 @@ Every number is rendered from a committed run in [`runs/DASHBOARD.md`](runs/DASH
 - **Regression checks are on-demand.** They need GPU inference, and GitHub Actions free runners are
   CPU-only, so runs happen in a rented GPU session and their results are committed. CI runs the tests
   on every push and checks the adapter pins weekly; there is no unattended regression run.
-- **The PII adapter reports personal data in every text that has none.** On 928 PII-free texts it
-  answered with at least one span every time — invented values such as `GIVENNAME: John` or `AGE: 25` in
-  87%, and a real word such as "I" tagged as a name in 24%. Every training and golden document contained
-  PII, so its 0.946 span F1 holds only when the input has some.
+- **The served PII adapter reports personal data in every text that has none; a retrained one does not,
+  but is not yet served.** On 928 PII-free texts the served adapter answered with at least one span every
+  time — invented values such as `GIVENNAME: John` or `AGE: 25` in 87% — because no training document was
+  free of PII. Retrained with PII-free sentences and empty answers, it flags 5 of those 928 and none of 491
+  held-out sentences, with span F1 inside its gate (0.9442 against 0.9470). Publishing and promoting it is
+  pending.
 - **PRD §7's 500 ms P95 is missed for PII (2,259 ms) and drafting (3,000 ms)**, the two tasks that
   generate long outputs; intent (136 ms) and urgency (60 ms) meet it. The router's decision is
   inside its 50 ms budget on CPU (P95 24.9 ms per pair).

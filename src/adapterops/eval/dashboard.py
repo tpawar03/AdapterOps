@@ -53,6 +53,9 @@ INPUTS = {
     "sweep_vllm": "runs/request_path__a10-v4-sweep-vllm.json",
     "sustained": "runs/request_path__a10-v4-sustained.json",
     "pii_negatives": "runs/pii__false_positives.json",
+    "pii_negatives_val_served": "runs/pii__false_positives__served-val.json",
+    "pii_negatives_candidate": "runs/pii__false_positives__negatives.json",
+    "pii_negatives_val_candidate": "runs/pii__false_positives__negatives-val.json",
 }
 HISTORY_GLOB = "manifests/history/system-*.json"
 OPERATING_BUDGET = 0.2
@@ -173,6 +176,15 @@ def frontier_rows(data: dict) -> list[str]:
          f"{negatives['baseline']['all']['texts_with_any_line']}. "
          "Every training and golden document contained PII (D21), so the adapter never learned an "
          "empty answer. `runs/pii__false_positives.json`"),
+        "",
+        (f"**A retrained candidate, not yet served (D50).** Trained with PII-free sentences and empty "
+         f"answers, it flags **{data['pii_negatives_candidate']['adapter']['all']['texts_with_any_line']}** "
+         f"of the same {data['pii_negatives_candidate']['adapter']['all']['texts']:,} texts, and "
+         f"**{data['pii_negatives_val_candidate']['adapter']['all']['texts_with_any_line']}** of "
+         f"{data['pii_negatives_val_candidate']['adapter']['all']['texts']} held-out ai4privacy sentences "
+         f"against the served adapter's "
+         f"{data['pii_negatives_val_served']['adapter']['all']['texts_with_any_line']}. The PII scores in "
+         "the tables above are the served adapter's."),
     ]
     return [*lines, ""]
 

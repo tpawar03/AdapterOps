@@ -1,0 +1,129 @@
+{
+  "name": "a10-v5-pii-original",
+  "gated_metric": {
+    "intent": "micro_accuracy",
+    "urgency": "macro_f1",
+    "pii": "span_f1_strict",
+    "drafting": "judge_score_mean"
+  },
+  "per_split": {
+    "intent": {
+      "random": {
+        "n": 770,
+        "micro_accuracy": 0.9286,
+        "macro_f1": 0.9278
+      },
+      "hard": {
+        "n": 57,
+        "micro_accuracy": 0.0,
+        "macro_f1": 0.0
+      }
+    },
+    "urgency": {
+      "random": {
+        "n": 300,
+        "micro_accuracy": 0.4733,
+        "macro_f1": 0.4212
+      },
+      "hard": {
+        "n": 150,
+        "micro_accuracy": 0.0133,
+        "macro_f1": 0.0135
+      }
+    },
+    "pii": {
+      "random": {
+        "n": 300,
+        "span_f1_strict": 0.947
+      },
+      "hard": {
+        "n": 150,
+        "span_f1_strict": 0.8536
+      }
+    },
+    "drafting": {
+      "random": {
+        "n": 300,
+        "judge_score_mean": 4.2807,
+        "judge": "distilled judge, checkpoints/judge (F14)"
+      },
+      "hard": {
+        "n": 113,
+        "judge_score_mean": 3.7064,
+        "judge": "distilled judge, checkpoints/judge (F14)"
+      }
+    }
+  },
+  "wall_seconds": 74.8,
+  "fallback": {
+    "requests": 2140,
+    "errors": 0,
+    "fallback_rate": 0.0,
+    "definition": "share of requests local serving failed to answer (PRD \u00a711)"
+  },
+  "comparison": {
+    "per_task": {
+      "intent": {
+        "gated_metric": "micro_accuracy",
+        "drop": 0.0,
+        "random": {
+          "candidate": 0.9286,
+          "baseline": 0.9286,
+          "drop": 0.0
+        },
+        "hard": {
+          "candidate": 0.0,
+          "baseline": 0.0,
+          "drop": 0.0
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      },
+      "urgency": {
+        "gated_metric": "macro_f1",
+        "drop": -0.0116,
+        "random": {
+          "candidate": 0.4212,
+          "baseline": 0.4096,
+          "drop": -0.0116
+        },
+        "hard": {
+          "candidate": 0.0135,
+          "baseline": 0.0068,
+          "drop": -0.0067
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      },
+      "pii": {
+        "gated_metric": "span_f1_strict",
+        "drop": -0.0008,
+        "random": {
+          "candidate": 0.947,
+          "baseline": 0.9462,
+          "drop": -0.0008
+        },
+        "hard": {
+          "candidate": 0.8536,
+          "baseline": 0.852,
+          "drop": -0.0016
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      },
+      "drafting": {
+        "gated_metric": "judge_score_mean",
+        "drop": -0.0098,
+        "random": {
+          "candidate": 4.2807,
+          "baseline": 4.2709,
+          "drop": -0.0098
+        },
+        "hard": {
+          "candidate": 3.7064,
+          "baseline": 3.6918,
+          "drop": -0.0146
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      }
+    }
+  },
+  "predictions_file": "runs/regression__a10-v5-pii-original__predictions.parquet"
+}

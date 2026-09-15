@@ -1,0 +1,138 @@
+{
+  "question": "How often does the PII adapter report personal data in text that has none?",
+  "set": {
+    "name": "golden_screened",
+    "file": "evals/pii_negatives/pii_negatives.parquet",
+    "sha256": "6078733adae791290bc896a9241751905aea900712655921caa054c3571753b6",
+    "texts": 928,
+    "limit_per_source": null
+  },
+  "adapter": {
+    "adapter": "checkpoints/pii-negatives",
+    "revision": null,
+    "manifest_version": null,
+    "device": "mps",
+    "batch": 16,
+    "max_new_tokens": 384,
+    "seconds": 105.6,
+    "all": {
+      "texts": 928,
+      "texts_with_any_line": 5,
+      "false_positive_rate": 0.0054,
+      "texts_with_grounded_span": 2,
+      "grounded_rate": 0.0022,
+      "texts_with_invented_value": 3,
+      "lines": 5,
+      "lines_per_flagged_text": 1.0,
+      "labels": {
+        "AGE": 2,
+        "GIVENNAME": 2,
+        "ZIPCODE": 1
+      }
+    },
+    "per_source": {
+      "drafting": {
+        "texts": 221,
+        "texts_with_any_line": 2,
+        "false_positive_rate": 0.009,
+        "texts_with_grounded_span": 1,
+        "grounded_rate": 0.0045,
+        "texts_with_invented_value": 1,
+        "lines": 2,
+        "lines_per_flagged_text": 1.0,
+        "labels": {
+          "ZIPCODE": 1,
+          "GIVENNAME": 1
+        }
+      },
+      "intent": {
+        "texts": 707,
+        "texts_with_any_line": 3,
+        "false_positive_rate": 0.0042,
+        "texts_with_grounded_span": 1,
+        "grounded_rate": 0.0014,
+        "texts_with_invented_value": 2,
+        "lines": 3,
+        "lines_per_flagged_text": 1.0,
+        "labels": {
+          "AGE": 2,
+          "GIVENNAME": 1
+        }
+      }
+    }
+  },
+  "baseline": {
+    "name": "regex only \u2014 spaCy model not installed",
+    "all": {
+      "texts": 928,
+      "texts_with_any_line": 13,
+      "false_positive_rate": 0.014,
+      "texts_with_grounded_span": 13,
+      "grounded_rate": 0.014,
+      "texts_with_invented_value": 0,
+      "lines": 15,
+      "lines_per_flagged_text": 1.15,
+      "labels": {
+        "SEX": 14,
+        "TITLE": 1
+      }
+    },
+    "per_source": {
+      "drafting": {
+        "texts": 221,
+        "texts_with_any_line": 1,
+        "false_positive_rate": 0.0045,
+        "texts_with_grounded_span": 1,
+        "grounded_rate": 0.0045,
+        "texts_with_invented_value": 0,
+        "lines": 1,
+        "lines_per_flagged_text": 1.0,
+        "labels": {
+          "SEX": 1
+        }
+      },
+      "intent": {
+        "texts": 707,
+        "texts_with_any_line": 12,
+        "false_positive_rate": 0.017,
+        "texts_with_grounded_span": 12,
+        "grounded_rate": 0.017,
+        "texts_with_invented_value": 0,
+        "lines": 14,
+        "lines_per_flagged_text": 1.17,
+        "labels": {
+          "SEX": 13,
+          "TITLE": 1
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "source": "intent",
+      "text": "I think I want AUD and not GBP, can you help?",
+      "output": "AGE: 18"
+    },
+    {
+      "source": "intent",
+      "text": "im so mad right now. theres several charges that I think my x boyfriend made on my card. the companys on the website wouldn't refund me my money, they told me to contact my bank. DO something please.",
+      "output": "AGE: 18"
+    },
+    {
+      "source": "intent",
+      "text": "Atm took my card",
+      "output": "GIVENNAME: Atm"
+    },
+    {
+      "source": "drafting",
+      "text": "I cannot edit ym address",
+      "output": "ZIPCODE: ym"
+    },
+    {
+      "source": "drafting",
+      "text": "i call to chevk when my product is gonna arrive",
+      "output": "GIVENNAME: Chevk"
+    }
+  ],
+  "notes": "Every emitted line is a false positive on this set. A grounded span's value occurs in the text; an invented value does not. Generated on this machine with the serving prompt and token cap, greedy, so exact outputs can differ from vLLM's."
+}
