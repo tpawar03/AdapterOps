@@ -1,7 +1,7 @@
 {
-  "version": 6,
-  "note": "PII adapter retrained with PII-free sentences and empty answers (D50): Hub revision e0bde68f, weights sha256 fec1371a, byte-identical to the checkpoint regression-scored beside v5's adapter in one session (runs/regression__a10-v5-pii-negatives.json). PII-free texts with a reported span 928 -> 5 of 928, 491 -> 0 held out; strict span F1 0.9470 -> 0.9442, inside the 0.0081 gate.",
-  "pins": "manifests/candidates/pii-negatives.json",
+  "version": 5,
+  "note": "Gate enforces all four tasks from measured training variance (D49): intent 0.0117, urgency 0.0381, PII 0.0081, drafting 0.0675. No model, router, judge or split moves, so the component diff is empty; the gate is the change.",
+  "pins": null,
   "components": {
     "base_model": {
       "repo": "Qwen/Qwen2.5-1.5B-Instruct",
@@ -27,11 +27,11 @@
       },
       "pii": {
         "repo": "Tanny03/adapterops-pii",
-        "revision": "e0bde68fb34693d10611e6888eb50c78825c86c7",
+        "revision": "3b38a28479215897ab927f00b78da99a57813469",
         "weight_file": "adapter_model.safetensors",
-        "weight_sha256": "fec1371a12133f244042718c71c45d9866da35a11cca1e14f8bb5fd32d286551",
-        "last_modified": "2026-09-15 00:23:50+00:00",
-        "candidate_of": "Tanny03/adapterops-pii"
+        "weight_sha256": "8bf54f7d6bd24ea831d80bf527399f681d9e8ddb5647ed95a0eeb71602f86e9c",
+        "last_modified": "2026-09-11 16:47:17+00:00",
+        "note": "These weights (sha256 8bf54f7d...) are byte-identical to revision 5405e954, the revision that scored 0.9190 strict span F1. dbb236a9 briefly overwrote main with different tensors (4ef039e9...) \u2014 the changelog-29 incident \u2014 and 3b38a284 restored them. Verified by comparing the LFS digest at all three revisions, not by trusting the restore commit's message."
       },
       "drafting": {
         "repo": "Tanny03/adapterops-drafting",
@@ -152,14 +152,9 @@
       "sha256": "8153037b3d6daf2120571d1ff1191e2f82a9dd8b241555157a3444fb9f7b4682"
     }
   },
-  "promoted_over": 5,
+  "promoted_over": 4,
   "diff_from_previous": {
-    "changed": {
-      "components.adapters.pii": {
-        "from": "3b38a28479215897ab927f00b78da99a57813469",
-        "to": "e0bde68fb34693d10611e6888eb50c78825c86c7"
-      }
-    },
+    "changed": {},
     "eval_splits_moved": []
   }
 }

@@ -76,7 +76,8 @@ def test_the_pii_score_is_shown_beside_its_false_positive_rate():
     section = text[text.index("## 1 · Quality retained — random"):text.index("## 2 · Quality retained")]
     assert "conditional on the input containing PII" in section
     assert "runs/pii__false_positives.json" in section
-    assert "not yet served" in section, "a candidate's numbers must not read as the served adapter's"
+    assert "Served since manifest v6" in section
+    assert "previous adapter (manifest v5)" in section, "the 928-of-928 result must name its adapter"
 
 
 @needs_runs

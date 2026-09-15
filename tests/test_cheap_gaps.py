@@ -81,6 +81,15 @@ def test_cards_name_the_pinned_revision_and_carry_caveats():
     assert "license: cc-by-nc-4.0" in urgency and "TF-IDF" in urgency
 
 
+def test_the_pii_card_describes_the_served_revision_with_its_own_evidence():
+    ctx = cards.load()
+    pii = cards.render("pii", ctx)
+    assert ctx["pins"]["pii"]["revision"] in pii
+    assert "texts with a reported span" in pii and "previous adapter" in pii
+    assert "8,000 training rows" not in pii, "the card must not carry the replaced adapter's training record"
+    assert "measured with the previous revision" in pii
+
+
 def test_an_unmeasured_ceiling_says_so():
     ctx = {**cards.load(), "ceiling": None, "ceiling_drafting": None}
     assert "not measured" in cards.render("pii", ctx)

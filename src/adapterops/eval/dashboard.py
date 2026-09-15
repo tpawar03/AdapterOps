@@ -56,6 +56,8 @@ INPUTS = {
     "pii_negatives_val_served": "runs/pii__false_positives__served-val.json",
     "pii_negatives_candidate": "runs/pii__false_positives__negatives.json",
     "pii_negatives_val_candidate": "runs/pii__false_positives__negatives-val.json",
+    "pii_v6_regression": "runs/regression__a10-v5-pii-negatives.json",
+    "pii_v5_same_session": "runs/regression__a10-v5-pii-original.json",
 }
 HISTORY_GLOB = "manifests/history/system-*.json"
 OPERATING_BUDGET = 0.2
@@ -168,7 +170,8 @@ def frontier_rows(data: dict) -> list[str]:
     lines += [
         "",
         (f"**PII's span F1 is conditional on the input containing PII.** On {pii['texts']:,} texts "
-         "with nothing any PII label could point at, the adapter reported personal data in "
+         "with nothing any PII label could point at, the previous adapter (manifest v5) reported "
+         "personal data in "
          f"**{pii['texts_with_any_line']:,} ({pii['false_positive_rate']:.0%})**: invented values in "
          f"{pii['texts_with_invented_value']:,}, and a real word — mostly \"I\", \"Can\", \"My\" as a "
          f"name — in {pii['texts_with_grounded_span']:,}. The baseline "
@@ -177,14 +180,17 @@ def frontier_rows(data: dict) -> list[str]:
          "Every training and golden document contained PII (D21), so the adapter never learned an "
          "empty answer. `runs/pii__false_positives.json`"),
         "",
-        (f"**A retrained candidate, not yet served (D50).** Trained with PII-free sentences and empty "
-         f"answers, it flags **{data['pii_negatives_candidate']['adapter']['all']['texts_with_any_line']}** "
+        (f"**Served since manifest v6: the adapter retrained with PII-free sentences (D50).** It flags "
+         f"**{data['pii_negatives_candidate']['adapter']['all']['texts_with_any_line']}** "
          f"of the same {data['pii_negatives_candidate']['adapter']['all']['texts']:,} texts, and "
          f"**{data['pii_negatives_val_candidate']['adapter']['all']['texts_with_any_line']}** of "
          f"{data['pii_negatives_val_candidate']['adapter']['all']['texts']} held-out ai4privacy sentences "
-         f"against the served adapter's "
-         f"{data['pii_negatives_val_served']['adapter']['all']['texts_with_any_line']}. The PII scores in "
-         "the tables above are the served adapter's."),
+         f"against the previous adapter's "
+         f"{data['pii_negatives_val_served']['adapter']['all']['texts_with_any_line']}. Scored beside the "
+         "previous adapter in one session, its strict span F1 is "
+         f"{data['pii_v6_regression']['per_split']['pii']['random']['span_f1_strict']:.4f} against "
+         f"{data['pii_v5_same_session']['per_split']['pii']['random']['span_f1_strict']:.4f}. The PII rows "
+         "in the tables above are the previous adapter's baseline runs."),
     ]
     return [*lines, ""]
 

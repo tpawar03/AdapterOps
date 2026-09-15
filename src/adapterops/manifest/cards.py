@@ -47,7 +47,7 @@ PROMPTED = {
 TRAIN_ROWS = {
     "intent": ("runs/intent__train.json", ("train_rows",)),
     "urgency": ("runs/urgency__adapter.json", ("training", "rows")),
-    "pii": ("runs/pii__adapter.json", ("training", "rows")),
+    "pii": ("runs/pii-negatives__train.json", ("train_rows",)),
     "drafting": ("runs/drafting__train.json", ("train_rows",)),
 }
 
@@ -69,6 +69,13 @@ def load() -> dict:
         "ceiling": _json("runs/frontier__golden.json"),
         "ceiling_drafting": _json("runs/drafting__m2_gpt4o__frontier.json"),
         "train_rows": {t: _dig(_json(p), keys) for t, (p, keys) in TRAIN_ROWS.items()},
+        # PII since manifest v6 (D50): scored beside the adapter it replaced, in one session.
+        "pii_v6": _json("runs/regression__a10-v5-pii-negatives.json"),
+        "pii_previous": _json("runs/regression__a10-v5-pii-original.json"),
+        "fp": _json("runs/pii__false_positives__negatives.json"),
+        "fp_previous": _json("runs/pii__false_positives.json"),
+        "fp_val": _json("runs/pii__false_positives__negatives-val.json"),
+        "fp_val_previous": _json("runs/pii__false_positives__served-val.json"),
     }
 
 
@@ -90,8 +97,16 @@ def caveats(task: str, ctx: dict) -> list[str]:
                 ("**Non-commercial.** Trained on CC BY-NC 4.0 data by Tobi Bueck "
                  "(`Tobi-Bueck/customer-support-tickets`); this adapter inherits the restriction.")]
     if task == "pii":
-        return ["Trained and evaluated on synthetic spans only. Not a compliance control.",
-                "Strict scoring requires each value to match its span exactly."]
+        out = ["Trained and evaluated on synthetic spans only. Not a compliance control.",
+               "Strict scoring requires each value to match its span exactly."]
+        fp = ctx.get("fp")
+        if fp:
+            a = fp["adapter"]["all"]
+            out.insert(0, (f"Trained with PII-free sentences and empty answers so it can report nothing; on "
+                           f"{a['texts']} PII-free texts it still reports a span in {a['texts_with_any_line']}. "
+                           "The previous revision, trained only on documents containing PII, reported one "
+                           "in every text."))
+        return out
     sides = ctx["m2"]["sides"]
     return [(f"The distilled judge (the gate metric) tracks GPT-4o on this adapter's replies "
              f"(Spearman {sides['adapter']['distilled_vs_gpt4o_spearman']:.2f}) but not on another "
@@ -105,7 +120,42 @@ def _f(v: float | None) -> str:
     return "not measured" if v is None else f"{v:.4f}"
 
 
+def pii_rows(ctx: dict) -> list[str] | None:
+    """PII's rows since manifest v6: the served adapter beside the one it replaced, in one session, plus
+    the false-positive rates that motivated the change. None when those runs are absent."""
+    now_run, before_run = ctx.get("pii_v6"), ctx.get("pii_previous")
+    if not now_run or not before_run:
+        return None
+    metric = GATED["pii"]
+    now, before = now_run["per_split"]["pii"], before_run["per_split"]["pii"]
+    replaced = (ctx["pins"]["pii"].get("replaces") or {}).get("revision", "")[:8]
+    prompted = ctx["prompted"]["pii"]
+    ceiling = (ctx["ceiling"] or {}).get("per_task", {}).get("pii", {})
+    rows = [
+        "| system | split (n) | metric | score |", "|---|---|---|---|",
+        f"| this adapter | golden ({now['random']['n']}) | {metric} | {now['random'][metric]:.4f} |",
+        (f"| previous adapter `{replaced}`, same session | golden ({before['random']['n']}) | {metric} | "
+         f"{before['random'][metric]:.4f} |"),
+        (f"| base model, {prompted['setup']['demonstrations']} demonstrations | golden ({prompted['n']}) | "
+         f"{metric} | {prompted['metrics'][metric]:.4f} |"),
+        f"| GPT-4o-mini (frontier reference) | golden | {metric} | {_f(ceiling.get(metric))} |",
+    ]
+    for label, key in (("PII-free texts", "fp"), ("held-out PII-free sentences", "fp_val")):
+        mine, theirs = ctx.get(key), ctx.get(f"{key}_previous")
+        if mine and theirs:
+            a, b = mine["adapter"]["all"], theirs["adapter"]["all"]
+            rows += [(f"| this adapter | {label} ({a['texts']}) | texts with a reported span | "
+                      f"{a['texts_with_any_line']} |"),
+                     (f"| previous adapter | {label} ({b['texts']}) | texts with a reported span | "
+                      f"{b['texts_with_any_line']} |")]
+    rows.append(f"| this adapter | hard cases ({now['hard']['n']}), report-only | {metric} | "
+                f"{now['hard'][metric]:.4f} |")
+    return rows
+
+
 def eval_rows(task: str, ctx: dict) -> list[str]:
+    if task == "pii" and (rows := pii_rows(ctx)):
+        return rows
     metric = GATED[task]
     a, b = (run["per_split"][task] for run in ctx["baseline"])
     ceiling = (ctx["ceiling"] or {}).get("per_task", {}).get(task, {})
@@ -175,7 +225,8 @@ def render(task: str, ctx: dict) -> str:
         *eval_rows(task, ctx), "",
         (f"Latency with all four adapters served at once on one A10 (vLLM, concurrency "
          f"{ctx['serving']['concurrency']}): P50 {lat['p50_ms']:,.0f} ms · P95 "
-         f"{lat['p95_ms']:,.0f} ms."), "",
+         f"{lat['p95_ms']:,.0f} ms"
+         + (", measured with the previous revision." if pin.get("replaces") else ".")), "",
         "## Caveats", "",
         *(f"- {c}" for c in caveats(task, ctx)), "",
         "## Training", "",
