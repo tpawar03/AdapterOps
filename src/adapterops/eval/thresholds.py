@@ -50,8 +50,10 @@ def _shown(path: Path) -> str:
 
 MULTIPLIER = 3.0
 """A stated choice: three times the larger measured spread. With two runs a spread is a single
-range rather than a variance estimate, and three ranges is a conservative margin over it. It is
-recorded in every derivation so it can be argued with."""
+range rather than a variance estimate, and three ranges is a conservative margin over it. Three or
+more runs give a range and a standard deviation, both recorded, and the multiplier stays 3 until a
+decision says otherwise — a wider measurement should not quietly loosen the gate. It is recorded in
+every derivation so it can be argued with."""
 
 
 def training_spreads() -> dict[tuple[str, str], dict]:
@@ -70,10 +72,13 @@ def training_spreads() -> dict[tuple[str, str], dict]:
         for task, splits in record.get("per_task", {}).items():
             for split, row in splits.items():
                 # Intent's own record wins where both exist: it is the measurement D37 was built on.
+                runs = int(row.get("runs", 2))
                 out.setdefault((task, split), {
                     "spread": float(row["spread"]),
-                    "source": f"{_shown(TRAINING_RUN)} — the served adapter and a second training "
-                              "run, regression-scored in one session",
+                    "runs": runs,
+                    "stdev": row.get("stdev"),
+                    "source": f"{_shown(TRAINING_RUN)} — {runs} training runs of one "
+                              "configuration, regression-scored in one session",
                 })
     return out
 
@@ -111,6 +116,9 @@ def derive(run_a: dict, run_b: dict, training: dict | None = None,
                                 if train_spread is None else "enforceable")}
             if measured:
                 row["training_source"] = measured["source"]
+                row["training_runs"] = measured.get("runs")
+                if measured.get("stdev") is not None:
+                    row["training_stdev"] = measured["stdev"]
             out.setdefault(task, {})[split] = row
     return {"multiplier": multiplier, "per_task": out}
 

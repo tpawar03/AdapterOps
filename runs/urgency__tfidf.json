@@ -1,0 +1,50 @@
+{
+  "question": "Should urgency be served by TF-IDF instead of the adapter?",
+  "rule_written_before_scoring": "Serve TF-IDF for urgency instead of the adapter only if its golden macro F1 exceeds the served adapter's by more than urgency's enforced gate threshold, and its hard-split macro F1 is not below the adapter's by more than that threshold. Latency, model size and the CC BY-NC training data are reported either way; the licence does not change, since both models learn from the same dataset.",
+  "configuration": {
+    "vectorizer": "word 1-2 grams, min_df 2, sublinear tf",
+    "classifier": "logistic regression, balanced class weights",
+    "seed": 20260909,
+    "training_rows": 9879,
+    "fit_seconds": 2.4
+  },
+  "cross_validation_on_training_split": {
+    "folds": 5,
+    "macro_f1_mean": 0.5292,
+    "macro_f1_min": 0.5268,
+    "macro_f1_max": 0.5356
+  },
+  "tfidf": {
+    "random": {
+      "n": 300,
+      "micro_accuracy": 0.54,
+      "macro_f1": 0.54,
+      "ms_per_text": 0.057
+    },
+    "hard": {
+      "n": 150,
+      "micro_accuracy": 0.48,
+      "macro_f1": 0.4496,
+      "ms_per_text": 0.074
+    }
+  },
+  "adapter_same_session": {
+    "run": "runs/regression__a10-v7-pii-served.json",
+    "random": 0.4212,
+    "hard": 0.0135
+  },
+  "shared_failure_items": {
+    "n": 180,
+    "tfidf": 0.4442,
+    "adapter": 0.3332,
+    "source": "evals/hard/shared_failures.parquet, urgency rows"
+  },
+  "decision": {
+    "gate_threshold": 0.0381,
+    "golden_gain": 0.1188,
+    "hard_change": 0.4361,
+    "beats_adapter_on_golden_by_more_than_the_gate": true,
+    "not_worse_on_hard_than_the_gate_allows": true,
+    "serve_tfidf_for_urgency": true
+  }
+}

@@ -1,7 +1,7 @@
 {
-  "version": 7,
-  "note": "PII retrained on realistic formats (Nemotron-PII added): TAB leaks 14.31% -> 8.32% (CI -0.0897 to -0.0323), golden strict F1 unchanged at 0.9421",
-  "pins": "manifests/candidates/pii-realistic.json",
+  "version": 6,
+  "note": "PII adapter retrained with PII-free sentences and empty answers (D50): Hub revision e0bde68f, weights sha256 fec1371a, byte-identical to the checkpoint regression-scored beside v5's adapter in one session (runs/regression__a10-v5-pii-negatives.json). PII-free texts with a reported span 928 -> 5 of 928, 491 -> 0 held out; strict span F1 0.9470 -> 0.9442, inside the 0.0081 gate.",
+  "pins": "manifests/candidates/pii-negatives.json",
   "components": {
     "base_model": {
       "repo": "Qwen/Qwen2.5-1.5B-Instruct",
@@ -27,10 +27,10 @@
       },
       "pii": {
         "repo": "Tanny03/adapterops-pii",
-        "revision": "5315b1dcd98663c2ce7292299cff2e511639480a",
+        "revision": "e0bde68fb34693d10611e6888eb50c78825c86c7",
         "weight_file": "adapter_model.safetensors",
-        "weight_sha256": "66631c40fcc17994add175efbcba4fa3bf087e88371d91dc8f9e3efefe783432",
-        "last_modified": "2026-09-16 06:56:02+00:00",
+        "weight_sha256": "fec1371a12133f244042718c71c45d9866da35a11cca1e14f8bb5fd32d286551",
+        "last_modified": "2026-09-15 00:23:50+00:00",
         "candidate_of": "Tanny03/adapterops-pii"
       },
       "drafting": {
@@ -152,12 +152,12 @@
       "sha256": "8153037b3d6daf2120571d1ff1191e2f82a9dd8b241555157a3444fb9f7b4682"
     }
   },
-  "promoted_over": 6,
+  "promoted_over": 5,
   "diff_from_previous": {
     "changed": {
       "components.adapters.pii": {
-        "from": "e0bde68fb34693d10611e6888eb50c78825c86c7",
-        "to": "5315b1dcd98663c2ce7292299cff2e511639480a"
+        "from": "3b38a28479215897ab927f00b78da99a57813469",
+        "to": "e0bde68fb34693d10611e6888eb50c78825c86c7"
       }
     },
     "eval_splits_moved": []

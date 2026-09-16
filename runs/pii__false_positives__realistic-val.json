@@ -1,0 +1,105 @@
+{
+  "question": "How often does the PII adapter report personal data in text that has none?",
+  "set": {
+    "name": "ai4privacy_val",
+    "file": "evals/pii_negatives/ai4privacy_val_sentences.parquet",
+    "sha256": "48a8ca994aa5bcb944f8e8adaf7190cddbf1a22739d55a53fa4ddd6dd46e0e1d",
+    "texts": 491,
+    "limit_per_source": null
+  },
+  "adapter": {
+    "adapter": "checkpoints/pii-realistic",
+    "revision": null,
+    "manifest_version": null,
+    "device": "mps",
+    "batch": 16,
+    "max_new_tokens": 384,
+    "seconds": 39.5,
+    "all": {
+      "texts": 491,
+      "texts_with_any_line": 4,
+      "false_positive_rate": 0.0081,
+      "texts_with_grounded_span": 1,
+      "grounded_rate": 0.002,
+      "texts_with_invented_value": 3,
+      "lines": 4,
+      "lines_per_flagged_text": 1.0,
+      "labels": {
+        "AGE": 3,
+        "GIVENNAME": 1
+      }
+    },
+    "per_source": {
+      "ai4privacy_val": {
+        "texts": 491,
+        "texts_with_any_line": 4,
+        "false_positive_rate": 0.0081,
+        "texts_with_grounded_span": 1,
+        "grounded_rate": 0.002,
+        "texts_with_invented_value": 3,
+        "lines": 4,
+        "lines_per_flagged_text": 1.0,
+        "labels": {
+          "AGE": 3,
+          "GIVENNAME": 1
+        }
+      }
+    }
+  },
+  "baseline": {
+    "name": "regex only \u2014 spaCy model not installed",
+    "all": {
+      "texts": 491,
+      "texts_with_any_line": 2,
+      "false_positive_rate": 0.0041,
+      "texts_with_grounded_span": 2,
+      "grounded_rate": 0.0041,
+      "texts_with_invented_value": 0,
+      "lines": 2,
+      "lines_per_flagged_text": 1.0,
+      "labels": {
+        "SEX": 1,
+        "TITLE": 1
+      }
+    },
+    "per_source": {
+      "ai4privacy_val": {
+        "texts": 491,
+        "texts_with_any_line": 2,
+        "false_positive_rate": 0.0041,
+        "texts_with_grounded_span": 2,
+        "grounded_rate": 0.0041,
+        "texts_with_invented_value": 0,
+        "lines": 2,
+        "lines_per_flagged_text": 1.0,
+        "labels": {
+          "SEX": 1,
+          "TITLE": 1
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "source": "ai4privacy_val",
+      "text": "The expedition will span ten days of pristine snow\u2011capped landscapes and spectacular aurora sightings.",
+      "output": "AGE: 10"
+    },
+    {
+      "source": "ai4privacy_val",
+      "text": "The document also outlines the encryption methods applied to the collected data and the retention period of five years after project completion.",
+      "output": "AGE: 5"
+    },
+    {
+      "source": "ai4privacy_val",
+      "text": "DM for samples.",
+      "output": "GIVENNAME: DM"
+    },
+    {
+      "source": "ai4privacy_val",
+      "text": "We recommend extending the monitoring period by six months to fully capture seasonal variations and to assess the long\u2011term stability of these symbiotic relationships.",
+      "output": "AGE: 6"
+    }
+  ],
+  "notes": "Every emitted line is a false positive on this set. A grounded span's value occurs in the text; an invented value does not. Generated on this machine with the serving prompt and token cap, greedy, so exact outputs can differ from vLLM's."
+}

@@ -1,7 +1,8 @@
 {
-  "purpose": "Pinned component revisions (F16). Serving and evaluation resolve adapters through this file, never through `main`.",
-  "why": "changelog 29 \u2014 a stale clone force-pushed over a published adapter's main, and the recorded score then described weights nobody was serving.",
-  "verify": "uv run adapterops verify-pins",
+  "purpose": "Candidate pin set \u2014 the pinned system with one adapter swapped. Served with PINS=<this file> for M7 (regressed adapter) or M11 (under-trained).",
+  "candidate": "pii-realistic",
+  "replaces": "pii",
+  "base_pins": "manifests/adapters.json",
   "components": {
     "base_model": {
       "repo": "Qwen/Qwen2.5-1.5B-Instruct",
@@ -30,11 +31,7 @@
       "weight_file": "adapter_model.safetensors",
       "weight_sha256": "66631c40fcc17994add175efbcba4fa3bf087e88371d91dc8f9e3efefe783432",
       "last_modified": "2026-09-16 06:56:02+00:00",
-      "replaces": {
-        "revision": "e0bde68fb34693d10611e6888eb50c78825c86c7",
-        "weight_sha256": "fec1371a12133f244042718c71c45d9866da35a11cca1e14f8bb5fd32d286551"
-      },
-      "note": "Retrained with Nemotron-PII's realistic formats added to D50's mix (TODO.md \u00a72), promoted in manifest v7. These weights are byte-identical to checkpoints/pii-realistic, the checkpoint regression-scored in runs/regression__a10-v7-pii-realistic.json, verified against the Hub LFS digest after upload."
+      "candidate_of": "Tanny03/adapterops-pii"
     },
     "drafting": {
       "repo": "Tanny03/adapterops-drafting",

@@ -97,6 +97,10 @@ class TrainConfig:
     too few to have converged — that is the point."""
     output_dir: str = "checkpoints/intent"
     hub_repo: str | None = None          # e.g. "tpawar03/adapterops-intent"
+    seed: int = SEED
+    """Seed for the row subsample and the Trainer. Two runs at one seed differ only by
+    nondeterminism and library drift; the gate cares about an equivalent retrain, so the
+    variance runs (F33) vary this and everything else stays fixed."""
     train_split: str = "train"
     """Which frozen training split to read. `train_shuffled` is F21's deliberately broken
     variant — intent labels permuted across rows, texts untouched. Validation always uses
@@ -114,14 +118,15 @@ def text_column(task: str) -> str:
     return COLUMNS[task][0]
 
 
-def load_split(task: str, split: str, subsample: int | None = None) -> pd.DataFrame:
+def load_split(task: str, split: str, subsample: int | None = None,
+               seed: int = SEED) -> pd.DataFrame:
     path = REPO_ROOT / f"data/{task}/split_{split}.parquet"
     if not path.exists():
         msg = f"{path} missing — run `uv run adapterops splits` first"
         raise FileNotFoundError(msg)
     df = pd.read_parquet(path)
     if subsample is not None and len(df) > subsample:
-        df = df.sample(n=subsample, random_state=SEED).reset_index(drop=True)
+        df = df.sample(n=subsample, random_state=seed).reset_index(drop=True)
     return df
 
 
@@ -225,7 +230,8 @@ def train(cfg: TrainConfig) -> dict:
         return {"input_ids": input_ids, "labels": labels, "attention_mask": attention}
 
     train_ds = Dataset.from_list(
-        format_examples(load_split(cfg.task, cfg.train_split, cfg.train_subsample), cfg.task))
+        format_examples(load_split(cfg.task, cfg.train_split, cfg.train_subsample, cfg.seed),
+                        cfg.task))
     val_ds = Dataset.from_list(format_examples(load_split(cfg.task, "val"), cfg.task))
     train_ds = train_ds.map(encode, batched=True, remove_columns=["prompt", "completion"])
     val_ds = val_ds.map(encode, batched=True, remove_columns=["prompt", "completion"])
@@ -304,7 +310,8 @@ def train(cfg: TrainConfig) -> dict:
         **precision,
         "optim": "paged_adamw_8bit",
         "report_to": cfg.report_to,
-        "seed": SEED,
+        "seed": cfg.seed,
+        "data_seed": cfg.seed,
     }
     # Fail with something actionable rather than a bare TypeError halfway through a
     # rented GPU session, the way `warmup_ratio` did.
@@ -342,7 +349,7 @@ def train(cfg: TrainConfig) -> dict:
         "best_eval_loss": trainer.state.best_metric,
         "prompt_tokens_masked": True,
         "m11_undertrained_dir": str(early_dir.relative_to(REPO_ROOT)),
-        "seed": SEED,
+        "seed": cfg.seed,
         # The configuration as run, not as defaulted: PII's served adapter came from overrides
         # (8,000 rows, 3 epochs) that TASK_CONFIGS does not hold, and a repeat has to match it.
         "epochs": cfg.epochs,

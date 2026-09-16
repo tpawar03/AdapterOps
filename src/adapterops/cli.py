@@ -123,6 +123,12 @@ def _cmd_pii_realistic_split(args: argparse.Namespace) -> int:
     return split_main(force=args.force)
 
 
+def _cmd_urgency_tfidf(_: argparse.Namespace) -> int:
+    from adapterops.eval.urgency_tfidf import main as tfidf_main
+
+    return tfidf_main()
+
+
 def _cmd_hard_shared(_: argparse.Namespace) -> int:
     from adapterops.eval.shared_hard import main as shared_main
 
@@ -168,8 +174,10 @@ def _cmd_pii_negatives_split(args: argparse.Namespace) -> int:
 def _cmd_training_variance(args: argparse.Namespace) -> int:
     from adapterops.eval.training_variance import main as variance_main
 
-    return variance_main(original=args.original, rerun=args.rerun, tasks=args.tasks,
-                         force=args.force)
+    runs = args.runs or [args.original, args.rerun]
+    if not all(runs):
+        raise SystemExit("pass --runs A B [C ...], or --original and --rerun")
+    return variance_main(runs=runs, tasks=args.tasks, force=args.force)
 
 
 def _cmd_request_path_run(args: argparse.Namespace) -> int:
@@ -325,7 +333,10 @@ def _cmd_dashboard(_: argparse.Namespace) -> int:
 def _cmd_train(args: argparse.Namespace) -> int:
     from adapterops.train.qlora import config_for, train
 
-    cfg = config_for(args.task, hub_repo=args.hub_repo)
+    overrides = {"hub_repo": args.hub_repo}
+    if args.seed is not None:
+        overrides |= {"seed": args.seed, "output_dir": f"checkpoints/{args.task}-seed{args.seed}"}
+    cfg = config_for(args.task, **overrides)
     summary = train(cfg)
     print(json.dumps(summary, indent=2))
     return 0
@@ -509,9 +520,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_dt.set_defaults(func=_cmd_derive_thresholds)
 
     p_tv = sub.add_parser("training-variance",
-                          help="training spread from a served-adapter run and a rerun (F33, D37)")
-    p_tv.add_argument("--original", required=True, help="regression run of the served adapters")
-    p_tv.add_argument("--rerun", required=True, help="regression run of the retrained adapters")
+                          help="training spread across two or more runs of one configuration (F33, D37)")
+    p_tv.add_argument("--runs", nargs="+", help="two or more regression runs of the same "
+                      "configuration, scored in one session")
+    p_tv.add_argument("--original", help="regression run of the served adapters (with --rerun)")
+    p_tv.add_argument("--rerun", help="regression run of the retrained adapters")
     p_tv.add_argument("--tasks", nargs="+", required=True,
                       choices=["intent", "urgency", "pii", "drafting"])
     p_tv.add_argument("--force", action="store_true", help="replace a measured variance")
@@ -563,6 +576,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_hs = sub.add_parser("hard-shared",
                           help="mine a hard split from never-gated systems' failures; re-run M11's check on it")
     p_hs.set_defaults(func=_cmd_hard_shared)
+
+    p_ut = sub.add_parser("urgency-tfidf",
+                          help="TF-IDF urgency against the served adapter, under a frozen rule")
+    p_ut.set_defaults(func=_cmd_urgency_tfidf)
 
     p_pr = sub.add_parser("pii-realistic",
                           help="served PII adapter on Nemotron-PII formats and real TAB court text (local)")

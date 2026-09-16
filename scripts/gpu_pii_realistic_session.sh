@@ -4,8 +4,13 @@
 # before this runs).
 #
 # Commit and push data/pii/split_train_realistic.parquet and its .json first, then on the rented A10 from the
-# repository root, set up as for gpu_pii_negatives_session.sh (uv sync --extra gpu, uv pip install vllm==0.29.0):
+# repository root: uv sync --extra gpu, then UV_NO_SYNC=1 uv pip install vllm==0.29.0 (which pins
+# torch==2.13.0 and torchvision==0.28.0). Do NOT install flashinfer-cubin: no release matches
+# flashinfer 0.6.18, and a mismatched one fails vLLM's engine start —
+#     UV_NO_SYNC=1 uv pip uninstall flashinfer-cubin
+# Any bare `uv run` re-syncs the lockfile and breaks the pinned torch, so keep UV_NO_SYNC=1 set.
 #     source .venv/bin/activate && bash scripts/gpu_pii_realistic_session.sh
+# SKIP_TRAIN=1 resumes after a failed serving step without retraining.
 #
 # What it does, in order, stopping at the first failure:
 #   1. Refuse to start unless the frozen split matches its recorded sha256, vLLM is 0.29.0 and the
@@ -98,11 +103,18 @@ echo "== 1. pins"
 uv run adapterops verify-pins
 
 echo "== 2. training PII with realistic formats"
-start=$SECONDS
-python -m adapterops.train.cli_train --task pii --train-split train_realistic --variant realistic \
-  --subsample 100000 --epochs 3 2>&1 | tee runs/logs/train-pii-realistic.log
-test -f checkpoints/pii-realistic/adapter_model.safetensors || { echo "no adapter written" >&2; exit 1; }
-echo "---- trained in $(( (SECONDS - start) / 60 )) min"
+# SKIP_TRAIN=1 resumes a session whose training finished but whose serving failed — vLLM's
+# flashinfer-cubin mismatch stopped the first run here, and retraining costs two hours.
+if [[ -n "${SKIP_TRAIN:-}" ]]; then
+  test -f checkpoints/pii-realistic/adapter_model.safetensors || { echo "SKIP_TRAIN set but no adapter in checkpoints/pii-realistic" >&2; exit 1; }
+  echo "  skipped: using the adapter already in checkpoints/pii-realistic"
+else
+  start=$SECONDS
+  python -m adapterops.train.cli_train --task pii --train-split train_realistic --variant realistic \
+    --subsample 100000 --epochs 3 2>&1 | tee runs/logs/train-pii-realistic.log
+  test -f checkpoints/pii-realistic/adapter_model.safetensors || { echo "no adapter written" >&2; exit 1; }
+  echo "---- trained in $(( (SECONDS - start) / 60 )) min"
+fi
 wait_gpu_free
 
 echo "== 3. served adapters: vLLM and a regression run ($NAME-served)"

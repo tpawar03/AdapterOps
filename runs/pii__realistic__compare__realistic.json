@@ -1,0 +1,27 @@
+{
+  "candidate": "realistic",
+  "sources": {
+    "tab": {
+      "served_wholly_unmasked": 0.1431,
+      "candidate_wholly_unmasked": 0.0832,
+      "difference": -0.06,
+      "ci95": [
+        -0.0897,
+        -0.0323
+      ],
+      "resamples": 10000
+    },
+    "nemotron": {
+      "served_wholly_unmasked": 0.2831,
+      "candidate_wholly_unmasked": 0.0399,
+      "difference": -0.2432,
+      "ci95": [
+        -0.2846,
+        -0.2
+      ],
+      "resamples": 10000
+    }
+  },
+  "tab_leak_falls": true,
+  "note": "TAB decides: it is real text and never trained on. Nemotron-PII's sample shares the new training data's distribution, so its fall is reported, not decisive."
+}

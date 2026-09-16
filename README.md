@@ -59,12 +59,14 @@ file or Langfuse.
 ## Results
 
 Every number comes from a committed run: most are rendered in [`runs/DASHBOARD.md`](runs/DASHBOARD.md), and the
-realistic-format PII and rebuilt hard-split rows come from `runs/pii__realistic.json` and `runs/hard__shared.json`.
+realistic-format PII and rebuilt hard-split rows come from `runs/pii__realistic.json`,
+`runs/pii__realistic__realistic.json`, `runs/pii__realistic__compare__realistic.json` and
+`runs/hard__shared.json`.
 
 | Question | Answer |
 |---|---|
 | Does fine-tuning beat prompting the same base? | On three of four tasks, on one vLLM server: intent 0.929 vs 0.573 accuracy (77 classes), PII span F1 0.946 vs 0.570 (on its own synthetic test set — see the next rows), drafting 4.24 vs 2.86 (GPT-4o-graded). Urgency's 0.410 vs 0.396 macro-F1 is inside its own run-to-run spread, and TF-IDF beats both (0.55): the adapter is served today only to keep one interface, and trying pre-registered fixes or serving TF-IDF for urgency is queued in `TODO.md`. |
-| Does PII masking hold on text unlike its training data? | No. On 200 Nemotron-PII texts in realistic US and international formats, the served adapter leaves 28.3% of the personal-data spans it covers wholly unmasked, and 14.3% on 200 real court-judgment paragraphs (TAB), against 0.79% on its golden set; the request path's pattern guard brings that to 17.8% and 12.4%. What it masks is almost always personal data (98.7%, 93.6%). It misses confidently, so confidence routing escalates none of the 219 leaking texts. A retrain on realistic formats is queued. |
+| Does PII masking hold on text unlike its training data? | Not at first, and retraining fixed most of it. Manifest v6's adapter left 28.3% of the spans it covers wholly unmasked on 200 Nemotron-PII texts in realistic US and international formats, and 14.3% on 200 real court-judgment paragraphs (TAB), against 0.79% on its golden set. Retrained with Nemotron-PII documents added and promoted as manifest v7, it leaves **3.99%** and **8.32%** (TAB change −0.060, 95% CI −0.0897 to −0.0323), with golden span F1 unchanged in the same session (0.9421) — the rule for that swap was frozen before training. What it masks is almost always personal data (99.0%, 94.0%). It still misses confidently: confidence routing escalates none of the 148 texts that leak. |
 | Can four adapters share one GPU? | 5,800 requests at concurrency 16 on one A10, 0 errors, 23.6 req/s. The A10's ceiling is ~104 req/s at concurrency 256 (P95 7.8 s), and 15 minutes at concurrency 32 held 43 req/s with no errors. |
 | When should a request escalate to GPT-4o-mini? | On the adapter's own confidence: 57% of the oracle's gain at 20% escalation. The learned DeBERTa router scores −19% — worse than never escalating — and three pre-registered fixes also lost. |
 | Does the offline routing hold on the live request path? | On the curve's own pairs, yes: through vLLM on the A10, 20–21% of pairs escalated against the curve's 19.9% at every concurrency up to 256 and in every minute of a 15-minute sustained run, and the shifted population escalated 18.4% against 19.3% recorded. Its throughput matches vLLM's own within 1.5% at every concurrency. A full regression run took 75 s. |
@@ -80,7 +82,8 @@ realistic-format PII and rebuilt hard-split rows come from `runs/pii__realistic.
 Each limitation below, and the others recorded in `STATUS.md`, is queued as work in [`TODO.md`](TODO.md).
 
 - **The system is not shown to generalise beyond its four training datasets, and PII measurably does not.**
-  PII is the one task tested on outside text, and it leaks 14–28% of spans there (Results). Each adapter learned one
+  PII is the one task tested on outside text, and it still leaks 4–8% of spans there after a retrain aimed at it
+  (Results). Each adapter learned one
   public dataset's task and domain — banking queries with 77 fixed intent labels, IT support tickets,
   synthetic personal-data documents, templated retail replies — and every score is on held-out data from the
   same dataset. The router's threshold was calibrated on those tasks, and its shift test varies wording and
@@ -95,12 +98,13 @@ Each limitation below, and the others recorded in `STATUS.md`, is queued as work
 - **PII's false positives were fixed by retraining, and one number still describes the old adapter.** The
   original PII adapter reported personal data in all 928 PII-free test texts — invented values such as
   `GIVENNAME: John` in 87% — because no training document was free of PII. Retrained with PII-free sentences
-  and empty answers, the adapter served since manifest v6 flags 5 of those 928 and none of 491 held-out
-  sentences, with span F1 inside its gate (0.9442 against 0.9470). Strictly, it gets every span right in
-  70% of golden documents, but masks all their personal text in 84%: most errors are confusable ID-number or
+  and empty answers, manifest v6's adapter flagged 5 of those 928 and none of 491 held-out
+  sentences. The adapter served since manifest v7, retrained on realistic formats as well, flags 4 and 4 —
+  a small regression on the held-out sentences — with golden span F1 unchanged in-session (0.9421).
+  Strictly, it gets every span right in 72% of golden documents, but masks all their personal text in 87%: most errors are confusable ID-number or
   gender/sex labels and names split differently — which the dataset's own text cannot decide, so runs also
-  report a grouped span F1 (0.986) — and 0.8% of gold spans are left wholly unmasked. The router's PII decisions were
-  re-checked with it and did not change; PII's training spread was measured on the previous adapter.
+  report a grouped span F1 (0.986) — and 1.1% of gold spans are left wholly unmasked. The router's PII decisions were
+  re-checked with manifest v6's adapter and did not change; PII's training spread was measured on the previous adapter.
 - **PRD §7's 500 ms P95 is missed for PII (2,259 ms) and drafting (3,000 ms)**, the two tasks that
   generate long outputs; intent (136 ms) and urgency (60 ms) meet it. The router's decision is
   inside its 50 ms budget on CPU (P95 24.9 ms per pair).

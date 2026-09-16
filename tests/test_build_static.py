@@ -23,13 +23,13 @@ def test_every_golden_item_is_published_once(payload):
     assert counts == {"intent": 770, "urgency": 300, "pii": 300, "drafting": 300}
 
 
-def test_pii_shows_the_adapter_manifest_v6_serves(payload):
+def test_pii_shows_the_adapter_manifest_v7_serves(payload):
     pii = payload["tasks"]["pii"]
-    assert "manifest v6" in pii["caption"] and "a10-v5-pii-negatives" in pii["caption"]
+    assert "manifest v7" in pii["caption"] and "a10-v7-pii-realistic" in pii["caption"]
     stats = {s["label"]: s for s in pii["summary"]}
     flagged = stats["Adapter · PII-free texts it flags"]
-    assert flagged["value"] == "5 of 928" and "928 of 928" in flagged["note"]
-    served = json.loads((ROOT / "runs" / "regression__a10-v5-pii-negatives.json").read_text())
+    assert flagged["value"] == "4 of 928" and "5 of 928" in flagged["note"]
+    served = json.loads((ROOT / "runs" / "regression__a10-v7-pii-realistic.json").read_text())
     assert stats["Adapter · strict span F1"]["value"] == (
         f"{served['per_split']['pii']['random']['span_f1_strict']:.4f}")
 

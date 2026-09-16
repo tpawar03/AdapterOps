@@ -69,13 +69,13 @@ def load() -> dict:
         "ceiling": _json("runs/frontier__golden.json"),
         "ceiling_drafting": _json("runs/drafting__m2_gpt4o__frontier.json"),
         "train_rows": {t: _dig(_json(p), keys) for t, (p, keys) in TRAIN_ROWS.items()},
-        # PII since manifest v6 (D50): scored beside the adapter it replaced, in one session.
-        "pii_v6": _json("runs/regression__a10-v5-pii-negatives.json"),
-        "pii_previous": _json("runs/regression__a10-v5-pii-original.json"),
-        "fp": _json("runs/pii__false_positives__negatives.json"),
-        "fp_previous": _json("runs/pii__false_positives.json"),
-        "fp_val": _json("runs/pii__false_positives__negatives-val.json"),
-        "fp_val_previous": _json("runs/pii__false_positives__served-val.json"),
+        # PII since manifest v7: scored beside the adapter it replaced, in one session.
+        "pii_served": _json("runs/regression__a10-v7-pii-realistic.json"),
+        "pii_previous": _json("runs/regression__a10-v7-pii-served.json"),
+        "fp": _json("runs/pii__false_positives__realistic.json"),
+        "fp_previous": _json("runs/pii__false_positives__negatives.json"),
+        "fp_val": _json("runs/pii__false_positives__realistic-val.json"),
+        "fp_val_previous": _json("runs/pii__false_positives__negatives-val.json"),
     }
 
 
@@ -121,9 +121,9 @@ def _f(v: float | None) -> str:
 
 
 def pii_rows(ctx: dict) -> list[str] | None:
-    """PII's rows since manifest v6: the served adapter beside the one it replaced, in one session, plus
+    """PII's rows since manifest v7: the served adapter beside the one it replaced, in one session, plus
     the false-positive rates that motivated the change. None when those runs are absent."""
-    now_run, before_run = ctx.get("pii_v6"), ctx.get("pii_previous")
+    now_run, before_run = ctx.get("pii_served"), ctx.get("pii_previous")
     if not now_run or not before_run:
         return None
     metric = GATED["pii"]

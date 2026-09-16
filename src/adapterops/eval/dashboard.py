@@ -58,6 +58,11 @@ INPUTS = {
     "pii_negatives_val_candidate": "runs/pii__false_positives__negatives-val.json",
     "pii_v6_regression": "runs/regression__a10-v5-pii-negatives.json",
     "pii_v5_same_session": "runs/regression__a10-v5-pii-original.json",
+    "pii_v7_regression": "runs/regression__a10-v7-pii-realistic.json",
+    "pii_v6_same_session": "runs/regression__a10-v7-pii-served.json",
+    "pii_fp_v7": "runs/pii__false_positives__realistic.json",
+    "pii_fp_val_v7": "runs/pii__false_positives__realistic-val.json",
+    "pii_realistic_compare": "runs/pii__realistic__compare__realistic.json",
 }
 HISTORY_GLOB = "manifests/history/system-*.json"
 OPERATING_BUDGET = 0.2
@@ -180,22 +185,29 @@ def frontier_rows(data: dict) -> list[str]:
          "Every training and golden document contained PII (D21), so the adapter never learned an "
          "empty answer. `runs/pii__false_positives.json`"),
         "",
-        (f"**Served since manifest v6: the adapter retrained with PII-free sentences (D50).** It flags "
-         f"**{data['pii_negatives_candidate']['adapter']['all']['texts_with_any_line']}** "
-         f"of the same {data['pii_negatives_candidate']['adapter']['all']['texts']:,} texts, and "
-         f"**{data['pii_negatives_val_candidate']['adapter']['all']['texts_with_any_line']}** of "
-         f"{data['pii_negatives_val_candidate']['adapter']['all']['texts']} held-out ai4privacy sentences "
-         f"against the previous adapter's "
-         f"{data['pii_negatives_val_served']['adapter']['all']['texts_with_any_line']}. Scored beside the "
-         "previous adapter in one session, its strict span F1 is "
-         f"{data['pii_v6_regression']['per_split']['pii']['random']['span_f1_strict']:.4f} against "
-         f"{data['pii_v5_same_session']['per_split']['pii']['random']['span_f1_strict']:.4f}. For "
-         "redaction, "
-         f"{data['pii_v6_regression']['per_split']['pii']['random']['docs_fully_masked']:.1%} of golden "
-         "documents have all their personal text masked and "
-         f"{data['pii_v6_regression']['per_split']['pii']['random']['gold_spans_wholly_unmasked']:.2%} of "
-         "gold spans are left wholly unmasked. The PII rows in the tables above are the previous adapter's "
-         "baseline runs."),
+        (f"**Served since manifest v7: the adapter retrained on realistic formats.** It flags "
+         f"**{data['pii_fp_v7']['adapter']['all']['texts_with_any_line']}** of the same "
+         f"{data['pii_fp_v7']['adapter']['all']['texts']:,} texts and "
+         f"**{data['pii_fp_val_v7']['adapter']['all']['texts_with_any_line']}** of "
+         f"{data['pii_fp_val_v7']['adapter']['all']['texts']} held-out ai4privacy sentences, against the "
+         "adapter it replaced (manifest v6): "
+         f"{data['pii_negatives_candidate']['adapter']['all']['texts_with_any_line']} and "
+         f"{data['pii_negatives_val_candidate']['adapter']['all']['texts_with_any_line']}. Scored beside it "
+         "in one session, its strict span F1 is "
+         f"{data['pii_v7_regression']['per_split']['pii']['random']['span_f1_strict']:.4f} against "
+         f"{data['pii_v6_same_session']['per_split']['pii']['random']['span_f1_strict']:.4f}, with "
+         f"{data['pii_v7_regression']['per_split']['pii']['random']['docs_fully_masked']:.1%} of golden "
+         "documents fully masked and "
+         f"{data['pii_v7_regression']['per_split']['pii']['random']['gold_spans_wholly_unmasked']:.2%} of "
+         "gold spans wholly unmasked. **On text it was never trained on** — 200 real court paragraphs "
+         "(TAB) — spans left wholly unmasked fall "
+         f"{data['pii_realistic_compare']['sources']['tab']['served_wholly_unmasked']:.2%} to "
+         f"**{data['pii_realistic_compare']['sources']['tab']['candidate_wholly_unmasked']:.2%}** "
+         f"(95% CI {data['pii_realistic_compare']['sources']['tab']['ci95'][0]:+.4f} to "
+         f"{data['pii_realistic_compare']['sources']['tab']['ci95'][1]:+.4f}), and on Nemotron-PII's "
+         f"formats {data['pii_realistic_compare']['sources']['nemotron']['served_wholly_unmasked']:.2%} to "
+         f"{data['pii_realistic_compare']['sources']['nemotron']['candidate_wholly_unmasked']:.2%}. "
+         "The PII rows in the tables above are the first adapter's baseline runs."),
     ]
     return [*lines, ""]
 

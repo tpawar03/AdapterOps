@@ -66,3 +66,29 @@ def test_nemotron_sample_fills_each_cell_and_marks_scope():
     assert len(sample) == pr.PER_SOURCE and sample.stratum.value_counts().eq(pr.PER_SOURCE // 4).all()
     assert "none" not in set(sample.id)
     assert [g["scope"] for g in json.loads(sample.gold.iloc[0])] == ["in", "out"]
+
+
+def test_compare_reads_both_runs_and_decides_on_tab(tmp_path, monkeypatch, capsys):
+    import json as js
+
+    def rows(source, prediction):
+        text = "Call Dana Reyes at 555-0100 today."
+        gold = js.dumps([{"start": 5, "end": 15, "label": "first_name", "scope": "in"},
+                         {"start": 19, "end": 27, "label": "phone_number", "scope": "in"}])
+        return {"source": source, "text": text, "gold": gold, "prediction": prediction,
+                "mean_logprob": -0.01}
+
+    served = pd.DataFrame([rows("tab", "GIVENNAME: Dana Reyes")] * 40 + [rows("nemotron", "")] * 10)
+    candidate = pd.DataFrame([rows("tab", "GIVENNAME: Dana Reyes\nTELEPHONENUM: 555-0100")] * 40
+                             + [rows("nemotron", "")] * 10)
+    served.to_parquet(tmp_path / "served.parquet", index=False)
+    candidate.to_parquet(tmp_path / "cand.parquet", index=False)
+    monkeypatch.setattr(pr, "paths", lambda name=None: (
+        tmp_path / ("cand.parquet" if name else "served.parquet"), tmp_path / f"{name}.json"))
+    monkeypatch.setattr(pr, "REPO_ROOT", tmp_path)
+
+    assert pr.compare("realistic") == 0
+    result = js.loads((tmp_path / "runs" / "pii__realistic__compare__realistic.json").read_text())
+    tab = result["sources"]["tab"]
+    assert tab["served_wholly_unmasked"] == 0.5 and tab["candidate_wholly_unmasked"] == 0.0
+    assert tab["ci95"][1] < 0 and result["tab_leak_falls"] is True

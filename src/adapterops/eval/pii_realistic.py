@@ -295,6 +295,7 @@ def compare(candidate: str) -> int:
     result["note"] = ("TAB decides: it is real text and never trained on. Nemotron-PII's sample shares the new "
                       "training data's distribution, so its fall is reported, not decisive.")
     out = REPO_ROOT / "runs" / f"pii__realistic__compare__{candidate}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     for source, r in result["sources"].items():
         print(f"  {source:8s} wholly unmasked {r['served_wholly_unmasked']} → {r['candidate_wholly_unmasked']} "

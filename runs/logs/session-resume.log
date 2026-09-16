@@ -1,0 +1,39 @@
+  split verified: {'document': 8000, 'nemotron_document': 4000, 'positive_sentence': 2955, 'negative_sentence': 2955}
+== 1. pins
+  ok base_model  ok                       pinned 989aa798 head 989aa798
+  !! intent      main_moved_same_weights  pinned a7eb75ec head 19b7e223
+  !! urgency     main_moved_same_weights  pinned 53d1006e head 26a15541
+  !! pii         main_moved_same_weights  pinned e0bde68f head 568ba913
+  !! drafting    main_moved_same_weights  pinned 3778c895 head f7e0e286
+
+  `main` has moved past a pin, but the weights are identical — a README or config
+  commit such as a model card. What is served is unchanged.
+== 2. training PII with realistic formats
+  skipped: using the adapter already in checkpoints/pii-realistic
+  GPU free (0 MiB in use)
+== 3. served adapters: vLLM and a regression run (a10-v7-pii-served)
+  vLLM is up
+  intent    micro_accuracy     random 0.9299  hard 0.0  · drop -0.0013
+  urgency   macro_f1           random 0.4212  hard 0.0135  · drop -0.0116
+  pii       span_f1_strict     random 0.9421  hard 0.8775  · drop 0.0041
+  drafting  judge_score_mean   random None  hard None  · drop None
+
+  wrote runs/regression__a10-v7-pii-served.json
+  GPU free (0 MiB in use)
+== 4. retrained PII adapter: vLLM from local pins and a regression run (a10-v7-pii-realistic)
+  pins: _adapters/pii-realistic-pins.json — pii=local
+  vLLM with the retrained PII adapter is up
+  intent    micro_accuracy     random 0.9286  hard 0.0  · drop 0.0013
+  urgency   macro_f1           random 0.4199  hard 0.0135  · drop 0.0013
+  pii       span_f1_strict     random 0.9421  hard 0.8686  · drop 0.0
+  drafting  judge_score_mean   random None  hard None  · drop None
+
+  wrote runs/regression__a10-v7-pii-realistic.json
+== done — copy back:
+runs/pii-realistic__train.json
+runs/regression__a10-v7-pii-realistic.json
+runs/regression__a10-v7-pii-realistic__predictions.parquet
+runs/regression__a10-v7-pii-served.json
+runs/regression__a10-v7-pii-served__predictions.parquet
+checkpoints/pii-realistic/adapter_config.json
+checkpoints/pii-realistic/adapter_model.safetensors

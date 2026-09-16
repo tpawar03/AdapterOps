@@ -20,14 +20,16 @@ variance, which is the conservative direction for a gate floor.
 checkpoint is not on the rented box, so both runs are scored with `adapterops judge-score` before
 this will read them.
 
-    uv run adapterops training-variance --original runs/regression__a10-v4-original.json \\
-        --rerun runs/regression__a10-v4-rerun.json --tasks urgency pii drafting
+    uv run adapterops training-variance --runs runs/regression__a10-v8-seed0.json \\
+        runs/regression__a10-v8-seed11.json runs/regression__a10-v8-seed22.json \\
+        --tasks intent urgency pii drafting
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import statistics
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -48,56 +50,73 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def spreads(original: dict, rerun: dict, tasks: Sequence[str]) -> dict:
-    """Per task and split: both runs' gated metric and their absolute difference. A missing metric
-    is an error, not a skipped row — a silently absent spread would leave a gate provisional with
-    nothing saying why."""
+def spreads(runs: Sequence[dict], tasks: Sequence[str]) -> dict:
+    """Per task and split: every run's gated metric, their range, and for three or more runs a
+    standard deviation. A missing metric is an error, not a skipped row — a silently absent spread
+    would leave a gate provisional with nothing saying why.
+
+    The range stays the gate's floor (`spread`): with any number of runs it is the widest gap the
+    measurement has actually seen, which is the conservative choice for a threshold."""
     out: dict = {}
     missing = []
     for task in tasks:
         metric = GATED[task]
         for split in SPLITS:
-            a = original["per_split"].get(task, {}).get(split, {}).get(metric)
-            b = rerun["per_split"].get(task, {}).get(split, {}).get(metric)
-            if a is None or b is None:
+            values = [run["per_split"].get(task, {}).get(split, {}).get(metric) for run in runs]
+            if any(v is None for v in values):
                 missing.append(f"{task}/{split}")
                 continue
-            out.setdefault(task, {})[split] = {"metric": metric, "original": a, "rerun": b,
-                                               "spread": round(abs(a - b), 6)}
+            row = {"metric": metric, "runs": len(values), "values": values,
+                   "mean": round(sum(values) / len(values), 6),
+                   "spread": round(max(values) - min(values), 6)}
+            if len(values) >= 3:
+                row["stdev"] = round(statistics.stdev(values), 6)
+            if len(values) == 2:
+                # The keys the two-run record used, so earlier derivations still read.
+                row["original"], row["rerun"] = values
+            out.setdefault(task, {})[split] = row
     if missing:
         msg = (f"no gated metric for {', '.join(missing)} — score drafting with "
-               "`adapterops judge-score --run <run>` on both runs first")
+               "`adapterops judge-score --run <run>` on every run first")
         raise ValueError(msg)
     return out
 
 
-def main(original: str, rerun: str, tasks: Sequence[str], force: bool = False) -> int:
+def main(runs: Sequence[str], tasks: Sequence[str], force: bool = False) -> int:
+    if len(runs) < 2:
+        msg = "a spread needs at least two runs"
+        raise ValueError(msg)
     if OUT.exists() and not force:
         print(f"  {_shown(OUT)} exists — --force to replace a measured variance")
         return 1
-    paths = [Path(original), Path(rerun)]
-    runs = [json.loads(p.read_text()) for p in paths]
-    per_task = spreads(*runs, tasks)
+    paths = [Path(r) for r in runs]
+    per_task = spreads([json.loads(p.read_text()) for p in paths], tasks)
     records = {}
     for task in tasks:
-        record = REPO_ROOT / "runs" / f"{task}-rerun__train.json"
-        if record.exists():
-            records[task] = {"file": _shown(record), "sha256": _sha(record)}
+        found = [REPO_ROOT / "runs" / f"{task}-rerun__train.json",
+                 *sorted((REPO_ROOT / "runs").glob(f"{task}-seed*__train.json"))]
+        rows = [{"file": _shown(p), "sha256": _sha(p)} for p in found if p.exists()]
+        if rows:
+            records[task] = rows
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({
         "purpose": "Training spread per (task, split) for the gate floors (F33, D37).",
-        "method": ("The served adapters and a second training run of each task at the "
-                   "configuration that produced it, regression-scored in one session; spread is "
-                   "the absolute difference of the gated metric. Includes library-version drift "
-                   "and inference noise, so it is an upper estimate."),
+        "method": ("Regression runs of the served adapters and of further training runs of each "
+                   "task at the configuration that produced it, served identically in one "
+                   "session; the spread is the range of the gated metric, and three or more runs "
+                   "also give a standard deviation. Runs that differ only in seed measure an "
+                   "equivalent retrain; a same-seed rerun measures nondeterminism and library "
+                   "drift alone. Either way it includes inference noise, so it is an upper "
+                   "estimate."),
         "inputs": [{"file": _shown(p), "sha256": _sha(p)} for p in paths],
         "rerun_training_records": records,
         "per_task": per_task,
     }, indent=2) + "\n", encoding="utf-8")
     for task, splits in per_task.items():
         for split, row in splits.items():
-            print(f"  {task:9s} {split:6s} {row['metric']:18s} {row['original']} → {row['rerun']}"
-                  f"  spread {row['spread']}")
+            shown = ", ".join(f"{v}" for v in row["values"])
+            extra = f" stdev {row['stdev']}" if "stdev" in row else ""
+            print(f"  {task:9s} {split:6s} {row['metric']:18s} {shown}  range {row['spread']}{extra}")
     print(f"\n  wrote {_shown(OUT)} — then `adapterops derive-thresholds --run-a ... --run-b ... "
           "--force`")
     return 0

@@ -1,0 +1,320 @@
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 5 files:  60%|██████    | 3/5 [00:00<00:00, 20.92it/s]Fetching 5 files: 100%|██████████| 5/5 [00:02<00:00,  2.00it/s]
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files:  80%|████████  | 4/5 [00:00<00:00,  5.92it/s]Fetching 5 files: 100%|██████████| 5/5 [00:02<00:00,  1.78it/s]Fetching 5 files: 100%|██████████| 5/5 [00:02<00:00,  2.14it/s]
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files:  80%|████████  | 4/5 [00:00<00:00, 11.55it/s]Fetching 5 files: 100%|██████████| 5/5 [00:02<00:00,  2.30it/s]
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files:  80%|████████  | 4/5 [00:00<00:00, 17.14it/s]Fetching 5 files: 100%|██████████| 5/5 [00:02<00:00,  1.88it/s]
+  base:    Qwen/Qwen2.5-1.5B-Instruct @ 989aa798
+  pin set:  manifests/system.json
+  adapters: drafting=/home/ubuntu/AdapterOps/_adapters/baseline/drafting intent=/home/ubuntu/AdapterOps/_adapters/baseline/intent pii=/home/ubuntu/AdapterOps/_adapters/baseline/pii urgency=/home/ubuntu/AdapterOps/_adapters/baseline/urgency
+vllm 0.29.0
+  gpu: NVIDIA A10, 23028 MiB
+(APIServer pid=4365) INFO 09-16 05:57:16 [api_utils.py:347] 
+(APIServer pid=4365) INFO 09-16 05:57:16 [api_utils.py:347]        █     █     █▄   ▄█
+(APIServer pid=4365) INFO 09-16 05:57:16 [api_utils.py:347]  ▄▄ ▄█ █     █     █ ▀▄▀ █  version 0.29.0
+(APIServer pid=4365) INFO 09-16 05:57:16 [api_utils.py:347]   █▄█▀ █     █     █     █  model   Qwen/Qwen2.5-1.5B-Instruct
+(APIServer pid=4365) INFO 09-16 05:57:16 [api_utils.py:347]    ▀▀  ▀▀▀▀▀ ▀▀▀▀▀ ▀     ▀
+(APIServer pid=4365) INFO 09-16 05:57:16 [api_utils.py:347] 
+(APIServer pid=4365) INFO 09-16 05:57:16 [api_utils.py:286] non-default args: {'model_tag': 'Qwen/Qwen2.5-1.5B-Instruct', 'lora_modules': [LoRAModulePath(name='drafting', path='/home/ubuntu/AdapterOps/_adapters/baseline/drafting', base_model_name=None, is_3d_lora_weight=False), LoRAModulePath(name='intent', path='/home/ubuntu/AdapterOps/_adapters/baseline/intent', base_model_name=None, is_3d_lora_weight=False), LoRAModulePath(name='pii', path='/home/ubuntu/AdapterOps/_adapters/baseline/pii', base_model_name=None, is_3d_lora_weight=False), LoRAModulePath(name='urgency', path='/home/ubuntu/AdapterOps/_adapters/baseline/urgency', base_model_name=None, is_3d_lora_weight=False)], 'model': 'Qwen/Qwen2.5-1.5B-Instruct', 'revision': '989aa7980e4cf806f80c7fef2b1adb7bc71aa306', 'max_model_len': 1536, 'gpu_memory_utilization': 0.9, 'enable_lora': True, 'max_loras': 4}
+(APIServer pid=4365) INFO 09-16 05:57:25 [model.py:684] Resolved architecture: Qwen2ForCausalLM
+(APIServer pid=4365) INFO 09-16 05:57:25 [model.py:2021] Using max model len 1536
+(APIServer pid=4365) Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+(APIServer pid=4365) INFO 09-16 05:57:25 [kernel.py:369] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'])
+(EngineCore pid=4725) INFO 09-16 05:57:35 [core.py:123] Initializing a V1 LLM engine (v0.29.0) with config: model='Qwen/Qwen2.5-1.5B-Instruct', speculative_config=None, tokenizer='Qwen/Qwen2.5-1.5B-Instruct', skip_tokenizer_init=False, tokenizer_mode=auto, revision=989aa7980e4cf806f80c7fef2b1adb7bc71aa306, tokenizer_revision=989aa7980e4cf806f80c7fef2b1adb7bc71aa306, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=1536, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, decode_context_parallel_size=1, dcp_comm_backend=ag_rs, disable_custom_all_reduce=False, quantization=None, quantization_config=None, enforce_eager=False, enable_return_routed_experts=False, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, per_request_spec_decode_metrics='none', kv_cache_metrics=False, kv_cache_metrics_sample=0.01, cudagraph_metrics=False, enable_layerwise_nvtx_tracing=False, enable_mfu_metrics=False, enable_mm_processor_stats=False, enable_logging_iteration_details=False, jit_monitor_mode='warn', jit_monitor_verbose=False), seed=0, served_model_name=Qwen/Qwen2.5-1.5B-Instruct, enable_prefix_caching=True, enable_chunked_prefill=True, pooler_config=None, compilation_config={'mode': <CompilationMode.VLLM_COMPILE: 3>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['none'], 'ir_enable_torch_wrap': True, 'splitting_ops': ['vllm::unified_attention_with_output', 'vllm::unified_mla_attention_with_output', 'vllm::mamba_mixer2', 'vllm::mamba_mixer', 'vllm::short_conv', 'vllm::qwen4_exp_compute_ple_ngram_ids', 'vllm::qwen4_exp_ple_short_conv', 'vllm::qwen4_exp_qsa_with_output', 'vllm::linear_attention', 'vllm::qwen_gdn_attention_core', 'vllm::qwen_gdn_attention_core_fused_norm_packed', 'vllm::gdn_attention_core_xpu', 'vllm::olmo_hybrid_gdn_full_forward', 'vllm::sparse_attn_indexer', 'vllm::rocm_aiter_sparse_attn_indexer', 'vllm::deepseek_v4_attention', 'vllm::hpc_rope_norm_forward', 'vllm::unified_kv_cache_update', 'vllm::unified_mla_kv_cache_update'], 'compile_mm_encoder': False, 'cudagraph_mm_encoder': False, 'encoder_cudagraph_token_budgets': [], 'encoder_cudagraph_max_vision_items_per_batch': 0, 'encoder_cudagraph_max_frames_per_batch': None, 'compile_sizes': [], 'compile_ranges_endpoints': [2048], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'combo_kernels': True, 'benchmark_combo_kernel': True}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.FULL_AND_PIECEWISE: (2, 1)>, 'cudagraph_num_of_warmups': 1, 'cudagraph_capture_sizes': [1, 2, 4, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128, 136, 144, 152, 160, 168, 176, 184, 192, 200, 208, 216, 224, 232, 240, 248, 256, 272, 288, 304, 320, 336, 352, 368, 384, 400, 416, 432, 448, 464, 480, 496, 512], 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': False, 'fuse_act_quant': False, 'fuse_attn_quant': False, 'enable_sp': False, 'fuse_gemm_comms': False, 'fuse_allreduce_rms': False, 'enable_qk_norm_rope_fusion': False, 'fuse_rope_kvcache_cat_mla': False, 'fuse_act_padding': False, 'fuse_qk_norm_rope_kvcache': False}, 'max_cudagraph_capture_size': 512, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>, 'evaluate_guards': False, 'assume_32_bit_indexing': False}, 'local_cache_dir': None, 'fast_moe_cold_start': False, 'static_all_moe_layers': []}, kernel_config=KernelConfig(ir_op_priority=IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native']), enable_flashinfer_autotune=True, enable_cutedsl_warmup=True, enable_jit_warmup=True, enable_bf16x3_router_gemm=False, moe_backend='auto', linear_backend='auto')
+(EngineCore pid=4725) INFO 09-16 05:57:36 [parallel_state.py:1775] world_size=1 rank=0 local_rank=0 distributed_init_method=file:///tmp/vllm_dist_faa24ba6a865448aa2435b60c51ed844 backend=nccl
+(EngineCore pid=4725) INFO 09-16 05:57:36 [parallel_state.py:2119] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, EP rank N/A, EPLB rank N/A
+(EngineCore pid=4725) INFO 09-16 05:57:36 [gpu_worker.py:429] Using V2 Model Runner
+(EngineCore pid=4725) INFO 09-16 05:57:37 [model_runner.py:382] Loading model from scratch...
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374] EngineCore failed to start.
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374] Traceback (most recent call last):
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1336, in run_engine_core
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     engine_core = EngineCoreProc(*args, engine_index=dp_rank, **kwargs)
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     return func(*args, **kwargs)
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]            ^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1093, in __init__
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     super().__init__(
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 134, in __init__
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     self.model_executor = executor_class(vllm_config)
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     return func(*args, **kwargs)
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]            ^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/executor/abstract.py", line 110, in __init__
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     self._init_executor()
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/executor/uniproc_executor.py", line 74, in _init_executor
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     self.driver_worker.load_model()
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/worker/gpu_worker.py", line 495, in load_model
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     self.model_runner.load_model(load_dummy_weights=load_dummy_weights)
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/worker/gpu/model_runner.py", line 384, in load_model
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     self.model = model_loader.load_model(
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]                  ^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     return func(*args, **kwargs)
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]            ^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/model_loader/base_loader.py", line 55, in load_model
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     model = initialize_model(
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]             ^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     return func(*args, **kwargs)
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]            ^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/model_loader/utils.py", line 59, in initialize_model
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     model = model_class(vllm_config=vllm_config, prefix=prefix)
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/models/qwen2.py", line 458, in __init__
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     self.model = Qwen2Model(
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]                  ^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/compilation/decorators.py", line 385, in __init__
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     old_init(self, *args, **kwargs)
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/models/qwen2.py", line 375, in __init__
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     self.start_layer, self.end_layer, self.layers = make_layers(
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]                                                     ^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/models/utils.py", line 858, in make_layers
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     + get_offloader().wrap_modules(
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/offloader/base.py", line 119, in wrap_modules
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     return list(modules_generator)
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]            ^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/models/utils.py", line 859, in <genexpr>
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     layer_fn(prefix=f"{prefix}.{idx}") for idx in range(start_layer, end_layer)
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/models/qwen2.py", line 377, in <lambda>
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     lambda prefix: decoder_layer_type(
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]                    ^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/models/qwen2.py", line 263, in __init__
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     self.self_attn = Qwen2Attention(
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]                      ^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/models/qwen2.py", line 189, in __init__
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     self.attn = attn_cls(
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]                 ^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/layers/attention/attention.py", line 340, in __init__
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     self.attn_backend = get_attn_backend(
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]                         ^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/attention/selector.py", line 187, in get_attn_backend
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     return _cached_get_attn_backend(
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]            ^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/attention/selector.py", line 202, in _cached_get_attn_backend
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     attention_cls = current_platform.get_attn_backend_cls(
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/platforms/cuda.py", line 437, in get_attn_backend_cls
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     valid_backends_priorities, all_invalid_reasons = cls.get_valid_backends(
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]                                                      ^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/platforms/cuda.py", line 384, in get_valid_backends
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     backend_class = _get_attn_backend_class(backend)
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/platforms/cuda.py", line 172, in _get_attn_backend_class
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     return backend.get_class()
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]            ^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/attention/backends/registry.py", line 161, in get_class
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     return resolve_obj_by_qualname(self.get_path())
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/utils/import_utils.py", line 109, in resolve_obj_by_qualname
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     module = importlib.import_module(module_name)
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     return _bootstrap._gcd_import(name[level:], package, level)
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/attention/backends/flashinfer.py", line 12, in <module>
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     from flashinfer import (
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/flashinfer/__init__.py", line 25, in <module>
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     from . import jit as jit
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/flashinfer/jit/__init__.py", line 22, in <module>
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     from . import cubin_loader
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/flashinfer/jit/cubin_loader.py", line 30, in <module>
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     from .core import logger
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/flashinfer/jit/core.py", line 15, in <module>
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     from . import env as jit_env
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/flashinfer/jit/env.py", line 110, in <module>
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     FLASHINFER_CUBIN_DIR: pathlib.Path = _get_cubin_dir()
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]                                          ^^^^^^^^^^^^^^^^
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/flashinfer/jit/env.py", line 97, in _get_cubin_dir
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374]     raise RuntimeError(
+(EngineCore pid=4725) ERROR 09-16 05:57:37 [core.py:1374] RuntimeError: flashinfer-cubin version (0.6.11.post2) does not match flashinfer version (0.6.18). Please install the same version of both packages. Set FLASHINFER_DISABLE_VERSION_CHECK=1 to bypass this check.
+(EngineCore pid=4725) Process EngineCore:
+(EngineCore pid=4725) Traceback (most recent call last):
+(EngineCore pid=4725)   File "/usr/lib/python3.12/multiprocessing/process.py", line 314, in _bootstrap
+(EngineCore pid=4725)     self.run()
+(EngineCore pid=4725)   File "/usr/lib/python3.12/multiprocessing/process.py", line 108, in run
+(EngineCore pid=4725)     self._target(*self._args, **self._kwargs)
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1378, in run_engine_core
+(EngineCore pid=4725)     raise e
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1336, in run_engine_core
+(EngineCore pid=4725)     engine_core = EngineCoreProc(*args, engine_index=dp_rank, **kwargs)
+(EngineCore pid=4725)                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4725)     return func(*args, **kwargs)
+(EngineCore pid=4725)            ^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1093, in __init__
+(EngineCore pid=4725)     super().__init__(
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 134, in __init__
+(EngineCore pid=4725)     self.model_executor = executor_class(vllm_config)
+(EngineCore pid=4725)                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4725)     return func(*args, **kwargs)
+(EngineCore pid=4725)            ^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/executor/abstract.py", line 110, in __init__
+(EngineCore pid=4725)     self._init_executor()
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/executor/uniproc_executor.py", line 74, in _init_executor
+(EngineCore pid=4725)     self.driver_worker.load_model()
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/worker/gpu_worker.py", line 495, in load_model
+(EngineCore pid=4725)     self.model_runner.load_model(load_dummy_weights=load_dummy_weights)
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/worker/gpu/model_runner.py", line 384, in load_model
+(EngineCore pid=4725)     self.model = model_loader.load_model(
+(EngineCore pid=4725)                  ^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4725)     return func(*args, **kwargs)
+(EngineCore pid=4725)            ^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/model_loader/base_loader.py", line 55, in load_model
+(EngineCore pid=4725)     model = initialize_model(
+(EngineCore pid=4725)             ^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4725)     return func(*args, **kwargs)
+(EngineCore pid=4725)            ^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/model_loader/utils.py", line 59, in initialize_model
+(EngineCore pid=4725)     model = model_class(vllm_config=vllm_config, prefix=prefix)
+(EngineCore pid=4725)             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/models/qwen2.py", line 458, in __init__
+(EngineCore pid=4725)     self.model = Qwen2Model(
+(EngineCore pid=4725)                  ^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/compilation/decorators.py", line 385, in __init__
+(EngineCore pid=4725)     old_init(self, *args, **kwargs)
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/models/qwen2.py", line 375, in __init__
+(EngineCore pid=4725)     self.start_layer, self.end_layer, self.layers = make_layers(
+(EngineCore pid=4725)                                                     ^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/models/utils.py", line 858, in make_layers
+(EngineCore pid=4725)     + get_offloader().wrap_modules(
+(EngineCore pid=4725)       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/offloader/base.py", line 119, in wrap_modules
+(EngineCore pid=4725)     return list(modules_generator)
+(EngineCore pid=4725)            ^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/models/utils.py", line 859, in <genexpr>
+(EngineCore pid=4725)     layer_fn(prefix=f"{prefix}.{idx}") for idx in range(start_layer, end_layer)
+(EngineCore pid=4725)     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/models/qwen2.py", line 377, in <lambda>
+(EngineCore pid=4725)     lambda prefix: decoder_layer_type(
+(EngineCore pid=4725)                    ^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/models/qwen2.py", line 263, in __init__
+(EngineCore pid=4725)     self.self_attn = Qwen2Attention(
+(EngineCore pid=4725)                      ^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/models/qwen2.py", line 189, in __init__
+(EngineCore pid=4725)     self.attn = attn_cls(
+(EngineCore pid=4725)                 ^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/model_executor/layers/attention/attention.py", line 340, in __init__
+(EngineCore pid=4725)     self.attn_backend = get_attn_backend(
+(EngineCore pid=4725)                         ^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/attention/selector.py", line 187, in get_attn_backend
+(EngineCore pid=4725)     return _cached_get_attn_backend(
+(EngineCore pid=4725)            ^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/attention/selector.py", line 202, in _cached_get_attn_backend
+(EngineCore pid=4725)     attention_cls = current_platform.get_attn_backend_cls(
+(EngineCore pid=4725)                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/platforms/cuda.py", line 437, in get_attn_backend_cls
+(EngineCore pid=4725)     valid_backends_priorities, all_invalid_reasons = cls.get_valid_backends(
+(EngineCore pid=4725)                                                      ^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/platforms/cuda.py", line 384, in get_valid_backends
+(EngineCore pid=4725)     backend_class = _get_attn_backend_class(backend)
+(EngineCore pid=4725)                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/platforms/cuda.py", line 172, in _get_attn_backend_class
+(EngineCore pid=4725)     return backend.get_class()
+(EngineCore pid=4725)            ^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/attention/backends/registry.py", line 161, in get_class
+(EngineCore pid=4725)     return resolve_obj_by_qualname(self.get_path())
+(EngineCore pid=4725)            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/utils/import_utils.py", line 109, in resolve_obj_by_qualname
+(EngineCore pid=4725)     module = importlib.import_module(module_name)
+(EngineCore pid=4725)              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+(EngineCore pid=4725)     return _bootstrap._gcd_import(name[level:], package, level)
+(EngineCore pid=4725)            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+(EngineCore pid=4725)   File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+(EngineCore pid=4725)   File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+(EngineCore pid=4725)   File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+(EngineCore pid=4725)   File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+(EngineCore pid=4725)   File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/attention/backends/flashinfer.py", line 12, in <module>
+(EngineCore pid=4725)     from flashinfer import (
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/flashinfer/__init__.py", line 25, in <module>
+(EngineCore pid=4725)     from . import jit as jit
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/flashinfer/jit/__init__.py", line 22, in <module>
+(EngineCore pid=4725)     from . import cubin_loader
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/flashinfer/jit/cubin_loader.py", line 30, in <module>
+(EngineCore pid=4725)     from .core import logger
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/flashinfer/jit/core.py", line 15, in <module>
+(EngineCore pid=4725)     from . import env as jit_env
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/flashinfer/jit/env.py", line 110, in <module>
+(EngineCore pid=4725)     FLASHINFER_CUBIN_DIR: pathlib.Path = _get_cubin_dir()
+(EngineCore pid=4725)                                          ^^^^^^^^^^^^^^^^
+(EngineCore pid=4725)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/flashinfer/jit/env.py", line 97, in _get_cubin_dir
+(EngineCore pid=4725)     raise RuntimeError(
+(EngineCore pid=4725) RuntimeError: flashinfer-cubin version (0.6.11.post2) does not match flashinfer version (0.6.18). Please install the same version of both packages. Set FLASHINFER_DISABLE_VERSION_CHECK=1 to bypass this check.
+[rank0]:[W916 05:57:38.473397935 ProcessGroupNCCL.cpp:1624] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
+(APIServer pid=4365) INFO 09-16 05:57:38 [utils.py:620] [shutdown] Process manager: send sigterm to process EngineCore
+(APIServer pid=4365) Traceback (most recent call last):
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/bin/vllm", line 10, in <module>
+(APIServer pid=4365)     sys.exit(main())
+(APIServer pid=4365)              ^^^^^^
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/entrypoints/cli/main.py", line 97, in main
+(APIServer pid=4365)     args.dispatch_function(args)
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/entrypoints/cli/serve.py", line 153, in cmd
+(APIServer pid=4365)     uvloop.run(run_server(args))
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/uvloop/__init__.py", line 96, in run
+(APIServer pid=4365)     return __asyncio.run(
+(APIServer pid=4365)            ^^^^^^^^^^^^^^
+(APIServer pid=4365)   File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+(APIServer pid=4365)     return runner.run(main)
+(APIServer pid=4365)            ^^^^^^^^^^^^^^^^
+(APIServer pid=4365)   File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+(APIServer pid=4365)     return self._loop.run_until_complete(task)
+(APIServer pid=4365)            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=4365)   File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/uvloop/__init__.py", line 48, in wrapper
+(APIServer pid=4365)     return await main
+(APIServer pid=4365)            ^^^^^^^^^^
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/entrypoints/launchers/api_server/entry.py", line 176, in run_server
+(APIServer pid=4365)     await run_server_worker(listen_address, sock, args, **uvicorn_kwargs)
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/entrypoints/launchers/api_server/entry.py", line 190, in run_server_worker
+(APIServer pid=4365)     async with build_async_engine_client(
+(APIServer pid=4365)   File "/usr/lib/python3.12/contextlib.py", line 210, in __aenter__
+(APIServer pid=4365)     return await anext(self.gen)
+(APIServer pid=4365)            ^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/entrypoints/launchers/api_server/entry.py", line 58, in build_async_engine_client
+(APIServer pid=4365)     async with build_async_engine_client_from_engine_args(
+(APIServer pid=4365)   File "/usr/lib/python3.12/contextlib.py", line 210, in __aenter__
+(APIServer pid=4365)     return await anext(self.gen)
+(APIServer pid=4365)            ^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/entrypoints/launchers/api_server/entry.py", line 94, in build_async_engine_client_from_engine_args
+(APIServer pid=4365)     async_llm = AsyncLLM.from_vllm_config(
+(APIServer pid=4365)                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/engine/async_llm.py", line 227, in from_vllm_config
+(APIServer pid=4365)     return cls(
+(APIServer pid=4365)            ^^^^
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/engine/async_llm.py", line 156, in __init__
+(APIServer pid=4365)     self.engine_core = EngineCoreClient.make_async_mp_client(
+(APIServer pid=4365)                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(APIServer pid=4365)     return func(*args, **kwargs)
+(APIServer pid=4365)            ^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/engine/core_client.py", line 139, in make_async_mp_client
+(APIServer pid=4365)     return AsyncMPClient(*client_args)
+(APIServer pid=4365)            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(APIServer pid=4365)     return func(*args, **kwargs)
+(APIServer pid=4365)            ^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/engine/core_client.py", line 991, in __init__
+(APIServer pid=4365)     super().__init__(
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/engine/core_client.py", line 609, in __init__
+(APIServer pid=4365)     with launch_core_engines(
+(APIServer pid=4365)   File "/usr/lib/python3.12/contextlib.py", line 144, in __exit__
+(APIServer pid=4365)     next(self.gen)
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/engine/utils.py", line 1240, in launch_core_engines
+(APIServer pid=4365)     wait_for_engine_startup(
+(APIServer pid=4365)   File "/home/ubuntu/AdapterOps/.venv/lib/python3.12/site-packages/vllm/v1/engine/utils.py", line 1320, in wait_for_engine_startup
+(APIServer pid=4365)     raise RuntimeError(
+(APIServer pid=4365) RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {}

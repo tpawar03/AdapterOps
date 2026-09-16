@@ -67,6 +67,8 @@ account, keys or decision).
   failures, so it rewards any different model and cannot gate. Rebuild it from failures several systems share
   (served adapters, M11 checkpoints, GPT-4o-mini on the golden items), frozen before any gated model, and
   re-run M11's sensitivity check against it. *Free* with recorded outputs; *GPU* if new predictions are needed.
+- [x] **Push the v7 PII model card and redeploy the Space.** Done on retry after the Hub outage: PII card
+  commit `b4eaf06d` (all four cards pushed) and Space `fb88c223`; `verify-pins` still clean.
 - [ ] **Record billed costs.** Every cost figure is derived from an assumed $0.75/h. Add the actual Lambda and
   OpenAI charges per session to STATUS. *You* (invoices).
 
@@ -77,12 +79,21 @@ account, keys or decision).
 - [ ] **PII training spread for the served configuration.** Its 0.0081 gate threshold still comes from the
   previous configuration's retrain. Retrain the 13,910-row configuration once more and regression-score it
   beside the served adapter in one session. *GPU*, ~2 h.
-- [ ] **More than one retrain per task.** Each gate threshold rests on a single range from two training runs.
-  Add at least one more retrain per task so each spread is an estimate. *GPU*, ~4 h for three tasks.
-- [ ] **Urgency against TF-IDF.** The urgency adapter loses to TF-IDF (0.42 vs 0.55 macro-F1). Pre-register
-  and try the untested fixes — LoRA rank, learning rate, more supervised tokens per example — or decide to
-  serve TF-IDF for urgency behind the same interface. *GPU*, ~1 h per attempt.
-- [ ] **Train PII on realistic formats.** *Prepared, waiting on a GPU:* `adapterops pii-realistic-split` froze
+- [ ] **More than one retrain per task.** *Prepared, waiting on a GPU:* training takes `--seed` now, and
+  `training-variance --runs A B C ...` reports a range plus a standard deviation from three or more runs
+  (the range stays the gate's floor, and the 3× multiplier does not move without a decision).
+  `scripts/gpu_variance_seeds_session.sh` retrains every task at further seeds and scores each set
+  beside the served adapters in one session: `SEEDS="11 22"` ≈ 7 h for a three-value estimate,
+  `SEEDS="11"` ≈ 3.5 h for a second range. Recorded spreads come from two runs at one seed, which
+  measure nondeterminism and library drift rather than an equivalent retrain. *GPU.*
+- [ ] **Urgency against TF-IDF.** *Measured under a frozen rule (`adapterops urgency-tfidf`), and the rule
+  says serve TF-IDF:* golden macro F1 **0.5400 against the adapter's 0.4212** in the same session
+  (+0.1188, gate 0.0381), on the shared-failure items 0.4442 against 0.3332, and 0.06 ms per text
+  against the adapter's ~60 ms. **Waiting on your decision:** serve TF-IDF for urgency behind the same
+  interface (free, but the manifest pins Hub revisions and a local sklearn model needs a component
+  type), or first try the untested LoRA fixes — rank, learning rate, more supervised tokens per
+  example — at *GPU* ~1 h per attempt. *You* + *free* or *GPU*.
+- [x] **Train PII on realistic formats.** Done: the candidate passes both halves of the frozen rule — golden strict F1 drop 0.0000 (gate 0.0081) and TAB leaks 14.31% → 8.32%, CI [−0.0897, −0.0323]. Nemotron-PII 28.31% → 3.99%. Held-out false positives went 0 → 4 of 491 (report-only). **Not yet served:** publishing the adapter and promoting a manifest are public steps, awaiting approval. *Was prepared as:* `adapterops pii-realistic-split` froze
   `data/pii/split_train_realistic.parquet` (sha be3aaee0: the served 13,910 rows + 4,000 Nemotron-PII documents)
   with its decision rule — golden gate, and TAB's leak rate falling with a paired-bootstrap interval below zero
   (`pii-realistic-compare`). Run `scripts/gpu_pii_realistic_session.sh` after pushing the split. Served v6 leaks 28% of in-scope spans on Nemotron-PII and 14% on real

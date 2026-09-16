@@ -6,8 +6,8 @@ committed runs, and the live Gradio app stays in `demo/app.py` for anyone who cl
 
 **Recorded, and it says so.** Every output on the page was saved during a run whose score is already
 in the repository: the adapters' golden-set predictions from regression run v1-baseline-1 (vLLM on an
-A10, greedy, pinned revisions) — except PII's, which come from a10-v5-pii-negatives, the adapter manifest
-v6 serves (D50) — GPT-4o-mini's from the golden-set frontier reference, the prompted
+A10, greedy, pinned revisions) — except PII's, which come from a10-v7-pii-realistic, the adapter manifest
+v7 serves — GPT-4o-mini's from the golden-set frontier reference, the prompted
 base model's drafting replies from its M2 run, and GPT-4o's grades and one-line reasons for all three
 drafting sides.
 
@@ -56,10 +56,10 @@ TOLERANCE = 1e-4
 SOURCES = {
     "adapter": "runs/regression__v1-baseline-1__predictions.parquet",
     "adapter_run": "runs/regression__v1-baseline-1.json",
-    "adapter_pii": "runs/regression__a10-v5-pii-negatives__predictions.parquet",
-    "adapter_pii_run": "runs/regression__a10-v5-pii-negatives.json",
-    "pii_false_positives": "runs/pii__false_positives__negatives.json",
-    "pii_false_positives_previous": "runs/pii__false_positives.json",
+    "adapter_pii": "runs/regression__a10-v7-pii-realistic__predictions.parquet",
+    "adapter_pii_run": "runs/regression__a10-v7-pii-realistic.json",
+    "pii_false_positives": "runs/pii__false_positives__realistic.json",
+    "pii_false_positives_previous": "runs/pii__false_positives__negatives.json",
     "frontier": "runs/frontier__golden__predictions.parquet",
     "frontier_run": "runs/frontier__golden.json",
     "prompted_drafting": "runs/drafting__prompted-fewshot__predictions.parquet",
@@ -270,7 +270,7 @@ def build_payload() -> dict:
                         "margin over prompting is within its own run-to-run noise.")
         tasks[task] = {"title": title, "summary": summary, "caption": caption, "items": items}
 
-    # PII shows the adapter manifest v6 serves (D50), not v1-baseline-1's: publishing the replaced
+    # PII shows the adapter manifest v7 serves, not v1-baseline-1's: publishing the replaced
     # adapter's outputs under "the adapter" would show a model nobody serves.
     a, f = _golden(_read("adapter_pii"), "pii"), _golden(frontier_all, "pii")
     items, pooled_a, pooled_f = pii(a, f)
@@ -292,8 +292,9 @@ def build_payload() -> dict:
              "note": (f"the previous adapter flagged {flagged_before['texts_with_any_line']} of "
                       f"{flagged_before['texts']}")},
         ],
-        "caption": ("Outputs from the PII adapter manifest v6 serves — retrained with PII-free sentences so "
-                    "it can answer nothing — recorded in regression run a10-v5-pii-negatives; the other "
+        "caption": ("Outputs from the PII adapter manifest v7 serves — retrained with PII-free sentences so it "
+                    "can answer nothing and with realistic formats so it leaks less on outside text — "
+                    "recorded in regression run a10-v7-pii-realistic; the other "
                     f"tasks' outputs are from v1-baseline-1. {len(items)} golden documents of synthetic "
                     "personal data. Per-item badges are each document's strict span F1; the summary pools "
                     "every span, as the gate does."),

@@ -18,6 +18,8 @@ def main(argv: list[str] | None = None) -> int:
                     help="override the per-task training-row cap")
     ap.add_argument("--train-split", default="train",
                     help="frozen split to train on, e.g. train_shuffled for F21")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="training seed; varying it measures an equivalent retrain (F33)")
     ap.add_argument("--variant", default=None,
                     help="names the outputs; required for any split other than train")
     ap.add_argument("--epochs", type=float, default=None,
@@ -37,6 +39,8 @@ def main(argv: list[str] | None = None) -> int:
 
     overrides = {"hub_repo": args.hub_repo, "train_split": args.train_split,
                  "output_dir": f"checkpoints/{name}"}
+    if args.seed is not None:
+        overrides["seed"] = args.seed
     if args.subsample is not None:
         overrides["train_subsample"] = args.subsample
     if args.epochs is not None:
