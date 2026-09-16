@@ -34,11 +34,19 @@
     "pii": {
       "random": {
         "n": 300,
-        "span_f1_strict": 0.9442
+        "span_f1_strict": 0.9442,
+        "docs_fully_masked": 0.8433,
+        "gold_spans_partly_unmasked": 0.0226,
+        "gold_spans_wholly_unmasked": 0.0079,
+        "span_f1_grouped": 0.9862
       },
       "hard": {
         "n": 150,
-        "span_f1_strict": 0.8785
+        "span_f1_strict": 0.8785,
+        "docs_fully_masked": 0.6,
+        "gold_spans_partly_unmasked": 0.0496,
+        "gold_spans_wholly_unmasked": 0.0224,
+        "span_f1_grouped": 0.9656
       }
     },
     "drafting": {

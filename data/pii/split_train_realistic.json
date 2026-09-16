@@ -1,0 +1,80 @@
+{
+  "purpose": "PII training split with Nemotron-PII's realistic formats added (TODO.md \u00a72).",
+  "seed": 20260915,
+  "base": {
+    "file": "data/pii/split_train_negatives.parquet",
+    "sha256": "21c054f329cafdd3633071a41e3fc0079aa9994a6edb0a64e1b9eb15daf016a4"
+  },
+  "nemotron_train": {
+    "url": "https://huggingface.co/datasets/nvidia/Nemotron-PII",
+    "licence": "CC BY 4.0",
+    "revision": "b70ffaf5ff39e079776134c5bf4381f00a9fd1ed",
+    "file": "data/train-00000-of-00001.parquet",
+    "sha256": "9cb1a88c339ab84ddbc35ccdde4f6bb713300f5585881f9e02b8db1e0dfdbece"
+  },
+  "file": "data/pii/split_train_realistic.parquet",
+  "sha256": "be3aaee04480268005db32cefedc89d827dbc705635f25089b86c2ecd26e8f1f",
+  "label_map": {
+    "first_name": "GIVENNAME",
+    "last_name": "SURNAME",
+    "date": "DATE",
+    "date_of_birth": "DATE",
+    "email": "EMAIL",
+    "phone_number": "TELEPHONENUM",
+    "fax_number": "TELEPHONENUM",
+    "city": "CITY",
+    "street_address": "STREET",
+    "postcode": "ZIPCODE",
+    "credit_debit_card": "CREDITCARDNUMBER",
+    "ssn": "SOCIALNUM",
+    "national_id": "IDCARDNUM",
+    "tax_id": "TAXNUM",
+    "age": "AGE",
+    "gender": "GENDER"
+  },
+  "rows": {
+    "document": 8000,
+    "nemotron_document": 4000,
+    "positive_sentence": 2955,
+    "negative_sentence": 2955
+  },
+  "nemotron_documents_with_empty_answer": 380,
+  "nemotron_skipped_over_token_cap": 64,
+  "nemotron_tokens": {
+    "0.5": 234,
+    "0.95": 411,
+    "1.0": 512
+  },
+  "nemotron_label_counts": {
+    "DATE": 3429,
+    "GIVENNAME": 2475,
+    "SURNAME": 1799,
+    "EMAIL": 1698,
+    "TELEPHONENUM": 1252,
+    "CITY": 742,
+    "STREET": 715,
+    "BUILDINGNUM": 654,
+    "CREDITCARDNUMBER": 360,
+    "ZIPCODE": 328,
+    "SOCIALNUM": 211,
+    "GENDER": 174,
+    "AGE": 164,
+    "IDCARDNUM": 124,
+    "TAXNUM": 95
+  },
+  "preregistered": {
+    "decision_rule": "Replace the served PII adapter only if both hold: (1) the candidate's random-split strict span F1, regression-scored beside the served adapter in one session, drops by no more than the enforced gate threshold (0.0081); and (2) on TAB's 200 frozen court-text paragraphs, never trained on, its rate of in-scope spans left wholly unmasked falls, with the paired bootstrap's 95% interval (10,000 resamples of texts, `adapterops pii-realistic-compare`) entirely below zero.",
+    "reported_whatever_they_are": [
+      "Nemotron-PII test sample leak rates (in-distribution for this split, so not decisive)",
+      "false-positive rate on evals/pii_negatives/pii_negatives.parquet (928 texts)",
+      "false-positive rate on the held-out ai4privacy validation sentences (491)",
+      "hard-split span F1 and grouped span F1 (report-only)"
+    ],
+    "no_target_rate": "No leak rate is set as a bar in advance: any fall TAB can distinguish from noise counts, and any number chosen now would be invented.",
+    "known_limits": [
+      "Nemotron-PII is synthetic; only TAB is real text, and its categories are coarser than the adapter's.",
+      "Categories without a counterpart (company names, URLs, account numbers) are trained as untagged, which may teach the adapter to skip ID-like values it would otherwise mask."
+    ]
+  },
+  "train_with": "python -m adapterops.train.cli_train --task pii --train-split train_realistic --variant realistic --subsample 100000 --epochs 3"
+}

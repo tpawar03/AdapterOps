@@ -26,7 +26,7 @@ Two runs of the unchanged v1 manifest. A threshold is 3× the larger of inferenc
 
 **PII's span F1 is conditional on the input containing PII.** On 928 texts with nothing any PII label could point at, the previous adapter (manifest v5) reported personal data in **928 (100%)**: invented values in 809, and a real word — mostly "I", "Can", "My" as a name — in 223. The baseline (regex only — spaCy model not installed) flagged 13. Every training and golden document contained PII (D21), so the adapter never learned an empty answer. `runs/pii__false_positives.json`
 
-**Served since manifest v6: the adapter retrained with PII-free sentences (D50).** It flags **5** of the same 928 texts, and **0** of 491 held-out ai4privacy sentences against the previous adapter's 491. Scored beside the previous adapter in one session, its strict span F1 is 0.9442 against 0.9470. The PII rows in the tables above are the previous adapter's baseline runs.
+**Served since manifest v6: the adapter retrained with PII-free sentences (D50).** It flags **5** of the same 928 texts, and **0** of 491 held-out ai4privacy sentences against the previous adapter's 491. Scored beside the previous adapter in one session, its strict span F1 is 0.9442 against 0.9470. For redaction, 84.3% of golden documents have all their personal text masked and 0.79% of gold spans are left wholly unmasked. The PII rows in the tables above are the previous adapter's baseline runs.
 
 ## 2 · Quality retained — hard cases
 

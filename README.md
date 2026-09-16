@@ -58,23 +58,33 @@ file or Langfuse.
 
 ## Results
 
-Every number is rendered from a committed run in [`runs/DASHBOARD.md`](runs/DASHBOARD.md).
+Every number comes from a committed run: most are rendered in [`runs/DASHBOARD.md`](runs/DASHBOARD.md), and the
+realistic-format PII and rebuilt hard-split rows come from `runs/pii__realistic.json` and `runs/hard__shared.json`.
 
 | Question | Answer |
 |---|---|
-| Does fine-tuning beat prompting the same base? | On three of four tasks, on one vLLM server: intent 0.929 vs 0.573 accuracy (77 classes), PII span F1 0.946 vs 0.570, drafting 4.24 vs 2.86 (GPT-4o-graded). Urgency's 0.410 vs 0.396 macro-F1 is inside its own run-to-run spread, and TF-IDF beats both (0.55). |
+| Does fine-tuning beat prompting the same base? | On three of four tasks, on one vLLM server: intent 0.929 vs 0.573 accuracy (77 classes), PII span F1 0.946 vs 0.570 (on its own synthetic test set — see the next rows), drafting 4.24 vs 2.86 (GPT-4o-graded). Urgency's 0.410 vs 0.396 macro-F1 is inside its own run-to-run spread, and TF-IDF beats both (0.55): the adapter is served today only to keep one interface, and trying pre-registered fixes or serving TF-IDF for urgency is queued in `TODO.md`. |
+| Does PII masking hold on text unlike its training data? | No. On 200 Nemotron-PII texts in realistic US and international formats, the served adapter leaves 28.3% of the personal-data spans it covers wholly unmasked, and 14.3% on 200 real court-judgment paragraphs (TAB), against 0.79% on its golden set; the request path's pattern guard brings that to 17.8% and 12.4%. What it masks is almost always personal data (98.7%, 93.6%). It misses confidently, so confidence routing escalates none of the 219 leaking texts. A retrain on realistic formats is queued. |
 | Can four adapters share one GPU? | 5,800 requests at concurrency 16 on one A10, 0 errors, 23.6 req/s. The A10's ceiling is ~104 req/s at concurrency 256 (P95 7.8 s), and 15 minutes at concurrency 32 held 43 req/s with no errors. |
 | When should a request escalate to GPT-4o-mini? | On the adapter's own confidence: 57% of the oracle's gain at 20% escalation. The learned DeBERTa router scores −19% — worse than never escalating — and three pre-registered fixes also lost. |
 | Does the offline routing hold on the live request path? | On the curve's own pairs, yes: through vLLM on the A10, 20–21% of pairs escalated against the curve's 19.9% at every concurrency up to 256 and in every minute of a 15-minute sustained run, and the shifted population escalated 18.4% against 19.3% recorded. Its throughput matches vLLM's own within 1.5% at every concurrency. A full regression run took 75 s. |
 | Is local serving cheaper than GPT-4o-mini? | Only above 3.64 requests per second sustained, at an assumed $0.75/h A10. At measured throughput a local 1K requests costs $0.0048 at 43 req/s (P95 2.4 s) and $0.0020 at the ~103 req/s ceiling (P95 7.8 s), against GPT-4o-mini's $0.0572. |
 | Does the gate catch a bad release? | A shuffled-label intent adapter dropped accuracy by 0.923 against a 0.0117 threshold: blocked, forced with the override recorded, rolled back. All four tasks' gates are now enforced from a measured retraining spread (intent 0.0117, urgency 0.0381, PII 0.0081, drafting 0.0675), and four under-trained checkpoints each fall outside theirs. |
-| Does a failure-mined hard split make the gate more sensitive? | No. Mined from the incumbent's own failures, it scores under-trained checkpoints *higher* on three of four tasks. |
+| Does a failure-mined hard split make the gate more sensitive? | Only when mined from other models' failures. Mined from the incumbent's own failures, it scored under-trained checkpoints *higher* on three of four tasks. Rebuilt from 540 golden items that GPT-4o-mini (and, for PII, the retrained PII adapter) gets wrong — no model the check compares — it flags the under-trained checkpoints on all four tasks, with drops of 0.11–0.27. Intent, urgency and drafting still rest on that one outside model. |
 | Does int8 cost accuracy? | Not in the weights: intent with int8 weights scores 0.9325 against fp32's 0.9312. PyTorch's dynamic int8, which also quantizes activations to 8 bits, falls to 0.62–0.66. Measured on a laptop CPU, not in serving. |
 
 ![Routing operating curve: confidence routing rises above never-escalating while the learned router falls below it, in-distribution and under shift](runs/router__operating_curve__judged.png)
 
 ## Limitations
 
+Each limitation below, and the others recorded in `STATUS.md`, is queued as work in [`TODO.md`](TODO.md).
+
+- **The system is not shown to generalise beyond its four training datasets, and PII measurably does not.**
+  PII is the one task tested on outside text, and it leaks 14–28% of spans there (Results). Each adapter learned one
+  public dataset's task and domain — banking queries with 77 fixed intent labels, IT support tickets,
+  synthetic personal-data documents, templated retail replies — and every score is on held-out data from the
+  same dataset. The router's threshold was calibrated on those tasks, and its shift test varies wording and
+  length within them, not the domain. No real traffic has been run.
 - **The request path has been load-tested on recorded pairs, not new traffic.** On the A10 it matched
   vLLM's own throughput up to ~103 pairs/s and held 43 pairs/s for 15 minutes; with GPT-4o-mini answering
   its escalations it held 32 pairs/s for 5 minutes with no frontier errors — but at 387 calls a minute the
@@ -82,12 +92,15 @@ Every number is rendered from a committed run in [`runs/DASHBOARD.md`](runs/DASH
 - **Regression checks are on-demand.** They need GPU inference, and GitHub Actions free runners are
   CPU-only, so runs happen in a rented GPU session and their results are committed. CI runs the tests
   on every push and checks the adapter pins weekly; there is no unattended regression run.
-- **PII's false positives were fixed by retraining, and two numbers still describe the old adapter.** The
+- **PII's false positives were fixed by retraining, and one number still describes the old adapter.** The
   original PII adapter reported personal data in all 928 PII-free test texts — invented values such as
   `GIVENNAME: John` in 87% — because no training document was free of PII. Retrained with PII-free sentences
   and empty answers, the adapter served since manifest v6 flags 5 of those 928 and none of 491 held-out
-  sentences, with span F1 inside its gate (0.9442 against 0.9470). The router's PII operating point and
-  PII's training spread were measured on the previous adapter.
+  sentences, with span F1 inside its gate (0.9442 against 0.9470). Strictly, it gets every span right in
+  70% of golden documents, but masks all their personal text in 84%: most errors are confusable ID-number or
+  gender/sex labels and names split differently — which the dataset's own text cannot decide, so runs also
+  report a grouped span F1 (0.986) — and 0.8% of gold spans are left wholly unmasked. The router's PII decisions were
+  re-checked with it and did not change; PII's training spread was measured on the previous adapter.
 - **PRD §7's 500 ms P95 is missed for PII (2,259 ms) and drafting (3,000 ms)**, the two tasks that
   generate long outputs; intent (136 ms) and urgency (60 ms) meet it. The router's decision is
   inside its 50 ms budget on CPU (P95 24.9 ms per pair).
@@ -200,4 +213,4 @@ One test reproduces the distilled judge's calibration scores and needs the local
 | Demo | Gradio for the live app · static HTML and JavaScript for the public page |
 | Compute | Colab and Kaggle T4 GPUs for training · a rented A10 for training and serving |
 
-**Data licences:** Banking77 via `mteb/banking77` (MIT) · `Tobi-Bueck/customer-support-tickets` by Tobi Bueck (CC BY-NC 4.0 — the urgency adapter is non-commercial) · `ai4privacy/pii-masking-openpii-1m` (CC BY 4.0) · `bitext/Bitext-customer-support-llm-chatbot-training-dataset` (CDLA-Sharing-1.0); sources in `data/MANIFEST.json`.
+**Data licences:** Banking77 via `mteb/banking77` (MIT) · `Tobi-Bueck/customer-support-tickets` by Tobi Bueck (CC BY-NC 4.0 — the urgency adapter is non-commercial) · `ai4privacy/pii-masking-openpii-1m` (CC BY 4.0) · `bitext/Bitext-customer-support-llm-chatbot-training-dataset` (CDLA-Sharing-1.0); sources in `data/MANIFEST.json`. Evaluation only, with sampled texts in `runs/pii__realistic__predictions.parquet`: `nvidia/Nemotron-PII` by NVIDIA (CC BY 4.0) · the Text Anonymization Benchmark by Norsk Regnesentral (MIT).

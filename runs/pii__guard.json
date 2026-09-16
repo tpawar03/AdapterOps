@@ -1,0 +1,147 @@
+{
+  "predictions": "runs/regression__a10-v5-pii-negatives__predictions.parquet",
+  "label_sets": {
+    "structured": [
+      "EMAIL",
+      "CREDITCARDNUMBER",
+      "SOCIALNUM",
+      "PASSPORTNUM",
+      "TELEPHONENUM"
+    ],
+    "structured_ids_dates": [
+      "EMAIL",
+      "CREDITCARDNUMBER",
+      "SOCIALNUM",
+      "PASSPORTNUM",
+      "TELEPHONENUM",
+      "DATE",
+      "TAXNUM",
+      "DRIVERLICENSENUM",
+      "IDCARDNUM"
+    ],
+    "all_patterns": [
+      "EMAIL",
+      "CREDITCARDNUMBER",
+      "SOCIALNUM",
+      "PASSPORTNUM",
+      "TELEPHONENUM",
+      "DATE",
+      "TAXNUM",
+      "DRIVERLICENSENUM",
+      "IDCARDNUM",
+      "ZIPCODE"
+    ]
+  },
+  "splits": {
+    "random": {
+      "adapter_only": {
+        "spans_added": 0,
+        "span_f1_strict": 0.9442,
+        "docs_fully_masked": 253,
+        "gold_spans_partly_unmasked": 54,
+        "gold_spans_wholly_unmasked": 19
+      },
+      "structured": {
+        "spans_added": 4,
+        "span_f1_strict": 0.9447,
+        "docs_fully_masked": 255,
+        "gold_spans_partly_unmasked": 51,
+        "gold_spans_wholly_unmasked": 16
+      },
+      "structured_ids_dates": {
+        "spans_added": 10,
+        "span_f1_strict": 0.9447,
+        "docs_fully_masked": 259,
+        "gold_spans_partly_unmasked": 47,
+        "gold_spans_wholly_unmasked": 12
+      },
+      "all_patterns": {
+        "spans_added": 12,
+        "span_f1_strict": 0.9443,
+        "docs_fully_masked": 259,
+        "gold_spans_partly_unmasked": 47,
+        "gold_spans_wholly_unmasked": 12
+      }
+    },
+    "hard": {
+      "adapter_only": {
+        "spans_added": 0,
+        "span_f1_strict": 0.8785,
+        "docs_fully_masked": 90,
+        "gold_spans_partly_unmasked": 73,
+        "gold_spans_wholly_unmasked": 33
+      },
+      "structured": {
+        "spans_added": 2,
+        "span_f1_strict": 0.8779,
+        "docs_fully_masked": 90,
+        "gold_spans_partly_unmasked": 73,
+        "gold_spans_wholly_unmasked": 33
+      },
+      "structured_ids_dates": {
+        "spans_added": 4,
+        "span_f1_strict": 0.8773,
+        "docs_fully_masked": 90,
+        "gold_spans_partly_unmasked": 73,
+        "gold_spans_wholly_unmasked": 33
+      },
+      "all_patterns": {
+        "spans_added": 4,
+        "span_f1_strict": 0.8773,
+        "docs_fully_masked": 90,
+        "gold_spans_partly_unmasked": 73,
+        "gold_spans_wholly_unmasked": 33
+      }
+    }
+  },
+  "customer_text_false_additions": {
+    "structured": {
+      "texts": 1070,
+      "texts_with_an_added_span": 0,
+      "examples": []
+    },
+    "structured_ids_dates": {
+      "texts": 1070,
+      "texts_with_an_added_span": 0,
+      "examples": []
+    },
+    "all_patterns": {
+      "texts": 1070,
+      "texts_with_an_added_span": 15,
+      "examples": [
+        {
+          "text": "show me bill #12588",
+          "added": "ZIPCODE: 12588"
+        },
+        {
+          "text": "what di i need to do to give a quick look at the bill #12588",
+          "added": "ZIPCODE: 12588"
+        },
+        {
+          "text": "I don't know what I have to do to see my bill #00108",
+          "added": "ZIPCODE: 00108"
+        },
+        {
+          "text": "i do not know what i have to do to find bill #37777",
+          "added": "ZIPCODE: 37777"
+        },
+        {
+          "text": "i dont  know what i have to do to see my bill #85632",
+          "added": "ZIPCODE: 85632"
+        },
+        {
+          "text": "find the bill #37777",
+          "added": "ZIPCODE: 37777"
+        },
+        {
+          "text": "i do not know what i need to do to check invoice #12588",
+          "added": "ZIPCODE: 12588"
+        },
+        {
+          "text": "send me bill #00108",
+          "added": "ZIPCODE: 00108"
+        }
+      ]
+    }
+  }
+}

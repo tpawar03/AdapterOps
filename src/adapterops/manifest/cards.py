@@ -140,6 +140,11 @@ def pii_rows(ctx: dict) -> list[str] | None:
          f"{metric} | {prompted['metrics'][metric]:.4f} |"),
         f"| GPT-4o-mini (frontier reference) | golden | {metric} | {_f(ceiling.get(metric))} |",
     ]
+    for field, name in (("docs_fully_masked", "documents with all personal text masked"),
+                        ("gold_spans_wholly_unmasked", "gold spans left wholly unmasked")):
+        if now["random"].get(field) is not None:
+            rows.append(f"| this adapter | golden ({now['random']['n']}) | {name} | "
+                        f"{now['random'][field]:.4f} |")
     for label, key in (("PII-free texts", "fp"), ("held-out PII-free sentences", "fp_val")):
         mine, theirs = ctx.get(key), ctx.get(f"{key}_previous")
         if mine and theirs:

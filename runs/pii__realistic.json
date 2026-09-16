@@ -1,0 +1,458 @@
+{
+  "adapter": {
+    "repo": "Tanny03/adapterops-pii",
+    "revision": "e0bde68fb34693d10611e6888eb50c78825c86c7",
+    "weight_file": "adapter_model.safetensors",
+    "weight_sha256": "fec1371a12133f244042718c71c45d9866da35a11cca1e14f8bb5fd32d286551",
+    "last_modified": "2026-09-15 00:23:50+00:00",
+    "candidate_of": "Tanny03/adapterops-pii"
+  },
+  "sources": {
+    "nemotron": {
+      "url": "https://huggingface.co/datasets/nvidia/Nemotron-PII",
+      "licence": "CC BY 4.0",
+      "revision": "b70ffaf5ff39e079776134c5bf4381f00a9fd1ed",
+      "file": "data/test-00000-of-00001.parquet",
+      "sha256": "1a4b0512ecb5370f0992d29d0f9c07351e6de13f0d7ea33bb18cecb984780247"
+    },
+    "tab": {
+      "url": "https://github.com/NorskRegnesentral/text-anonymization-benchmark",
+      "licence": "MIT",
+      "revision": "558e09e26d6b36f5f78440074e6a233946d98bd9",
+      "file": "echr_test.json",
+      "sha256": "cd0f0f15f84a8739654c7cf30c6be8ce27b051ef73974d39d792a0cb8c846379"
+    }
+  },
+  "sample": {
+    "per_source": 200,
+    "max_words": 200,
+    "seed": 0,
+    "nemotron": "equal cells of locale \u00d7 format, at least one in-scope span",
+    "tab": "paragraphs of 20+ words with an in-scope DIRECT/QUASI mention, at most 3 per judgment"
+  },
+  "in_scope": {
+    "nemotron": {
+      "first_name": "GIVENNAME",
+      "last_name": "SURNAME",
+      "date": "DATE",
+      "date_of_birth": "DATE",
+      "email": "EMAIL",
+      "phone_number": "TELEPHONENUM",
+      "fax_number": "TELEPHONENUM",
+      "city": "CITY",
+      "street_address": "STREET",
+      "postcode": "ZIPCODE",
+      "credit_debit_card": "CREDITCARDNUMBER",
+      "ssn": "SOCIALNUM",
+      "national_id": "IDCARDNUM",
+      "tax_id": "TAXNUM",
+      "age": "AGE",
+      "gender": "GENDER"
+    },
+    "tab": {
+      "types": [
+        "PERSON",
+        "DATETIME",
+        "LOC",
+        "CODE"
+      ],
+      "identifier_types": [
+        "DIRECT",
+        "QUASI"
+      ]
+    }
+  },
+  "confidence_threshold": 0.393881,
+  "reference_golden": {
+    "docs_fully_masked": 0.8433,
+    "gold_spans_partly_unmasked": 0.0226,
+    "gold_spans_wholly_unmasked": 0.0079
+  },
+  "nemotron": {
+    "texts": 200,
+    "docs_fully_masked_in_scope": 0.425,
+    "in_scope_spans": 777,
+    "in_scope_partly_unmasked": 0.3359,
+    "in_scope_wholly_unmasked": 0.2831,
+    "out_of_scope_wholly_unmasked": 0.5609,
+    "masked_chars_on_personal_data": 0.9872,
+    "masked_chars_on_no_mask_mentions": 0.0,
+    "in_scope_boundary_exact": 0.6641,
+    "label_right_when_boundary_exact": 0.9748,
+    "escalated_at_confidence_threshold": 0.0,
+    "texts_with_a_leak": 115,
+    "texts_with_a_leak_escalated": 0,
+    "per_label": {
+      "in:first_name": {
+        "spans": 161,
+        "partly_unmasked": 61,
+        "wholly_unmasked": 61
+      },
+      "in:date": {
+        "spans": 132,
+        "partly_unmasked": 51,
+        "wholly_unmasked": 51
+      },
+      "in:email": {
+        "spans": 114,
+        "partly_unmasked": 27,
+        "wholly_unmasked": 25
+      },
+      "in:last_name": {
+        "spans": 109,
+        "partly_unmasked": 42,
+        "wholly_unmasked": 42
+      },
+      "out:company_name": {
+        "spans": 76,
+        "partly_unmasked": 74,
+        "wholly_unmasked": 63
+      },
+      "out:url": {
+        "spans": 68,
+        "partly_unmasked": 67,
+        "wholly_unmasked": 65
+      },
+      "out:occupation": {
+        "spans": 48,
+        "partly_unmasked": 47,
+        "wholly_unmasked": 47
+      },
+      "out:customer_id": {
+        "spans": 47,
+        "partly_unmasked": 2,
+        "wholly_unmasked": 2
+      },
+      "in:phone_number": {
+        "spans": 47,
+        "partly_unmasked": 9,
+        "wholly_unmasked": 7
+      },
+      "in:street_address": {
+        "spans": 42,
+        "partly_unmasked": 42,
+        "wholly_unmasked": 6
+      },
+      "out:user_name": {
+        "spans": 40,
+        "partly_unmasked": 23,
+        "wholly_unmasked": 11
+      },
+      "out:time": {
+        "spans": 38,
+        "partly_unmasked": 37,
+        "wholly_unmasked": 36
+      },
+      "out:account_number": {
+        "spans": 36,
+        "partly_unmasked": 10,
+        "wholly_unmasked": 9
+      },
+      "in:city": {
+        "spans": 36,
+        "partly_unmasked": 6,
+        "wholly_unmasked": 6
+      },
+      "out:state": {
+        "spans": 34,
+        "partly_unmasked": 23,
+        "wholly_unmasked": 23
+      },
+      "out:country": {
+        "spans": 33,
+        "partly_unmasked": 30,
+        "wholly_unmasked": 30
+      },
+      "in:date_of_birth": {
+        "spans": 32,
+        "partly_unmasked": 2,
+        "wholly_unmasked": 2
+      },
+      "in:credit_debit_card": {
+        "spans": 31,
+        "partly_unmasked": 12,
+        "wholly_unmasked": 12
+      },
+      "out:date_time": {
+        "spans": 28,
+        "partly_unmasked": 6,
+        "wholly_unmasked": 5
+      },
+      "out:biometric_identifier": {
+        "spans": 25,
+        "partly_unmasked": 7,
+        "wholly_unmasked": 3
+      },
+      "out:health_plan_beneficiary_number": {
+        "spans": 23,
+        "partly_unmasked": 4,
+        "wholly_unmasked": 4
+      },
+      "in:postcode": {
+        "spans": 20,
+        "partly_unmasked": 1,
+        "wholly_unmasked": 1
+      },
+      "out:bank_routing_number": {
+        "spans": 18,
+        "partly_unmasked": 5,
+        "wholly_unmasked": 5
+      },
+      "out:language": {
+        "spans": 18,
+        "partly_unmasked": 17,
+        "wholly_unmasked": 17
+      },
+      "out:medical_record_number": {
+        "spans": 17,
+        "partly_unmasked": 2,
+        "wholly_unmasked": 1
+      },
+      "out:password": {
+        "spans": 17,
+        "partly_unmasked": 12,
+        "wholly_unmasked": 9
+      },
+      "out:pin": {
+        "spans": 17,
+        "partly_unmasked": 6,
+        "wholly_unmasked": 5
+      },
+      "out:employee_id": {
+        "spans": 16,
+        "partly_unmasked": 1,
+        "wholly_unmasked": 1
+      },
+      "out:county": {
+        "spans": 15,
+        "partly_unmasked": 10,
+        "wholly_unmasked": 9
+      },
+      "out:race_ethnicity": {
+        "spans": 14,
+        "partly_unmasked": 9,
+        "wholly_unmasked": 8
+      },
+      "in:ssn": {
+        "spans": 14,
+        "partly_unmasked": 1,
+        "wholly_unmasked": 1
+      },
+      "out:employment_status": {
+        "spans": 13,
+        "partly_unmasked": 13,
+        "wholly_unmasked": 13
+      },
+      "out:coordinate": {
+        "spans": 12,
+        "partly_unmasked": 12,
+        "wholly_unmasked": 7
+      },
+      "out:education_level": {
+        "spans": 11,
+        "partly_unmasked": 11,
+        "wholly_unmasked": 11
+      },
+      "in:age": {
+        "spans": 11,
+        "partly_unmasked": 0,
+        "wholly_unmasked": 0
+      },
+      "out:http_cookie": {
+        "spans": 11,
+        "partly_unmasked": 11,
+        "wholly_unmasked": 9
+      },
+      "in:gender": {
+        "spans": 10,
+        "partly_unmasked": 4,
+        "wholly_unmasked": 4
+      },
+      "in:fax_number": {
+        "spans": 9,
+        "partly_unmasked": 1,
+        "wholly_unmasked": 1
+      },
+      "out:cvv": {
+        "spans": 9,
+        "partly_unmasked": 2,
+        "wholly_unmasked": 2
+      },
+      "out:vehicle_identifier": {
+        "spans": 9,
+        "partly_unmasked": 1,
+        "wholly_unmasked": 1
+      },
+      "in:national_id": {
+        "spans": 8,
+        "partly_unmasked": 2,
+        "wholly_unmasked": 1
+      },
+      "out:political_view": {
+        "spans": 8,
+        "partly_unmasked": 7,
+        "wholly_unmasked": 6
+      },
+      "out:ipv4": {
+        "spans": 8,
+        "partly_unmasked": 4,
+        "wholly_unmasked": 3
+      },
+      "out:license_plate": {
+        "spans": 8,
+        "partly_unmasked": 0,
+        "wholly_unmasked": 0
+      },
+      "out:certificate_license_number": {
+        "spans": 7,
+        "partly_unmasked": 3,
+        "wholly_unmasked": 2
+      },
+      "out:blood_type": {
+        "spans": 6,
+        "partly_unmasked": 5,
+        "wholly_unmasked": 5
+      },
+      "out:swift_bic": {
+        "spans": 6,
+        "partly_unmasked": 3,
+        "wholly_unmasked": 3
+      },
+      "out:unique_id": {
+        "spans": 5,
+        "partly_unmasked": 0,
+        "wholly_unmasked": 0
+      },
+      "out:religious_belief": {
+        "spans": 5,
+        "partly_unmasked": 4,
+        "wholly_unmasked": 4
+      },
+      "out:api_key": {
+        "spans": 5,
+        "partly_unmasked": 2,
+        "wholly_unmasked": 2
+      },
+      "out:device_identifier": {
+        "spans": 5,
+        "partly_unmasked": 3,
+        "wholly_unmasked": 3
+      },
+      "out:mac_address": {
+        "spans": 3,
+        "partly_unmasked": 1,
+        "wholly_unmasked": 1
+      },
+      "out:sexuality": {
+        "spans": 2,
+        "partly_unmasked": 1,
+        "wholly_unmasked": 1
+      },
+      "out:ipv6": {
+        "spans": 2,
+        "partly_unmasked": 2,
+        "wholly_unmasked": 2
+      },
+      "in:tax_id": {
+        "spans": 1,
+        "partly_unmasked": 0,
+        "wholly_unmasked": 0
+      }
+    },
+    "with_request_path_guard": {
+      "docs_fully_masked_in_scope": 0.59,
+      "in_scope_partly_unmasked": 0.2329,
+      "in_scope_wholly_unmasked": 0.1776,
+      "masked_chars_on_personal_data": 0.9821
+    },
+    "by_stratum": {
+      "intl/structured": {
+        "texts": 50,
+        "docs_fully_masked_in_scope": 0.36,
+        "in_scope_wholly_unmasked": 0.2765,
+        "masked_chars_on_personal_data": 0.976
+      },
+      "intl/unstructured": {
+        "texts": 50,
+        "docs_fully_masked_in_scope": 0.52,
+        "in_scope_wholly_unmasked": 0.3158,
+        "masked_chars_on_personal_data": 0.989
+      },
+      "us/structured": {
+        "texts": 50,
+        "docs_fully_masked_in_scope": 0.26,
+        "in_scope_wholly_unmasked": 0.3194,
+        "masked_chars_on_personal_data": 0.9898
+      },
+      "us/unstructured": {
+        "texts": 50,
+        "docs_fully_masked_in_scope": 0.56,
+        "in_scope_wholly_unmasked": 0.2139,
+        "masked_chars_on_personal_data": 0.9948
+      }
+    }
+  },
+  "tab": {
+    "texts": 200,
+    "docs_fully_masked_in_scope": 0.48,
+    "in_scope_spans": 517,
+    "in_scope_partly_unmasked": 0.4101,
+    "in_scope_wholly_unmasked": 0.1431,
+    "out_of_scope_wholly_unmasked": 0.6266,
+    "masked_chars_on_personal_data": 0.9364,
+    "masked_chars_on_no_mask_mentions": 0.0581,
+    "in_scope_boundary_exact": 0.5899,
+    "label_right_when_boundary_exact": null,
+    "escalated_at_confidence_threshold": 0.0,
+    "texts_with_a_leak": 104,
+    "texts_with_a_leak_escalated": 0,
+    "per_label": {
+      "in:DATETIME": {
+        "spans": 319,
+        "partly_unmasked": 50,
+        "wholly_unmasked": 40
+      },
+      "in:PERSON": {
+        "spans": 137,
+        "partly_unmasked": 125,
+        "wholly_unmasked": 15
+      },
+      "out:ORG": {
+        "spans": 91,
+        "partly_unmasked": 87,
+        "wholly_unmasked": 54
+      },
+      "in:LOC": {
+        "spans": 48,
+        "partly_unmasked": 24,
+        "wholly_unmasked": 19
+      },
+      "out:MISC": {
+        "spans": 24,
+        "partly_unmasked": 24,
+        "wholly_unmasked": 23
+      },
+      "out:DEM": {
+        "spans": 24,
+        "partly_unmasked": 19,
+        "wholly_unmasked": 15
+      },
+      "out:QUANTITY": {
+        "spans": 19,
+        "partly_unmasked": 19,
+        "wholly_unmasked": 7
+      },
+      "in:CODE": {
+        "spans": 13,
+        "partly_unmasked": 13,
+        "wholly_unmasked": 0
+      }
+    },
+    "with_request_path_guard": {
+      "docs_fully_masked_in_scope": 0.51,
+      "in_scope_partly_unmasked": 0.3907,
+      "in_scope_wholly_unmasked": 0.1238,
+      "masked_chars_on_personal_data": 0.9378
+    }
+  }
+}

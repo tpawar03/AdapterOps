@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from pathlib import Path
 
 import pandas as pd
@@ -47,6 +48,16 @@ GATED = {
     "drafting": "judge_score_mean",
 }
 
+LABEL_GROUPS = {
+    **dict.fromkeys(("GENDER", "SEX"), "SEX_OR_GENDER"),
+    **dict.fromkeys(("IDCARDNUM", "DRIVERLICENSENUM", "PASSPORTNUM", "SOCIALNUM", "TAXNUM"), "ID_NUMBER"),
+    **dict.fromkeys(("GIVENNAME", "SURNAME"), "NAME"),
+}
+"""PII labels the dataset cannot tell apart from the text: "Male" is GENDER or SEX with no cue in 908 of 1,727
+training spans; without a cue word an ID's format gives its label about half the time (`runs/pii__relabel.json`);
+invented three-word names are split given-given-surname 2,372 times and given-surname-surname 1,755 times.
+`span_f1_grouped` scores each group as one label, with a name's adjacent parts as one span; the gate stays on strict."""
+
 Predictor = Callable[[str, Sequence[str]], list[str]]
 Judge = Callable[[Sequence[str], Sequence[str]], Sequence[float]]
 
@@ -65,6 +76,63 @@ def load_split(task: str, which: str) -> tuple[list[str], list[str]]:
     raise ValueError(msg)
 
 
+def redaction(texts: Sequence[str], gold_spans: Sequence, pred_spans: Sequence) -> dict:
+    """What a redaction step would leak, beside the strict span F1 that counts a harmless relabel the
+    same as a leak: documents with all personal text masked by some span of any label, and gold spans
+    left partly or wholly unmasked."""
+    from adapterops.eval.pii_errors import coverage
+
+    leaks = [coverage(t, g, p) for t, g, p in zip(texts, gold_spans, pred_spans, strict=True)]
+    spans = sum(len(g) for g in gold_spans)
+    return {
+        "docs_fully_masked": round(sum(partly == 0 for partly, _ in leaks) / len(leaks), 4) if leaks else None,
+        "gold_spans_partly_unmasked": round(sum(p for p, _ in leaks) / spans, 4) if spans else None,
+        "gold_spans_wholly_unmasked": round(sum(w for _, w in leaks) / spans, 4) if spans else None,
+    }
+
+
+def grouped_f1(texts: Sequence[str], gold_spans: Sequence, pred_spans: Sequence) -> float:
+    """Strict span F1 with the labels in each of `LABEL_GROUPS` counted as one, and NAME spans separated only by
+    whitespace joined into one."""
+    def merge(text, doc):
+        out = []
+        for s in sorted((replace(s, label=LABEL_GROUPS.get(s.label, s.label)) for s in doc), key=lambda s: s.start):
+            if out and s.label == "NAME" == out[-1].label and not text[out[-1].end:s.start].strip():
+                out[-1] = replace(out[-1], end=s.end)
+            else:
+                out.append(s)
+        return out
+
+    gold = [merge(t, d) for t, d in zip(texts, gold_spans, strict=True)]
+    pred = [merge(t, d) for t, d in zip(texts, pred_spans, strict=True)]
+    return round(float(score_spans(gold, pred, strict=True)["f1"]), 4)
+
+
+def add_redaction(run_path: Path) -> dict:
+    """Backfill the redaction numbers into a committed run from its saved predictions.
+
+    Refuses a run the gate thresholds pin by sha256: rewriting it would break the recorded provenance of
+    every threshold derived from it."""
+    thresholds = REPO_ROOT / "evals" / "GATE_THRESHOLDS.json"
+    if thresholds.exists():
+        pinned = {Path(i["file"]).name for i in json.loads(thresholds.read_text()).get("inputs", [])}
+        if run_path.name in pinned:
+            msg = f"{run_path.name} is a pinned input to {thresholds.name}; rewriting it would break its sha256"
+            raise ValueError(msg)
+    run = json.loads(run_path.read_text())
+    predictions = pd.read_parquet(REPO_ROOT / run["predictions_file"])
+    for which in SPLITS:
+        frame = predictions[(predictions.task == "pii") & (predictions.split == which)]
+        if frame.empty:
+            continue
+        gold = [spans_from_values(t, parse_model_output(g)) for t, g in zip(frame.text, frame.gold)]
+        pred = [spans_from_values(t, parse_model_output(p)) for t, p in zip(frame.text, frame.prediction)]
+        run["per_split"]["pii"][which].update(redaction(list(frame.text), gold, pred),
+                                              span_f1_grouped=grouped_f1(list(frame.text), gold, pred))
+    run_path.write_text(json.dumps(run, indent=2) + "\n", encoding="utf-8")
+    return run["per_split"]["pii"]
+
+
 def score(task: str, texts: Sequence[str], gold: Sequence[str], predictions: Sequence[str],
           judge: Judge | None = None) -> dict:
     n = len(gold)
@@ -80,7 +148,9 @@ def score(task: str, texts: Sequence[str], gold: Sequence[str], predictions: Seq
                       for t, p in zip(texts, predictions)]
         return {"n": n,
                 "span_f1_strict": round(float(score_spans(gold_spans, pred_spans,
-                                                          strict=True)["f1"]), 4)}
+                                                          strict=True)["f1"]), 4),
+                "span_f1_grouped": grouped_f1(texts, gold_spans, pred_spans),
+                **redaction(texts, gold_spans, pred_spans)}
     if task == "drafting":
         if judge is None:
             return {"n": n, "judge_score_mean": None,

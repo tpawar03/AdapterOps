@@ -415,11 +415,12 @@ class Metrics:
             for p in pairs:
                 t = self.per_task.setdefault(p["task"], {"pairs": 0, "escalated": 0,
                                                          "fallbacks": 0, "unanswered": 0,
-                                                         "latency_ms": []})
+                                                         "budget_refused": 0, "latency_ms": []})
                 t["pairs"] += 1
                 t["escalated"] += p["route"] == "escalated"
                 t["fallbacks"] += p["route"] == "fallback"
                 t["unanswered"] += p["served_by"] == "none"
+                t["budget_refused"] += str(p.get("frontier_error") or "").startswith("budget:")
                 t["latency_ms"].append(p["latency_ms"])
                 self.cost_usd += p["cost_usd"]
 
@@ -452,6 +453,7 @@ class Metrics:
                            "frontier_call_rate": rate("escalated", [t]),
                            "fallback_rate": rate("fallbacks", [t]),
                            "unanswered": t["unanswered"],
+                           "frontier_budget_refused": t["budget_refused"],
                            "p95_ms": p95(t["latency_ms"])}
                     for task, t in sorted(self.per_task.items())
                 },
@@ -461,11 +463,47 @@ class Metrics:
 # ------------------------------------------------------------------ the service
 
 
+class FrontierBudget:
+    """A per-minute and per-day request budget for the frontier.
+
+    At A10 load the request path sent GPT-4o-mini 387 calls a minute, which exhausts a 10,000-a-day
+    account in about 26 minutes; past that every escalation fails at the API. With a budget, a pair
+    over it keeps its local answer and the refusal is counted, so the request path degrades to local
+    serving instead of erroring. `None` means no limit on that window."""
+
+    def __init__(self, per_minute: int | None = None, per_day: int | None = None,
+                 clock: Callable[[], float] = time.monotonic) -> None:
+        from collections import deque
+
+        self.per_minute, self.per_day, self.clock = per_minute, per_day, clock
+        self._minute: deque[float] = deque()
+        self._day_start = clock()
+        self._day_count = 0
+        self._lock = threading.Lock()
+
+    def take(self) -> str | None:
+        """Spend one request if the budget allows it; otherwise say which window refused."""
+        with self._lock:
+            now = self.clock()
+            if now - self._day_start >= 86_400:
+                self._day_start, self._day_count = now, 0
+            while self._minute and now - self._minute[0] >= 60:
+                self._minute.popleft()
+            if self.per_day is not None and self._day_count >= self.per_day:
+                return f"daily frontier budget {self.per_day} spent"
+            if self.per_minute is not None and len(self._minute) >= self.per_minute:
+                return f"per-minute frontier budget {self.per_minute} spent"
+            self._minute.append(now)
+            self._day_count += 1
+            return None
+
+
 class Service:
     def __init__(self, local: Backend, policy, frontier: Backend | None = None,
                  judge: Judge | None = None, tracer=None, prices: Prices | None = None,
                  vocab: dict[str, frozenset[str]] | None = None,
-                 manifest: dict | None = None) -> None:
+                 manifest: dict | None = None, frontier_budget: FrontierBudget | None = None,
+                 pii_guard_labels: Sequence[str] = ()) -> None:
         from adapterops.serve.tracing import NullTracer
 
         self.local = local
@@ -476,6 +514,8 @@ class Service:
         self.prices = prices or Prices.from_economics()
         self.vocab = vocab or load_vocab()
         self.manifest = manifest or {}
+        self.frontier_budget = frontier_budget
+        self.pii_guard_labels = tuple(pii_guard_labels)
         self.metrics = Metrics()
 
     def describe(self) -> dict:
@@ -550,6 +590,14 @@ class Service:
                 notes.append("would reach GPT-4o-mini, but no frontier is configured — answered "
                              "locally" if local_error is None else
                              "local inference failed and no frontier is configured")
+            elif (refused := self.frontier_budget.take() if self.frontier_budget else None):
+                frontier_error = f"budget: {refused}"
+                if local is None and local_error is None:
+                    # The router escalated before the adapter ran; answer locally instead.
+                    local, local_error = self._run_local(task, text)
+                    cost += self.prices.local_usd_per_request
+                final = local
+                notes.append(f"frontier not called — {refused}; answered locally")
             else:
                 try:
                     final = self.frontier.generate(task, text)
@@ -560,6 +608,20 @@ class Service:
                     final = local
             if served_by == "local" and (final is None or local_error):
                 served_by = "none"
+
+        if task == "pii" and final is not None and self.pii_guard_labels:
+            # A second detector for what confidence cannot flag: pattern-matched identifiers and dates the
+            # answer left untagged are added, never overriding a span the answer placed. On the golden set it
+            # cut wholly unmasked spans from 19 to 12 with no false additions on 1,070 customer texts.
+            from dataclasses import replace
+
+            from adapterops.eval.pii_guard import augment
+
+            guarded = augment(text, final.text, self.pii_guard_labels)
+            added = len(parse_model_output(guarded)) - len(parse_model_output(final.text))
+            if added:
+                final = replace(final, text=guarded)
+                notes.append(f"PII guard added {added} pattern-matched span(s)")
 
         judge_score = None
         if task == "drafting" and served_by == "local" and self.judge is not None:
@@ -610,7 +672,8 @@ def make_policy(name: str, manifest: dict, curve: Path = CURVE):
 def build_service(backend: str = "vllm", base_url: str = "http://localhost:8000",
                   policy: str = "confidence", frontier: bool = True, judge: bool = True,
                   tracer=None, local: Backend | None = None,
-                  benchmark_caps: bool = False) -> Service:
+                  benchmark_caps: bool = False, frontier_per_minute: int | None = None,
+                  frontier_per_day: int | None = None, pii_guard: bool = True) -> Service:
     """A service wired from the manifest. The frontier is used only if an OpenAI key is present."""
     manifest = load_manifest()
     vocab = load_vocab()
@@ -635,5 +698,14 @@ def build_service(backend: str = "vllm", base_url: str = "http://localhost:8000"
             from adapterops.judge.score import load_judge
 
             scorer = load_judge(checkpoint)
+    budget = (FrontierBudget(frontier_per_minute, frontier_per_day)
+              if front is not None and (frontier_per_minute or frontier_per_day) else None)
     return Service(local=local, policy=make_policy(policy, manifest), frontier=front,
-                   judge=scorer, tracer=tracer, vocab=vocab, manifest=manifest)
+                   judge=scorer, tracer=tracer, vocab=vocab, manifest=manifest,
+                   frontier_budget=budget, pii_guard_labels=PII_GUARD_LABELS if pii_guard else ())
+
+
+PII_GUARD_LABELS = ("EMAIL", "CREDITCARDNUMBER", "SOCIALNUM", "PASSPORTNUM", "TELEPHONENUM",
+                    "DATE", "TAXNUM", "DRIVERLICENSENUM", "IDCARDNUM")
+"""`pii_guard.LABEL_SETS["structured_ids_dates"]`: the set that removed leaks without false additions.
+ZIPCODE is left out — it tagged bill numbers in customer text and removed no leak."""

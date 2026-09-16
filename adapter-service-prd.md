@@ -1,6 +1,6 @@
 # PRD: Multi-Task Adapter Service with Cost-Aware Routing and Calibrated Evaluation
 
-**Version:** 2.14 (manifest v6 serves the retrained PII adapter)
+**Version:** 2.15 (the router's PII decisions re-checked for the served adapter)
 **Owner:** Solo build
 **Status:** Built — results in `STATUS.md` and `runs/DASHBOARD.md`
 **Estimated duration:** 9 weeks at 20 hrs/week (~180 hours) — hours not logged
@@ -9,7 +9,7 @@
 
 ## Changelog
 
-Two rounds of substantive revision, each triggered by the previous version claiming something it could not deliver. Nine changes fixed the original scope and infrastructure assumptions; nine more fixed the hard-cases split introduced in v2.1, which as written leaked into router training, gated on label noise, and had no evidence that it caught anything. Row 20 records a renumbering that changed nothing — logged rather than applied quietly, for the reason given in the row itself. Rows 21–29 record day-1 checks and data findings; rows 30–43 record what building and measuring the system proved wrong in the specification; rows 44–53 record the requirements an audit against v2.7 found unbuilt, and what building them found; rows 54–56 record what running the request path live on a rented A10 measured and corrected; rows 57–58 record what loading it to the A10's ceiling measured; rows 59–61 record training variance measured for the gates, GPT-4o-mini under load, and the manifest that now carries the gate; rows 62–63 record the PII adapter measured on text with no personal data, and the regression target checked with its judge; rows 64–65 record the retrained candidate that fixes it, and the manifest that serves it.
+Two rounds of substantive revision, each triggered by the previous version claiming something it could not deliver. Nine changes fixed the original scope and infrastructure assumptions; nine more fixed the hard-cases split introduced in v2.1, which as written leaked into router training, gated on label noise, and had no evidence that it caught anything. Row 20 records a renumbering that changed nothing — logged rather than applied quietly, for the reason given in the row itself. Rows 21–29 record day-1 checks and data findings; rows 30–43 record what building and measuring the system proved wrong in the specification; rows 44–53 record the requirements an audit against v2.7 found unbuilt, and what building them found; rows 54–56 record what running the request path live on a rented A10 measured and corrected; rows 57–58 record what loading it to the A10's ceiling measured; rows 59–61 record training variance measured for the gates, GPT-4o-mini under load, and the manifest that now carries the gate; rows 62–63 record the PII adapter measured on text with no personal data, and the regression target checked with its judge; rows 64–65 record the retrained candidate that fixes it, and the manifest that serves it; row 66 records the router's PII decisions re-checked with it.
 
 ### v1 → v2 — scope and infrastructure
 
@@ -146,6 +146,12 @@ Two rounds of substantive revision, each triggered by the previous version claim
 |---|---|---|
 | 65 | **Manifest v6 serves the retrained PII adapter; row 64's "not yet the one served" is superseded.** | Row 64's candidate was published as a new revision of the PII repository on the Hub (`e0bde68f`), its weights checked byte-identical to the checkpoint regression-scored beside the previous adapter, and promoted in manifest v6 over v5 with that same-session run attached; the gate found nothing to block. The registry now pins the same revision, so a later promotion cannot put `3b38a284` back by accident. Two numbers describe the previous adapter and are not re-measured: the confidence router's PII escalation rate at the operating point, and the PII training spread behind its 0.0081 gate. |
 
+### v2.14 → v2.15 — the router's PII decisions re-checked
+
+| # | Change | Reason |
+|---|---|---|
+| 66 | **The router's PII decisions are re-checked for the adapter manifest v6 serves, and none changes; row 65's first open measurement is closed.** | Every PII pair in both router populations was scored by the previous and the new adapter on one machine, the same way, and the previous adapter reproduced the recorded vLLM decisions on every pair. The new adapter's confidence scores run about 1.3 times the old, but the highest is 0.088 against the 0.3939 threshold, so it escalates **0 of 100** and **0 of 253** PII pairs, as before, and the populations' totals (77 of 392, 202 of 1,047) do not move. Its local success on these pairs rose slightly (0.73 to 0.76, 0.708 to 0.719). Confidence routing never sends PII to GPT-4o-mini, which gets 5% of the in-distribution PII pairs right against the adapter's 73% — the right decision, not a gap. PII's training spread remains the previous configuration's. |
+
 ---
 
 ## 1. Summary
@@ -158,7 +164,7 @@ Quality is measured on **two splits, never blended**: a random held-out golden s
 
 The deliverable is a live demo plus a public repo with recorded benchmark evidence, built solo in ~9 weeks for under $50.
 
-**As of v2.7 the system is built.** Results, including the negative ones, live in `STATUS.md` and `runs/DASHBOARD.md`. This document stays the specification: where the build proved it wrong, the text is corrected and the change logged in rows 30–65, and plans for outcomes that did not arrive — the risk table, the cut order — are left as written.
+**As of v2.7 the system is built.** Results, including the negative ones, live in `STATUS.md` and `runs/DASHBOARD.md`. This document stays the specification: where the build proved it wrong, the text is corrected and the change logged in rows 30–66, and plans for outcomes that did not arrive — the risk table, the cut order — are left as written.
 
 ---
 
@@ -610,7 +616,7 @@ M11 sits last among the cuttable items because it is cheap — the checkpoint al
 - Multilingual adapters.
 - Always-on scheduled monitoring.
 - The request path on new traffic, and GPT-4o-mini under load for longer than this account's daily request cap allows (changelogs 57, 58, 60).
-- The router's PII operating point and PII's training spread, re-measured for the adapter manifest v6 serves (changelog 65).
+- PII's training spread, re-measured for the adapter manifest v6 serves (changelogs 65, 66).
 - A hard-cases split mined from several models' failures, frozen before the model it gates exists (changelog 32).
 - An expected-gain router — P(frontier succeeds) − P(adapter succeeds) — tested on a freshly frozen split.
 

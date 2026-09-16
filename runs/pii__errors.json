@@ -1,0 +1,1886 @@
+{
+  "sources": {
+    "served_v6": "runs/regression__a10-v5-pii-negatives__predictions.parquet",
+    "previous_v5": "runs/regression__a10-v5-pii-original__predictions.parquet"
+  },
+  "splits": {
+    "random": {
+      "served_v6": {
+        "documents": 300,
+        "documents_all_spans_right": 210,
+        "document_success_rate": 0.7,
+        "strict_scorer": {
+          "precision": 0.9448,
+          "recall": 0.9436,
+          "f1": 0.9442,
+          "tp": 2259,
+          "fp": 132,
+          "fn": 135
+        },
+        "redaction": {
+          "documents_all_pii_text_masked": 253,
+          "gold_spans_partly_unmasked": 54,
+          "gold_spans_wholly_unmasked": 19,
+          "note": "any predicted span masks the text it covers, whatever its label \u2014 what a redaction step would leak, as distinct from what the strict scorer counts wrong"
+        },
+        "label_errors_within_id_numbers": 28,
+        "label_errors_gender_sex": 11,
+        "boundary_errors_on_names": 53,
+        "spans_by_category": {
+          "exact": 2259,
+          "label": 52,
+          "boundary": 59,
+          "boundary_and_label": 1,
+          "spurious": 20,
+          "invented": 0,
+          "repeated_value": 0,
+          "missed": 23
+        },
+        "gold_spans": 2394,
+        "failed_documents": 90,
+        "failed_documents_by_single_cause": {
+          "label": 33,
+          "boundary": 16,
+          "missed": 12,
+          "spurious": 3
+        },
+        "failed_documents_with_several_causes": 26,
+        "failed_documents_by_any_cause": {
+          "label": 44,
+          "boundary": 38,
+          "missed": 20,
+          "spurious": 18,
+          "boundary_and_label": 1
+        },
+        "per_label": {
+          "IDCARDNUM": {
+            "gold": 77,
+            "exact": 60,
+            "recall": 0.7792,
+            "label": 16,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 1
+          },
+          "DRIVERLICENSENUM": {
+            "gold": 61,
+            "exact": 52,
+            "recall": 0.8525,
+            "label": 8,
+            "boundary": 1,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "GENDER": {
+            "gold": 79,
+            "exact": 68,
+            "recall": 0.8608,
+            "label": 11,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "GIVENNAME": {
+            "gold": 273,
+            "exact": 235,
+            "recall": 0.8608,
+            "label": 6,
+            "boundary": 29,
+            "boundary_and_label": 1,
+            "missed": 2
+          },
+          "SURNAME": {
+            "gold": 239,
+            "exact": 211,
+            "recall": 0.8828,
+            "label": 2,
+            "boundary": 24,
+            "boundary_and_label": 0,
+            "missed": 2
+          },
+          "CREDITCARDNUMBER": {
+            "gold": 71,
+            "exact": 67,
+            "recall": 0.9437,
+            "label": 1,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 3
+          },
+          "SOCIALNUM": {
+            "gold": 54,
+            "exact": 51,
+            "recall": 0.9444,
+            "label": 3,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "AGE": {
+            "gold": 122,
+            "exact": 116,
+            "recall": 0.9508,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 6
+          },
+          "PASSPORTNUM": {
+            "gold": 50,
+            "exact": 48,
+            "recall": 0.96,
+            "label": 2,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "TAXNUM": {
+            "gold": 58,
+            "exact": 56,
+            "recall": 0.9655,
+            "label": 2,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "SEX": {
+            "gold": 48,
+            "exact": 47,
+            "recall": 0.9792,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 1
+          },
+          "BUILDINGNUM": {
+            "gold": 101,
+            "exact": 99,
+            "recall": 0.9802,
+            "label": 0,
+            "boundary": 1,
+            "boundary_and_label": 0,
+            "missed": 1
+          },
+          "STREET": {
+            "gold": 109,
+            "exact": 107,
+            "recall": 0.9817,
+            "label": 0,
+            "boundary": 1,
+            "boundary_and_label": 0,
+            "missed": 1
+          },
+          "CITY": {
+            "gold": 166,
+            "exact": 163,
+            "recall": 0.9819,
+            "label": 0,
+            "boundary": 1,
+            "boundary_and_label": 0,
+            "missed": 2
+          },
+          "DATE": {
+            "gold": 305,
+            "exact": 301,
+            "recall": 0.9869,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 4
+          },
+          "EMAIL": {
+            "gold": 188,
+            "exact": 186,
+            "recall": 0.9894,
+            "label": 0,
+            "boundary": 2,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "TITLE": {
+            "gold": 166,
+            "exact": 165,
+            "recall": 0.994,
+            "label": 1,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "TELEPHONENUM": {
+            "gold": 136,
+            "exact": 136,
+            "recall": 1.0,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "ZIPCODE": {
+            "gold": 91,
+            "exact": 91,
+            "recall": 1.0,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          }
+        },
+        "label_confusions_gold_to_predicted": [
+          {
+            "gold": "IDCARDNUM",
+            "predicted": "DRIVERLICENSENUM",
+            "count": 14
+          },
+          {
+            "gold": "GENDER",
+            "predicted": "SEX",
+            "count": 11
+          },
+          {
+            "gold": "GIVENNAME",
+            "predicted": "SURNAME",
+            "count": 3
+          },
+          {
+            "gold": "GIVENNAME",
+            "predicted": "CITY",
+            "count": 3
+          },
+          {
+            "gold": "DRIVERLICENSENUM",
+            "predicted": "IDCARDNUM",
+            "count": 3
+          },
+          {
+            "gold": "DRIVERLICENSENUM",
+            "predicted": "PASSPORTNUM",
+            "count": 3
+          },
+          {
+            "gold": "SURNAME",
+            "predicted": "GIVENNAME",
+            "count": 2
+          },
+          {
+            "gold": "TAXNUM",
+            "predicted": "SOCIALNUM",
+            "count": 2
+          },
+          {
+            "gold": "CREDITCARDNUMBER",
+            "predicted": "IDCARDNUM",
+            "count": 1
+          },
+          {
+            "gold": "SOCIALNUM",
+            "predicted": "PASSPORTNUM",
+            "count": 1
+          },
+          {
+            "gold": "SOCIALNUM",
+            "predicted": "IDCARDNUM",
+            "count": 1
+          },
+          {
+            "gold": "TITLE",
+            "predicted": "GIVENNAME",
+            "count": 1
+          }
+        ],
+        "boundary_examples": [
+          {
+            "gold_label": "DRIVERLICENSENUM",
+            "gold_value": "AYLEE 0102295 AS 210",
+            "pred_value": "0102295"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Tong Kelment",
+            "pred_value": "Tong"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Artiles",
+            "pred_value": "Kelment Artiles"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Dakota Anuk",
+            "pred_value": "Dakota"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "abu Hamida Zonda",
+            "pred_value": "Zonda"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Detjon",
+            "pred_value": "Detjon Hazim\u00e9"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Suthargini Dakota",
+            "pred_value": "Suthargini"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Yi-Hsiang Sveva",
+            "pred_value": "Yi-Hsiang"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Nellina",
+            "pred_value": "Nellina Nolle"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Nolle Ciuti",
+            "pred_value": "Ciuti"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Brigid Serda",
+            "pred_value": "Brigid"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Djily",
+            "pred_value": "Djily Jahwar"
+          }
+        ],
+        "boundary_extends_gold": 24,
+        "boundary_shortens_gold": 35,
+        "spurious_by_label": {
+          "SURNAME": 9,
+          "GIVENNAME": 4,
+          "BUILDINGNUM": 2,
+          "PASSPORTNUM": 1,
+          "STREET": 1,
+          "DATE": 1,
+          "AGE": 1,
+          "CITY": 1
+        },
+        "spurious_examples": [
+          {
+            "pred_label": "PASSPORTNUM",
+            "pred_value": "AS 210"
+          },
+          {
+            "pred_label": "STREET",
+            "pred_value": "Heritage Road"
+          },
+          {
+            "pred_label": "DATE",
+            "pred_value": "10th March 2024"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Anuk"
+          },
+          {
+            "pred_label": "GIVENNAME",
+            "pred_value": "abu Hamida"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Dakota"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Sveva"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Serda"
+          }
+        ],
+        "missed_examples": [
+          {
+            "gold_label": "STREET",
+            "gold_value": "General Wade's Military Road"
+          },
+          {
+            "gold_label": "DATE",
+            "gold_value": "09/05/1939"
+          },
+          {
+            "gold_label": "SEX",
+            "gold_value": "F"
+          },
+          {
+            "gold_label": "IDCARDNUM",
+            "gold_value": "CUQWEB4ASP"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Hazim\u00e9"
+          },
+          {
+            "gold_label": "CITY",
+            "gold_value": "Springfield"
+          },
+          {
+            "gold_label": "AGE",
+            "gold_value": "50"
+          },
+          {
+            "gold_label": "CITY",
+            "gold_value": "Vinton"
+          }
+        ],
+        "invented_top_values": {},
+        "success_by_gold_span_count": {
+          "1-2": {
+            "docs": 22,
+            "success": 0.818
+          },
+          "3-5": {
+            "docs": 87,
+            "success": 0.816
+          },
+          "6-9": {
+            "docs": 95,
+            "success": 0.663
+          },
+          "10+": {
+            "docs": 96,
+            "success": 0.604
+          }
+        },
+        "success_by_text_length": {
+          "shortest quarter": {
+            "docs": 75,
+            "success": 0.827
+          },
+          "second": {
+            "docs": 77,
+            "success": 0.779
+          },
+          "third": {
+            "docs": 73,
+            "success": 0.603
+          },
+          "longest quarter": {
+            "docs": 75,
+            "success": 0.587
+          }
+        }
+      },
+      "previous_v5": {
+        "documents": 300,
+        "documents_all_spans_right": 218,
+        "document_success_rate": 0.7267,
+        "strict_scorer": {
+          "precision": 0.95,
+          "recall": 0.944,
+          "f1": 0.947,
+          "tp": 2260,
+          "fp": 119,
+          "fn": 134
+        },
+        "redaction": {
+          "documents_all_pii_text_masked": 262,
+          "gold_spans_partly_unmasked": 55,
+          "gold_spans_wholly_unmasked": 25,
+          "note": "any predicted span masks the text it covers, whatever its label \u2014 what a redaction step would leak, as distinct from what the strict scorer counts wrong"
+        },
+        "label_errors_within_id_numbers": 23,
+        "label_errors_gender_sex": 12,
+        "boundary_errors_on_names": 47,
+        "spans_by_category": {
+          "exact": 2260,
+          "label": 53,
+          "boundary": 51,
+          "boundary_and_label": 2,
+          "spurious": 13,
+          "invented": 2,
+          "repeated_value": 1,
+          "missed": 28
+        },
+        "gold_spans": 2394,
+        "failed_documents": 82,
+        "failed_documents_by_single_cause": {
+          "label": 37,
+          "boundary": 14,
+          "missed": 8,
+          "spurious": 1
+        },
+        "failed_documents_with_several_causes": 22,
+        "failed_documents_by_any_cause": {
+          "label": 44,
+          "boundary": 33,
+          "missed": 16,
+          "spurious": 12,
+          "boundary_and_label": 2
+        },
+        "per_label": {
+          "IDCARDNUM": {
+            "gold": 77,
+            "exact": 64,
+            "recall": 0.8312,
+            "label": 13,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "GENDER": {
+            "gold": 79,
+            "exact": 67,
+            "recall": 0.8481,
+            "label": 12,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "GIVENNAME": {
+            "gold": 273,
+            "exact": 235,
+            "recall": 0.8608,
+            "label": 6,
+            "boundary": 26,
+            "boundary_and_label": 1,
+            "missed": 5
+          },
+          "DRIVERLICENSENUM": {
+            "gold": 61,
+            "exact": 54,
+            "recall": 0.8852,
+            "label": 7,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "SURNAME": {
+            "gold": 239,
+            "exact": 213,
+            "recall": 0.8912,
+            "label": 2,
+            "boundary": 21,
+            "boundary_and_label": 0,
+            "missed": 3
+          },
+          "SOCIALNUM": {
+            "gold": 54,
+            "exact": 49,
+            "recall": 0.9074,
+            "label": 4,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 1
+          },
+          "AGE": {
+            "gold": 122,
+            "exact": 114,
+            "recall": 0.9344,
+            "label": 2,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 6
+          },
+          "PASSPORTNUM": {
+            "gold": 50,
+            "exact": 47,
+            "recall": 0.94,
+            "label": 2,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 1
+          },
+          "CREDITCARDNUMBER": {
+            "gold": 71,
+            "exact": 67,
+            "recall": 0.9437,
+            "label": 3,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 1
+          },
+          "CITY": {
+            "gold": 166,
+            "exact": 160,
+            "recall": 0.9639,
+            "label": 1,
+            "boundary": 1,
+            "boundary_and_label": 0,
+            "missed": 4
+          },
+          "BUILDINGNUM": {
+            "gold": 101,
+            "exact": 98,
+            "recall": 0.9703,
+            "label": 0,
+            "boundary": 1,
+            "boundary_and_label": 0,
+            "missed": 2
+          },
+          "SEX": {
+            "gold": 48,
+            "exact": 47,
+            "recall": 0.9792,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 1
+          },
+          "TAXNUM": {
+            "gold": 58,
+            "exact": 57,
+            "recall": 0.9828,
+            "label": 1,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "TITLE": {
+            "gold": 166,
+            "exact": 164,
+            "recall": 0.988,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 1,
+            "missed": 1
+          },
+          "EMAIL": {
+            "gold": 188,
+            "exact": 186,
+            "recall": 0.9894,
+            "label": 0,
+            "boundary": 2,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "STREET": {
+            "gold": 109,
+            "exact": 108,
+            "recall": 0.9908,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 1
+          },
+          "DATE": {
+            "gold": 305,
+            "exact": 303,
+            "recall": 0.9934,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 2
+          },
+          "TELEPHONENUM": {
+            "gold": 136,
+            "exact": 136,
+            "recall": 1.0,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "ZIPCODE": {
+            "gold": 91,
+            "exact": 91,
+            "recall": 1.0,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          }
+        },
+        "label_confusions_gold_to_predicted": [
+          {
+            "gold": "GENDER",
+            "predicted": "SEX",
+            "count": 12
+          },
+          {
+            "gold": "IDCARDNUM",
+            "predicted": "DRIVERLICENSENUM",
+            "count": 10
+          },
+          {
+            "gold": "GIVENNAME",
+            "predicted": "CITY",
+            "count": 3
+          },
+          {
+            "gold": "DRIVERLICENSENUM",
+            "predicted": "IDCARDNUM",
+            "count": 3
+          },
+          {
+            "gold": "GIVENNAME",
+            "predicted": "SURNAME",
+            "count": 3
+          },
+          {
+            "gold": "SURNAME",
+            "predicted": "GIVENNAME",
+            "count": 2
+          },
+          {
+            "gold": "CREDITCARDNUMBER",
+            "predicted": "IDCARDNUM",
+            "count": 2
+          },
+          {
+            "gold": "DRIVERLICENSENUM",
+            "predicted": "PASSPORTNUM",
+            "count": 2
+          },
+          {
+            "gold": "PASSPORTNUM",
+            "predicted": "SOCIALNUM",
+            "count": 2
+          },
+          {
+            "gold": "SOCIALNUM",
+            "predicted": "PASSPORTNUM",
+            "count": 1
+          },
+          {
+            "gold": "SOCIALNUM",
+            "predicted": "IDCARDNUM",
+            "count": 1
+          },
+          {
+            "gold": "TITLE",
+            "predicted": "SURNAME",
+            "count": 1
+          }
+        ],
+        "boundary_examples": [
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Ediola",
+            "pred_value": "Ediola Maisuria"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Dakota Anuk",
+            "pred_value": "Dakota"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "abu Hamida Zonda",
+            "pred_value": "Zonda"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Nellina",
+            "pred_value": "Nellina Nolle"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Nolle Ciuti",
+            "pred_value": "Ciuti"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Brigid Serda",
+            "pred_value": "Brigid"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Djily",
+            "pred_value": "Djily Jahwar"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Jahwar Pusinelli",
+            "pred_value": "Pusinelli"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Freba",
+            "pred_value": "Freba Naska"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Naska Terio",
+            "pred_value": "Terio"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Toby",
+            "pred_value": "Toby Erkek"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Erkek di Fonzo",
+            "pred_value": "di Fonzo"
+          }
+        ],
+        "boundary_extends_gold": 21,
+        "boundary_shortens_gold": 30,
+        "spurious_by_label": {
+          "SURNAME": 7,
+          "GIVENNAME": 3,
+          "STREET": 2,
+          "BUILDINGNUM": 1
+        },
+        "spurious_examples": [
+          {
+            "pred_label": "STREET",
+            "pred_value": "Heritage Road"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Anuk"
+          },
+          {
+            "pred_label": "GIVENNAME",
+            "pred_value": "abu Hamida"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Serda"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Zendel"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Vasfije"
+          },
+          {
+            "pred_label": "GIVENNAME",
+            "pred_value": "Tempus"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Rain"
+          }
+        ],
+        "missed_examples": [
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Maisuria"
+          },
+          {
+            "gold_label": "SEX",
+            "gold_value": "F"
+          },
+          {
+            "gold_label": "CITY",
+            "gold_value": "Springfield"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Madely"
+          },
+          {
+            "gold_label": "AGE",
+            "gold_value": "4"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Vencel Jean-Claude"
+          },
+          {
+            "gold_label": "AGE",
+            "gold_value": "65"
+          },
+          {
+            "gold_label": "STREET",
+            "gold_value": "Kalyan Bypass Road"
+          }
+        ],
+        "invented_top_values": {
+          "GIVENNAME: Finley": 1,
+          "SURNAME: Kellermann": 1
+        },
+        "success_by_gold_span_count": {
+          "1-2": {
+            "docs": 22,
+            "success": 0.864
+          },
+          "3-5": {
+            "docs": 87,
+            "success": 0.793
+          },
+          "6-9": {
+            "docs": 95,
+            "success": 0.726
+          },
+          "10+": {
+            "docs": 96,
+            "success": 0.635
+          }
+        },
+        "success_by_text_length": {
+          "shortest quarter": {
+            "docs": 75,
+            "success": 0.787
+          },
+          "second": {
+            "docs": 77,
+            "success": 0.792
+          },
+          "third": {
+            "docs": 73,
+            "success": 0.726
+          },
+          "longest quarter": {
+            "docs": 75,
+            "success": 0.6
+          }
+        }
+      },
+      "served_minus_previous": {
+        "exact": -1,
+        "label": -1,
+        "boundary": 8,
+        "boundary_and_label": -1,
+        "spurious": 7,
+        "invented": -2,
+        "repeated_value": -1,
+        "missed": -5
+      }
+    },
+    "hard": {
+      "served_v6": {
+        "documents": 150,
+        "documents_all_spans_right": 40,
+        "document_success_rate": 0.2667,
+        "strict_scorer": {
+          "precision": 0.886,
+          "recall": 0.871,
+          "f1": 0.8785,
+          "tp": 1283,
+          "fp": 165,
+          "fn": 190
+        },
+        "redaction": {
+          "documents_all_pii_text_masked": 90,
+          "gold_spans_partly_unmasked": 73,
+          "gold_spans_wholly_unmasked": 33,
+          "note": "any predicted span masks the text it covers, whatever its label \u2014 what a redaction step would leak, as distinct from what the strict scorer counts wrong"
+        },
+        "label_errors_within_id_numbers": 33,
+        "label_errors_gender_sex": 9,
+        "boundary_errors_on_names": 72,
+        "spans_by_category": {
+          "exact": 1283,
+          "label": 61,
+          "boundary": 80,
+          "boundary_and_label": 0,
+          "spurious": 24,
+          "invented": 2,
+          "repeated_value": 0,
+          "missed": 49
+        },
+        "gold_spans": 1473,
+        "failed_documents": 110,
+        "failed_documents_by_single_cause": {
+          "label": 31,
+          "boundary": 22,
+          "missed": 17,
+          "spurious": 2
+        },
+        "failed_documents_with_several_causes": 38,
+        "failed_documents_by_any_cause": {
+          "boundary": 56,
+          "label": 48,
+          "missed": 39,
+          "spurious": 21
+        },
+        "per_label": {
+          "IDCARDNUM": {
+            "gold": 41,
+            "exact": 28,
+            "recall": 0.6829,
+            "label": 13,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "DRIVERLICENSENUM": {
+            "gold": 49,
+            "exact": 34,
+            "recall": 0.6939,
+            "label": 13,
+            "boundary": 2,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "SURNAME": {
+            "gold": 159,
+            "exact": 115,
+            "recall": 0.7233,
+            "label": 5,
+            "boundary": 33,
+            "boundary_and_label": 0,
+            "missed": 6
+          },
+          "GIVENNAME": {
+            "gold": 197,
+            "exact": 146,
+            "recall": 0.7411,
+            "label": 2,
+            "boundary": 39,
+            "boundary_and_label": 0,
+            "missed": 10
+          },
+          "GENDER": {
+            "gold": 44,
+            "exact": 35,
+            "recall": 0.7955,
+            "label": 8,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 1
+          },
+          "SEX": {
+            "gold": 21,
+            "exact": 18,
+            "recall": 0.8571,
+            "label": 2,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 1
+          },
+          "AGE": {
+            "gold": 73,
+            "exact": 63,
+            "recall": 0.863,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 10
+          },
+          "STREET": {
+            "gold": 67,
+            "exact": 58,
+            "recall": 0.8657,
+            "label": 1,
+            "boundary": 3,
+            "boundary_and_label": 0,
+            "missed": 5
+          },
+          "BUILDINGNUM": {
+            "gold": 61,
+            "exact": 53,
+            "recall": 0.8689,
+            "label": 3,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 5
+          },
+          "TAXNUM": {
+            "gold": 40,
+            "exact": 35,
+            "recall": 0.875,
+            "label": 5,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "SOCIALNUM": {
+            "gold": 30,
+            "exact": 27,
+            "recall": 0.9,
+            "label": 3,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "CITY": {
+            "gold": 113,
+            "exact": 102,
+            "recall": 0.9027,
+            "label": 2,
+            "boundary": 1,
+            "boundary_and_label": 0,
+            "missed": 8
+          },
+          "CREDITCARDNUMBER": {
+            "gold": 42,
+            "exact": 39,
+            "recall": 0.9286,
+            "label": 2,
+            "boundary": 1,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "TITLE": {
+            "gold": 101,
+            "exact": 97,
+            "recall": 0.9604,
+            "label": 1,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 3
+          },
+          "PASSPORTNUM": {
+            "gold": 38,
+            "exact": 37,
+            "recall": 0.9737,
+            "label": 1,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "ZIPCODE": {
+            "gold": 55,
+            "exact": 54,
+            "recall": 0.9818,
+            "label": 0,
+            "boundary": 1,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "DATE": {
+            "gold": 153,
+            "exact": 153,
+            "recall": 1.0,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "EMAIL": {
+            "gold": 101,
+            "exact": 101,
+            "recall": 1.0,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "TELEPHONENUM": {
+            "gold": 88,
+            "exact": 88,
+            "recall": 1.0,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          }
+        },
+        "label_confusions_gold_to_predicted": [
+          {
+            "gold": "DRIVERLICENSENUM",
+            "predicted": "IDCARDNUM",
+            "count": 9
+          },
+          {
+            "gold": "IDCARDNUM",
+            "predicted": "DRIVERLICENSENUM",
+            "count": 9
+          },
+          {
+            "gold": "GENDER",
+            "predicted": "SEX",
+            "count": 8
+          },
+          {
+            "gold": "SURNAME",
+            "predicted": "GIVENNAME",
+            "count": 3
+          },
+          {
+            "gold": "TAXNUM",
+            "predicted": "SOCIALNUM",
+            "count": 3
+          },
+          {
+            "gold": "BUILDINGNUM",
+            "predicted": "ZIPCODE",
+            "count": 3
+          },
+          {
+            "gold": "DRIVERLICENSENUM",
+            "predicted": "PASSPORTNUM",
+            "count": 3
+          },
+          {
+            "gold": "SURNAME",
+            "predicted": "CITY",
+            "count": 2
+          },
+          {
+            "gold": "IDCARDNUM",
+            "predicted": "PASSPORTNUM",
+            "count": 2
+          },
+          {
+            "gold": "IDCARDNUM",
+            "predicted": "SOCIALNUM",
+            "count": 2
+          },
+          {
+            "gold": "GIVENNAME",
+            "predicted": "SURNAME",
+            "count": 2
+          },
+          {
+            "gold": "SOCIALNUM",
+            "predicted": "IDCARDNUM",
+            "count": 1
+          }
+        ],
+        "boundary_examples": [
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Alsu",
+            "pred_value": "Alsu Lorson"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Siddu",
+            "pred_value": "Vinoyan Barham Siddu"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Vania Besse",
+            "pred_value": "Vania"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Hubbert Medi",
+            "pred_value": "Besse Hubbert Medi"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Rimes Emsalj",
+            "pred_value": "Rimes"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Schulte-Eickhoff Atsegwasi",
+            "pred_value": "Emsalj Schulte-Eickhoff Atsegwasi"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Xhulian Nijazi",
+            "pred_value": "Xhulian"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Subke Zulic",
+            "pred_value": "Nijazi Subke Zulic"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Ewgeni",
+            "pred_value": "Ewgeni Csaba"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Arys Sahle",
+            "pred_value": "Arys"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Penelopa Tesfaghebriel",
+            "pred_value": "Penelopa"
+          },
+          {
+            "gold_label": "STREET",
+            "gold_value": "Road 32W",
+            "pred_value": "Road 32W Avenue"
+          }
+        ],
+        "boundary_extends_gold": 41,
+        "boundary_shortens_gold": 39,
+        "spurious_by_label": {
+          "SURNAME": 11,
+          "GIVENNAME": 4,
+          "TITLE": 3,
+          "BUILDINGNUM": 3,
+          "AGE": 1,
+          "ZIPCODE": 1,
+          "TELEPHONENUM": 1
+        },
+        "spurious_examples": [
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Sahle"
+          },
+          {
+            "pred_label": "AGE",
+            "pred_value": "30"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Tesfaghebriel"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Marluce"
+          },
+          {
+            "pred_label": "TITLE",
+            "pred_value": "Dr."
+          },
+          {
+            "pred_label": "GIVENNAME",
+            "pred_value": "Obaidy"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Gang"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Dominick"
+          }
+        ],
+        "missed_examples": [
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Lorson"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Vinoyan Barham"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Csaba"
+          },
+          {
+            "gold_label": "TITLE",
+            "gold_value": "Pres"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Endy"
+          },
+          {
+            "gold_label": "AGE",
+            "gold_value": "10"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Basit Nagarasa"
+          },
+          {
+            "gold_label": "CITY",
+            "gold_value": "Warwick"
+          }
+        ],
+        "invented_top_values": {
+          "GIVENNAME: Napleone": 1,
+          "STREET: 21st Avenue": 1
+        },
+        "success_by_gold_span_count": {
+          "1-2": {
+            "docs": 3,
+            "success": 0.0
+          },
+          "3-5": {
+            "docs": 31,
+            "success": 0.355
+          },
+          "6-9": {
+            "docs": 45,
+            "success": 0.267
+          },
+          "10+": {
+            "docs": 71,
+            "success": 0.239
+          }
+        },
+        "success_by_text_length": {
+          "shortest quarter": {
+            "docs": 38,
+            "success": 0.316
+          },
+          "second": {
+            "docs": 37,
+            "success": 0.324
+          },
+          "third": {
+            "docs": 37,
+            "success": 0.189
+          },
+          "longest quarter": {
+            "docs": 38,
+            "success": 0.237
+          }
+        }
+      },
+      "previous_v5": {
+        "documents": 150,
+        "documents_all_spans_right": 1,
+        "document_success_rate": 0.0067,
+        "strict_scorer": {
+          "precision": 0.8601,
+          "recall": 0.8473,
+          "f1": 0.8536,
+          "tp": 1248,
+          "fp": 203,
+          "fn": 225
+        },
+        "redaction": {
+          "documents_all_pii_text_masked": 78,
+          "gold_spans_partly_unmasked": 79,
+          "gold_spans_wholly_unmasked": 32,
+          "note": "any predicted span masks the text it covers, whatever its label \u2014 what a redaction step would leak, as distinct from what the strict scorer counts wrong"
+        },
+        "label_errors_within_id_numbers": 38,
+        "label_errors_gender_sex": 14,
+        "boundary_errors_on_names": 82,
+        "spans_by_category": {
+          "exact": 1248,
+          "label": 81,
+          "boundary": 90,
+          "boundary_and_label": 3,
+          "spurious": 29,
+          "invented": 4,
+          "repeated_value": 2,
+          "missed": 51
+        },
+        "gold_spans": 1473,
+        "failed_documents": 149,
+        "failed_documents_by_single_cause": {
+          "label": 53,
+          "boundary": 24,
+          "missed": 21,
+          "spurious": 5,
+          "boundary_and_label": 1
+        },
+        "failed_documents_with_several_causes": 45,
+        "failed_documents_by_any_cause": {
+          "label": 70,
+          "boundary": 62,
+          "missed": 48,
+          "spurious": 26,
+          "boundary_and_label": 3
+        },
+        "per_label": {
+          "GIVENNAME": {
+            "gold": 197,
+            "exact": 130,
+            "recall": 0.6599,
+            "label": 9,
+            "boundary": 44,
+            "boundary_and_label": 1,
+            "missed": 13
+          },
+          "SURNAME": {
+            "gold": 159,
+            "exact": 110,
+            "recall": 0.6918,
+            "label": 5,
+            "boundary": 38,
+            "boundary_and_label": 0,
+            "missed": 6
+          },
+          "DRIVERLICENSENUM": {
+            "gold": 49,
+            "exact": 34,
+            "recall": 0.6939,
+            "label": 13,
+            "boundary": 1,
+            "boundary_and_label": 0,
+            "missed": 1
+          },
+          "GENDER": {
+            "gold": 44,
+            "exact": 32,
+            "recall": 0.7273,
+            "label": 12,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "IDCARDNUM": {
+            "gold": 41,
+            "exact": 30,
+            "recall": 0.7317,
+            "label": 11,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "SOCIALNUM": {
+            "gold": 30,
+            "exact": 23,
+            "recall": 0.7667,
+            "label": 7,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "SEX": {
+            "gold": 21,
+            "exact": 17,
+            "recall": 0.8095,
+            "label": 3,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 1
+          },
+          "AGE": {
+            "gold": 73,
+            "exact": 61,
+            "recall": 0.8356,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 12
+          },
+          "PASSPORTNUM": {
+            "gold": 38,
+            "exact": 33,
+            "recall": 0.8684,
+            "label": 5,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "STREET": {
+            "gold": 67,
+            "exact": 59,
+            "recall": 0.8806,
+            "label": 1,
+            "boundary": 5,
+            "boundary_and_label": 0,
+            "missed": 2
+          },
+          "CITY": {
+            "gold": 113,
+            "exact": 101,
+            "recall": 0.8938,
+            "label": 5,
+            "boundary": 1,
+            "boundary_and_label": 0,
+            "missed": 6
+          },
+          "CREDITCARDNUMBER": {
+            "gold": 42,
+            "exact": 38,
+            "recall": 0.9048,
+            "label": 3,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 1
+          },
+          "BUILDINGNUM": {
+            "gold": 61,
+            "exact": 57,
+            "recall": 0.9344,
+            "label": 1,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 3
+          },
+          "TAXNUM": {
+            "gold": 40,
+            "exact": 38,
+            "recall": 0.95,
+            "label": 2,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "TITLE": {
+            "gold": 101,
+            "exact": 97,
+            "recall": 0.9604,
+            "label": 2,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 2
+          },
+          "DATE": {
+            "gold": 153,
+            "exact": 147,
+            "recall": 0.9608,
+            "label": 0,
+            "boundary": 1,
+            "boundary_and_label": 1,
+            "missed": 4
+          },
+          "TELEPHONENUM": {
+            "gold": 88,
+            "exact": 86,
+            "recall": 0.9773,
+            "label": 1,
+            "boundary": 0,
+            "boundary_and_label": 1,
+            "missed": 0
+          },
+          "ZIPCODE": {
+            "gold": 55,
+            "exact": 54,
+            "recall": 0.9818,
+            "label": 1,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          },
+          "EMAIL": {
+            "gold": 101,
+            "exact": 101,
+            "recall": 1.0,
+            "label": 0,
+            "boundary": 0,
+            "boundary_and_label": 0,
+            "missed": 0
+          }
+        },
+        "label_confusions_gold_to_predicted": [
+          {
+            "gold": "GENDER",
+            "predicted": "SEX",
+            "count": 12
+          },
+          {
+            "gold": "DRIVERLICENSENUM",
+            "predicted": "IDCARDNUM",
+            "count": 11
+          },
+          {
+            "gold": "GIVENNAME",
+            "predicted": "SURNAME",
+            "count": 8
+          },
+          {
+            "gold": "IDCARDNUM",
+            "predicted": "DRIVERLICENSENUM",
+            "count": 7
+          },
+          {
+            "gold": "SOCIALNUM",
+            "predicted": "TAXNUM",
+            "count": 4
+          },
+          {
+            "gold": "SURNAME",
+            "predicted": "GIVENNAME",
+            "count": 4
+          },
+          {
+            "gold": "PASSPORTNUM",
+            "predicted": "SOCIALNUM",
+            "count": 3
+          },
+          {
+            "gold": "CITY",
+            "predicted": "STREET",
+            "count": 3
+          },
+          {
+            "gold": "TITLE",
+            "predicted": "GIVENNAME",
+            "count": 2
+          },
+          {
+            "gold": "DRIVERLICENSENUM",
+            "predicted": "PASSPORTNUM",
+            "count": 2
+          },
+          {
+            "gold": "TAXNUM",
+            "predicted": "SOCIALNUM",
+            "count": 2
+          },
+          {
+            "gold": "IDCARDNUM",
+            "predicted": "SOCIALNUM",
+            "count": 2
+          }
+        ],
+        "boundary_examples": [
+          {
+            "gold_label": "STREET",
+            "gold_value": "2253 Drive East",
+            "pred_value": "1251 2253 Drive East"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Narcisse Janes",
+            "pred_value": "Narcisse"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Zerva Roissetter Aulisio",
+            "pred_value": "Janes Zerva Roissetter Aulisio"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Alsu",
+            "pred_value": "Alsu Lorson"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Siddu",
+            "pred_value": "Vinoyan Barham Siddu"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Amalya Adjowa",
+            "pred_value": "Amalya"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Vania Besse",
+            "pred_value": "Vania"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Hubbert Medi",
+            "pred_value": "Besse Hubbert Medi"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Manjot Artem",
+            "pred_value": "Manjot"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Rimes Emsalj",
+            "pred_value": "Rimes"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Schulte-Eickhoff Atsegwasi",
+            "pred_value": "Emsalj Schulte-Eickhoff Atsegwasi"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Xhulian Nijazi",
+            "pred_value": "Xhulian"
+          }
+        ],
+        "boundary_extends_gold": 46,
+        "boundary_shortens_gold": 44,
+        "spurious_by_label": {
+          "SURNAME": 13,
+          "GIVENNAME": 4,
+          "TITLE": 3,
+          "BUILDINGNUM": 3,
+          "AGE": 2,
+          "TELEPHONENUM": 2,
+          "ZIPCODE": 1,
+          "TAXNUM": 1
+        },
+        "spurious_examples": [
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Adjowa"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Artem"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Sahle"
+          },
+          {
+            "pred_label": "AGE",
+            "pred_value": "30"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Tesfaghebriel"
+          },
+          {
+            "pred_label": "SURNAME",
+            "pred_value": "Marluce"
+          },
+          {
+            "pred_label": "TITLE",
+            "pred_value": "Dr"
+          },
+          {
+            "pred_label": "GIVENNAME",
+            "pred_value": "Obaidy"
+          }
+        ],
+        "missed_examples": [
+          {
+            "gold_label": "CITY",
+            "gold_value": "Toronto"
+          },
+          {
+            "gold_label": "BUILDINGNUM",
+            "gold_value": "1251"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Lorson"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Vinoyan Barham"
+          },
+          {
+            "gold_label": "SURNAME",
+            "gold_value": "Csaba"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Ros\u00e9lia"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Dergut Megzon"
+          },
+          {
+            "gold_label": "GIVENNAME",
+            "gold_value": "Ashley"
+          }
+        ],
+        "invented_top_values": {
+          "SEX: Non-binary": 1,
+          "GIVENNAME: Napleone": 1,
+          "GIVENNAME: Ambar S\u00e9vanne": 1,
+          "DATE: July6": 1
+        },
+        "success_by_gold_span_count": {
+          "1-2": {
+            "docs": 3,
+            "success": 0.0
+          },
+          "3-5": {
+            "docs": 31,
+            "success": 0.0
+          },
+          "6-9": {
+            "docs": 45,
+            "success": 0.022
+          },
+          "10+": {
+            "docs": 71,
+            "success": 0.0
+          }
+        },
+        "success_by_text_length": {
+          "shortest quarter": {
+            "docs": 38,
+            "success": 0.026
+          },
+          "second": {
+            "docs": 37,
+            "success": 0.0
+          },
+          "third": {
+            "docs": 37,
+            "success": 0.0
+          },
+          "longest quarter": {
+            "docs": 38,
+            "success": 0.0
+          }
+        }
+      },
+      "served_minus_previous": {
+        "exact": 35,
+        "label": -20,
+        "boundary": -10,
+        "boundary_and_label": -3,
+        "spurious": -5,
+        "invented": -2,
+        "repeated_value": -2,
+        "missed": -2
+      }
+    }
+  }
+}

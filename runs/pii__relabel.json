@@ -1,0 +1,31 @@
+{
+  "window_chars": 60,
+  "cue_accuracy_on_training_gold": {
+    "sex_gender": {
+      "spans": 5808,
+      "cue_found": 2974,
+      "cue_right": 2924,
+      "accuracy_when_found": 0.9832
+    },
+    "id_numbers": {
+      "spans": 16150,
+      "cue_found": 8347,
+      "cue_right": 7205,
+      "accuracy_when_found": 0.8632
+    }
+  },
+  "splits": {
+    "random": {
+      "span_f1_before": 0.9442,
+      "span_f1_after": 0.9354,
+      "spans_fixed": 6,
+      "spans_broken": 27
+    },
+    "hard": {
+      "span_f1_before": 0.8785,
+      "span_f1_after": 0.8723,
+      "spans_fixed": 4,
+      "spans_broken": 13
+    }
+  }
+}

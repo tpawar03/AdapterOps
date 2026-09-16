@@ -253,7 +253,37 @@ def blocking_reasons(new: dict, regression: dict | None,
             limit = new["gate"]["thresholds"].get(task)
             if drop is not None and limit is not None and drop > limit:
                 reasons.append(f"{task}: regression {drop:.4f} exceeds threshold {limit:.4f}")
+        # The variance gate asks "did it drop more than noise"; this asks "does it still beat prompting".
+        # Urgency's threshold (0.0381) is wider than its margin over the prompted base (0.0134), so the
+        # first question alone would pass a release that lost the reason the adapter exists.
+        floors = prompted_floors()
+        for task, result in (regression.get("per_task") or {}).items():
+            candidate = (result.get("random") or {}).get("candidate")
+            floor = floors.get(task)
+            if candidate is not None and floor is not None and candidate < floor:
+                reasons.append(f"{task}: candidate {candidate:.4f} is below the prompted base model's "
+                               f"{floor:.4f} — the adapter would no longer beat prompting")
     return reasons
+
+
+PROMPTED_BASELINES = {
+    "intent": ("runs/intent__prompted-per-class.json", "micro_accuracy"),
+    "urgency": ("runs/urgency__prompted-fewshot.json", "macro_f1"),
+    "pii": ("runs/pii__prompted-fewshot.json", "span_f1_strict"),
+}
+"""The prompted base model's recorded golden score per task, on each task's gated metric. Drafting's
+prompted comparison is a GPT-4o grade, not the distilled judge the gate uses, so it has no floor here."""
+
+
+def prompted_floors(root: Path = REPO_ROOT) -> dict[str, float]:
+    floors = {}
+    for task, (path, metric) in PROMPTED_BASELINES.items():
+        file = root / path
+        if file.exists():
+            value = json.loads(file.read_text()).get("metrics", {}).get(metric)
+            if value is not None:
+                floors[task] = float(value)
+    return floors
 
 
 def promote(note: str = "", regression: dict | None = None, force: bool = False,

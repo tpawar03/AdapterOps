@@ -1,0 +1,104 @@
+{
+  "task": "pii",
+  "device": "mps",
+  "batch": 16,
+  "old_adapter": {
+    "revision": "3b38a28479215897ab927f00b78da99a57813469",
+    "manifest": 5
+  },
+  "new_adapter": {
+    "revision": "e0bde68fb34693d10611e6888eb50c78825c86c7",
+    "manifest": 6
+  },
+  "populations": {
+    "router_in_distribution": {
+      "pairs": 100,
+      "population_pairs": 392,
+      "threshold": 0.393881,
+      "near": 0.05,
+      "recorded_vllm_old_adapter": {
+        "score_median": 0.00117,
+        "score_p95": 0.01636,
+        "score_max": 0.04585,
+        "escalated_at_threshold": 0,
+        "within_near_below_threshold": 0,
+        "local_success": 0.73,
+        "quality_at_threshold": 0.73
+      },
+      "laptop_old_adapter": {
+        "score_median": 0.00118,
+        "score_p95": 0.01488,
+        "score_max": 0.04556,
+        "escalated_at_threshold": 0,
+        "within_near_below_threshold": 0,
+        "local_success": 0.73,
+        "quality_at_threshold": 0.73
+      },
+      "laptop_new_adapter": {
+        "score_median": 0.00156,
+        "score_p95": 0.01619,
+        "score_max": 0.03921,
+        "escalated_at_threshold": 0,
+        "within_near_below_threshold": 0,
+        "local_success": 0.76,
+        "quality_at_threshold": 0.76
+      },
+      "laptop_old_vs_recorded": {
+        "spearman": 0.9978,
+        "median_abs_diff": 3e-05,
+        "same_decision": 1.0
+      },
+      "new_vs_old_same_decision": 1.0,
+      "population_escalations": {
+        "budget_20pct": 78,
+        "recorded": 77,
+        "with_new_adapter_scores": 77
+      }
+    },
+    "router_shift": {
+      "pairs": 253,
+      "population_pairs": 1047,
+      "threshold": 0.393881,
+      "near": 0.05,
+      "recorded_vllm_old_adapter": {
+        "score_median": 0.00081,
+        "score_p95": 0.01953,
+        "score_max": 0.05155,
+        "escalated_at_threshold": 0,
+        "within_near_below_threshold": 0,
+        "local_success": 0.7115,
+        "quality_at_threshold": 0.7115
+      },
+      "laptop_old_adapter": {
+        "score_median": 0.00087,
+        "score_p95": 0.01805,
+        "score_max": 0.04899,
+        "escalated_at_threshold": 0,
+        "within_near_below_threshold": 0,
+        "local_success": 0.7075,
+        "quality_at_threshold": 0.7075
+      },
+      "laptop_new_adapter": {
+        "score_median": 0.00126,
+        "score_p95": 0.01761,
+        "score_max": 0.0879,
+        "escalated_at_threshold": 0,
+        "within_near_below_threshold": 0,
+        "local_success": 0.7194,
+        "quality_at_threshold": 0.7194
+      },
+      "laptop_old_vs_recorded": {
+        "spearman": 0.9924,
+        "median_abs_diff": 3e-05,
+        "same_decision": 1.0
+      },
+      "new_vs_old_same_decision": 1.0,
+      "population_escalations": {
+        "budget_20pct": 209,
+        "recorded": 202,
+        "with_new_adapter_scores": 202
+      }
+    }
+  },
+  "seconds": 3469.3
+}

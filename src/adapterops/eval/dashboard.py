@@ -189,8 +189,13 @@ def frontier_rows(data: dict) -> list[str]:
          f"{data['pii_negatives_val_served']['adapter']['all']['texts_with_any_line']}. Scored beside the "
          "previous adapter in one session, its strict span F1 is "
          f"{data['pii_v6_regression']['per_split']['pii']['random']['span_f1_strict']:.4f} against "
-         f"{data['pii_v5_same_session']['per_split']['pii']['random']['span_f1_strict']:.4f}. The PII rows "
-         "in the tables above are the previous adapter's baseline runs."),
+         f"{data['pii_v5_same_session']['per_split']['pii']['random']['span_f1_strict']:.4f}. For "
+         "redaction, "
+         f"{data['pii_v6_regression']['per_split']['pii']['random']['docs_fully_masked']:.1%} of golden "
+         "documents have all their personal text masked and "
+         f"{data['pii_v6_regression']['per_split']['pii']['random']['gold_spans_wholly_unmasked']:.2%} of "
+         "gold spans are left wholly unmasked. The PII rows in the tables above are the previous adapter's "
+         "baseline runs."),
     ]
     return [*lines, ""]
 

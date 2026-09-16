@@ -105,6 +105,60 @@ def _cmd_pii_false_positives(args: argparse.Namespace) -> int:
                           set_name=args.set, adapter_dir=args.adapter_dir, name=args.name)
 
 
+def _cmd_pii_realistic(args: argparse.Namespace) -> int:
+    from adapterops.eval.pii_realistic import main as realistic_main
+
+    return realistic_main(batch=args.batch, adapter_dir=args.adapter_dir, name=args.name)
+
+
+def _cmd_pii_realistic_compare(args: argparse.Namespace) -> int:
+    from adapterops.eval.pii_realistic import compare
+
+    return compare(args.candidate)
+
+
+def _cmd_pii_realistic_split(args: argparse.Namespace) -> int:
+    from adapterops.data.pii_realistic_split import main as split_main
+
+    return split_main(force=args.force)
+
+
+def _cmd_hard_shared(_: argparse.Namespace) -> int:
+    from adapterops.eval.shared_hard import main as shared_main
+
+    return shared_main()
+
+
+def _cmd_pii_relabel(_: argparse.Namespace) -> int:
+    from adapterops.eval.pii_relabel import main as relabel_main
+
+    return relabel_main()
+
+
+def _cmd_pii_guard(_: argparse.Namespace) -> int:
+    from adapterops.eval.pii_guard import main as guard_main
+
+    return guard_main()
+
+
+def _cmd_router_per_task(_: argparse.Namespace) -> int:
+    from adapterops.router.per_task import main as per_task_main
+
+    return per_task_main()
+
+
+def _cmd_pii_errors(_: argparse.Namespace) -> int:
+    from adapterops.eval.pii_errors import main as errors_main
+
+    return errors_main()
+
+
+def _cmd_router_rescore(args: argparse.Namespace) -> int:
+    from adapterops.router.rescore import main as rescore_main
+
+    return rescore_main(task=args.task, batch=args.batch, limit=args.limit)
+
+
 def _cmd_pii_negatives_split(args: argparse.Namespace) -> int:
     from adapterops.data.pii_negatives_split import main as split_main
 
@@ -146,7 +200,19 @@ def _cmd_serve_api(args: argparse.Namespace) -> int:
     return api_main(backend=args.backend, base_url=args.base_url, policy=args.policy,
                     frontier=not args.no_frontier, judge=not args.no_judge, trace=args.trace,
                     host=args.host, port=args.port, benchmark_caps=args.benchmark_caps,
-                    max_threads=args.max_threads)
+                    max_threads=args.max_threads, frontier_per_minute=args.frontier_per_minute,
+                    frontier_per_day=args.frontier_per_day, pii_guard=not args.no_pii_guard)
+
+
+def _cmd_regression_redaction(args: argparse.Namespace) -> int:
+    from adapterops.eval.regression import add_redaction
+
+    for run in args.run:
+        pii = add_redaction(Path(run))
+        print(f"  {run}: " + " · ".join(
+            f"{split} fully masked {v.get('docs_fully_masked')}, wholly unmasked spans "
+            f"{v.get('gold_spans_wholly_unmasked')}" for split, v in pii.items()))
+    return 0
 
 
 def _cmd_frontier(args: argparse.Namespace) -> int:
@@ -373,6 +439,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_api.add_argument("--max-threads", type=int, default=256,
                        help="concurrent tickets the API runs; anyio's default of 40 would cap a "
                             "load test before vLLM does")
+    p_api.add_argument("--frontier-per-minute", type=int, default=400,
+                       help="GPT-4o-mini requests allowed per minute; over it, pairs stay local")
+    p_api.add_argument("--frontier-per-day", type=int, default=8000,
+                       help="GPT-4o-mini requests allowed per day, under the account's 10,000 cap")
+    p_api.add_argument("--no-pii-guard", action="store_true",
+                       help="do not add pattern-matched identifiers and dates the PII answer left untagged")
+
+    p_red = sub.add_parser("regression-redaction",
+                           help="backfill PII redaction leakage into committed regression runs")
+    p_red.add_argument("--run", nargs="+", required=True, help="regression runs with saved predictions")
+    p_red.set_defaults(func=_cmd_regression_redaction)
     p_api.add_argument("--trace", choices=["none", "jsonl", "langfuse"], default="jsonl")
     p_api.add_argument("--host", default="127.0.0.1")
     p_api.add_argument("--port", type=int, default=8080)
@@ -459,6 +536,50 @@ def build_parser() -> argparse.ArgumentParser:
                           help="PII training split with PII-free sentences and empty answers")
     p_ps.add_argument("--force", action="store_true", help="rebuild the frozen split")
     p_ps.set_defaults(func=_cmd_pii_negatives_split)
+
+    p_rs = sub.add_parser("router-rescore",
+                          help="re-score a task's routing pairs with the adapter a manifest replaced it with")
+    p_rs.add_argument("--task", default="pii", choices=["intent", "urgency", "pii", "drafting"])
+    p_rs.add_argument("--batch", type=int, default=8)
+    p_rs.add_argument("--limit", type=int, default=None, help="pairs per population, for a smoke run")
+    p_rs.set_defaults(func=_cmd_router_rescore)
+
+    p_pe = sub.add_parser("pii-errors",
+                          help="classify every PII span error: label, boundary, spurious, invented, missed")
+    p_pe.set_defaults(func=_cmd_pii_errors)
+
+    p_pt = sub.add_parser("router-per-task",
+                          help="per-task confidence thresholds chosen on training pairs, scored held out")
+    p_pt.set_defaults(func=_cmd_router_per_task)
+
+    p_pg = sub.add_parser("pii-guard",
+                          help="regex spans added where the PII adapter tagged nothing: leaks removed vs false spans")
+    p_pg.set_defaults(func=_cmd_pii_guard)
+
+    p_rl = sub.add_parser("pii-relabel",
+                          help="relabel GENDER/SEX and ID-number spans by their nearest cue word; measure it")
+    p_rl.set_defaults(func=_cmd_pii_relabel)
+
+    p_hs = sub.add_parser("hard-shared",
+                          help="mine a hard split from never-gated systems' failures; re-run M11's check on it")
+    p_hs.set_defaults(func=_cmd_hard_shared)
+
+    p_pr = sub.add_parser("pii-realistic",
+                          help="served PII adapter on Nemotron-PII formats and real TAB court text (local)")
+    p_pr.add_argument("--batch", type=int, default=8)
+    p_pr.add_argument("--adapter-dir", default=None, help="score a local checkpoint instead of the served revision")
+    p_pr.add_argument("--name", default=None, help="names the candidate's output files")
+    p_pr.set_defaults(func=_cmd_pii_realistic)
+
+    p_prc = sub.add_parser("pii-realistic-compare",
+                           help="paired bootstrap of a candidate's realistic-format leaks against the served adapter")
+    p_prc.add_argument("--candidate", required=True, help="the --name given to pii-realistic")
+    p_prc.set_defaults(func=_cmd_pii_realistic_compare)
+
+    p_prs = sub.add_parser("pii-realistic-split",
+                           help="PII training split with Nemotron-PII documents; frozen with its decision rule")
+    p_prs.add_argument("--force", action="store_true", help="rebuild the frozen split")
+    p_prs.set_defaults(func=_cmd_pii_realistic_split)
 
     p_rg = sub.add_parser("regress", help="on-demand regression run, both splits (F18)")
     p_rg.add_argument("--base-url", default="http://localhost:8000")

@@ -45,6 +45,10 @@ runs/router__train__*__s[0-9]*.json
 # Judge labelling run lock (adapterops.judge.label) — process-local, never committed.
 data/judge/judge.lock
 
+# Downloaded PII test sets (Nemotron-PII, TAB): re-downloadable at the revisions and sha256s
+# recorded in runs/pii__realistic.json.
+data/pii_realistic/
+
 # Hugging Face Space bundles, rebuilt from the repo by demo/build_space.py and demo/build_static.py.
 demo/_space/
 demo/_static/

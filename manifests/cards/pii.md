@@ -40,6 +40,8 @@ Golden sets are frozen random held-out splits; every system below was run on the
 | previous adapter `3b38a284`, same session | golden (300) | span_f1_strict | 0.9470 |
 | base model, 5 demonstrations | golden (300) | span_f1_strict | 0.5700 |
 | GPT-4o-mini (frontier reference) | golden | span_f1_strict | 0.6663 |
+| this adapter | golden (300) | documents with all personal text masked | 0.8433 |
+| this adapter | golden (300) | gold spans left wholly unmasked | 0.0079 |
 | this adapter | PII-free texts (928) | texts with a reported span | 5 |
 | previous adapter | PII-free texts (928) | texts with a reported span | 928 |
 | this adapter | held-out PII-free sentences (491) | texts with a reported span | 0 |

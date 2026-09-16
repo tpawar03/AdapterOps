@@ -1,0 +1,104 @@
+{
+  "budget": 0.2,
+  "training_pairs": 1561,
+  "training_escalations_per_task": {
+    "drafting": 284,
+    "intent": 17,
+    "pii": 5,
+    "urgency": 0
+  },
+  "thresholds": {
+    "drafting": 0.373371,
+    "intent": 0.235831,
+    "pii": 0.058313,
+    "urgency": null
+  },
+  "populations": {
+    "router_in_distribution": {
+      "pairs": 392,
+      "never_escalate_quality": 0.727,
+      "oracle_quality_at_20pct": 0.8214,
+      "per_task_thresholds": {
+        "escalation_rate": 0.2117,
+        "quality": 0.7806,
+        "escalation__drafting": 0.7843,
+        "quality__drafting": 0.9902,
+        "escalation__intent": 0.0333,
+        "quality__intent": 0.9,
+        "escalation__pii": 0.0,
+        "quality__pii": 0.73,
+        "escalation__urgency": 0.0,
+        "quality__urgency": 0.51,
+        "gain_captured_vs_20pct_oracle": 0.5676
+      },
+      "pooled_threshold_at_20pct": {
+        "escalation_rate": 0.199,
+        "quality": 0.7806,
+        "gain_captured": 0.5676
+      },
+      "pooled_at_matched_rate": {
+        "escalation_rate": 0.2117,
+        "quality": 0.7806
+      },
+      "per_task_minus_pooled_20pct": {
+        "difference": 0.0,
+        "ci95": [
+          -0.0128,
+          0.0128
+        ],
+        "pairs_that_differ": 17
+      },
+      "per_task_minus_pooled_matched": {
+        "difference": 0.0,
+        "ci95": [
+          -0.0128,
+          0.0128
+        ],
+        "pairs_that_differ": 12
+      }
+    },
+    "router_shift": {
+      "pairs": 1047,
+      "never_escalate_quality": 0.7182,
+      "oracle_quality_at_20pct": 0.8204,
+      "per_task_thresholds": {
+        "escalation_rate": 0.1796,
+        "quality": 0.7689,
+        "escalation__drafting": 0.6955,
+        "quality__drafting": 0.963,
+        "escalation__intent": 0.0635,
+        "quality__intent": 0.893,
+        "escalation__pii": 0.0,
+        "quality__pii": 0.7115,
+        "escalation__urgency": 0.0,
+        "quality__urgency": 0.4921,
+        "gain_captured_vs_20pct_oracle": 0.4959
+      },
+      "pooled_threshold_at_20pct": {
+        "escalation_rate": 0.1996,
+        "quality": 0.7622,
+        "gain_captured": 0.4303
+      },
+      "pooled_at_matched_rate": {
+        "escalation_rate": 0.1796,
+        "quality": 0.7612
+      },
+      "per_task_minus_pooled_20pct": {
+        "difference": 0.0067,
+        "ci95": [
+          -0.0019,
+          0.0153
+        ],
+        "pairs_that_differ": 49
+      },
+      "per_task_minus_pooled_matched": {
+        "difference": 0.0076,
+        "ci95": [
+          0.0,
+          0.0162
+        ],
+        "pairs_that_differ": 56
+      }
+    }
+  }
+}
