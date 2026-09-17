@@ -126,6 +126,10 @@ def _cmd_pii_realistic_split(args: argparse.Namespace) -> int:
 def _cmd_ood(args: argparse.Namespace) -> int:
     from adapterops.eval.ood import main as ood_main
 
+    if args.detect:
+        from adapterops.eval.ood_detect import main as detect_main
+
+        return detect_main()
     if args.report:
         from adapterops.eval.ood_report import main as report_main
 
@@ -603,6 +607,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_od.add_argument("--project-cost", action="store_true", help="price the GPT-4o labelling, no calls")
     p_od.add_argument("--label", action="store_true", help="label with GPT-4o (spends, capped)")
     p_od.add_argument("--report", action="store_true", help="score outputs against the labels")
+    p_od.add_argument("--detect", action="store_true", help="evaluate an input-side out-of-domain check")
     p_od.set_defaults(func=_cmd_ood)
 
     p_pr = sub.add_parser("pii-realistic",

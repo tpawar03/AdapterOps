@@ -1,0 +1,291 @@
+{
+  "method": {
+    "signal": "mean cosine of 5 nearest training texts, TF-IDF char 3-5 grams",
+    "baseline": "word count",
+    "flag_quantile_on_validation": 0.05,
+    "training_splits": {
+      "intent": "train",
+      "urgency": "train",
+      "pii": "train_realistic",
+      "drafting": "train"
+    }
+  },
+  "per_task": {
+    "intent": {
+      "thresholds": {
+        "similarity_below": 0.384,
+        "length_above": 30.0
+      },
+      "in_domain_golden_flag_rate": {
+        "similarity": 0.039,
+        "length": 0.026,
+        "either": 0.0545
+      },
+      "flag_rate": {
+        "abcd": {
+          "similarity": 0.9933,
+          "length": 0.86,
+          "either": 1.0
+        },
+        "cfpb": {
+          "similarity": 0.98,
+          "length": 0.9333,
+          "either": 0.9933
+        }
+      },
+      "usefulness": {
+        "similarity": {
+          "n": 68,
+          "wrong": 39,
+          "flagged_when_wrong": 0.9231,
+          "flagged_when_right": 1.0
+        },
+        "length": {
+          "n": 68,
+          "wrong": 39,
+          "flagged_when_wrong": 0.9231,
+          "flagged_when_right": 1.0
+        },
+        "either": {
+          "n": 68,
+          "wrong": 39,
+          "flagged_when_wrong": 1.0,
+          "flagged_when_right": 1.0
+        }
+      },
+      "router_populations": {
+        "in_distribution": {
+          "pairs": 90,
+          "flag_rate": 0.0222,
+          "confidence_escalation_rate": 0.0222,
+          "wrong": 9,
+          "flag": {
+            "when_wrong": 0.0,
+            "when_right": 0.0247
+          },
+          "confidence": {
+            "when_wrong": 0.2222,
+            "when_right": 0.0
+          },
+          "either": {
+            "when_wrong": 0.2222,
+            "when_right": 0.0247
+          }
+        },
+        "shifted": {
+          "pairs": 299,
+          "flag_rate": 0.1572,
+          "confidence_escalation_rate": 0.0401,
+          "wrong": 37,
+          "flag": {
+            "when_wrong": 0.1892,
+            "when_right": 0.1527
+          },
+          "confidence": {
+            "when_wrong": 0.2703,
+            "when_right": 0.0076
+          },
+          "either": {
+            "when_wrong": 0.4054,
+            "when_right": 0.1603
+          }
+        }
+      }
+    },
+    "urgency": {
+      "thresholds": {
+        "similarity_below": 0.3712,
+        "length_above": 125.0
+      },
+      "in_domain_golden_flag_rate": {
+        "similarity": 0.0567,
+        "length": 0.04,
+        "either": 0.0933
+      },
+      "flag_rate": {
+        "abcd": {
+          "similarity": 0.9933,
+          "length": 0.0333,
+          "either": 0.9933
+        },
+        "cfpb": {
+          "similarity": 1.0,
+          "length": 0.44,
+          "either": 1.0
+        }
+      },
+      "usefulness": {
+        "similarity": {
+          "n": 300,
+          "wrong": 193,
+          "flagged_when_wrong": 0.9948,
+          "flagged_when_right": 1.0
+        },
+        "length": {
+          "n": 300,
+          "wrong": 193,
+          "flagged_when_wrong": 0.3212,
+          "flagged_when_right": 0.0841
+        },
+        "either": {
+          "n": 300,
+          "wrong": 193,
+          "flagged_when_wrong": 0.9948,
+          "flagged_when_right": 1.0
+        }
+      },
+      "router_populations": {
+        "in_distribution": {
+          "pairs": 100,
+          "flag_rate": 0.03,
+          "confidence_escalation_rate": 0.05,
+          "note": "labels describe a model no longer served; flag rate only"
+        },
+        "shifted": {
+          "pairs": 252,
+          "flag_rate": 0.1627,
+          "confidence_escalation_rate": 0.127,
+          "note": "labels describe a model no longer served; flag rate only"
+        }
+      }
+    },
+    "pii": {
+      "thresholds": {
+        "similarity_below": 0.1423,
+        "length_above": 125.05
+      },
+      "in_domain_golden_flag_rate": {
+        "similarity": 0.0567,
+        "length": 0.09,
+        "either": 0.1467
+      },
+      "flag_rate": {
+        "abcd": {
+          "similarity": 0.14,
+          "length": 0.0333,
+          "either": 0.1733
+        },
+        "cfpb": {
+          "similarity": 0.08,
+          "length": 0.44,
+          "either": 0.5
+        }
+      },
+      "usefulness": {
+        "similarity": {
+          "n": 121,
+          "wrong": 18,
+          "flagged_when_wrong": 0.4444,
+          "flagged_when_right": 0.1165
+        },
+        "length": {
+          "n": 121,
+          "wrong": 18,
+          "flagged_when_wrong": 0.0,
+          "flagged_when_right": 0.0388
+        },
+        "either": {
+          "n": 121,
+          "wrong": 18,
+          "flagged_when_wrong": 0.4444,
+          "flagged_when_right": 0.1553
+        }
+      },
+      "router_populations": {
+        "in_distribution": {
+          "pairs": 100,
+          "flag_rate": 0.13,
+          "confidence_escalation_rate": 0.0,
+          "note": "labels describe a model no longer served; flag rate only"
+        },
+        "shifted": {
+          "pairs": 253,
+          "flag_rate": 0.1976,
+          "confidence_escalation_rate": 0.0,
+          "note": "labels describe a model no longer served; flag rate only"
+        }
+      }
+    },
+    "drafting": {
+      "thresholds": {
+        "similarity_below": 0.6864,
+        "length_above": 13.0
+      },
+      "in_domain_golden_flag_rate": {
+        "similarity": 0.0867,
+        "length": 0.0433,
+        "either": 0.13
+      },
+      "flag_rate": {
+        "abcd": {
+          "similarity": 1.0,
+          "length": 0.9933,
+          "either": 1.0
+        },
+        "cfpb": {
+          "similarity": 1.0,
+          "length": 0.9933,
+          "either": 1.0
+        }
+      },
+      "usefulness": {
+        "similarity": {
+          "n": 60,
+          "wrong": 43,
+          "flagged_when_wrong": 1.0,
+          "flagged_when_right": 1.0
+        },
+        "length": {
+          "n": 60,
+          "wrong": 43,
+          "flagged_when_wrong": 1.0,
+          "flagged_when_right": 0.9412
+        },
+        "either": {
+          "n": 60,
+          "wrong": 43,
+          "flagged_when_wrong": 1.0,
+          "flagged_when_right": 1.0
+        }
+      },
+      "router_populations": {
+        "in_distribution": {
+          "pairs": 102,
+          "flag_rate": 0.0784,
+          "confidence_escalation_rate": 0.6863,
+          "wrong": 22,
+          "flag": {
+            "when_wrong": 0.2273,
+            "when_right": 0.0375
+          },
+          "confidence": {
+            "when_wrong": 0.9091,
+            "when_right": 0.625
+          },
+          "either": {
+            "when_wrong": 0.9545,
+            "when_right": 0.625
+          }
+        },
+        "shifted": {
+          "pairs": 243,
+          "flag_rate": 0.1358,
+          "confidence_escalation_rate": 0.6502,
+          "wrong": 57,
+          "flag": {
+            "when_wrong": 0.1053,
+            "when_right": 0.1452
+          },
+          "confidence": {
+            "when_wrong": 0.8947,
+            "when_right": 0.5753
+          },
+          "either": {
+            "when_wrong": 0.8947,
+            "when_right": 0.6667
+          }
+        }
+      }
+    }
+  }
+}
