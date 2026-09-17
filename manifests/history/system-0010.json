@@ -1,6 +1,6 @@
 {
-  "version": 11,
-  "note": "Drafting gate re-derived on the served judge v2: judge-score now uses the manifest-pinned judge; baseline and seed runs rescored into __judge-v2 copies (originals untouched); drafting threshold 0.0903 -> 0.0897",
+  "version": 10,
+  "note": "Request-path judge moves to the mixed-generator judge v2 (runs/judge__mixed_v2.json): Spearman with GPT-4o 0.76 / 0.81 / 0.84 on adapter calibration, all generators, out of domain. The drafting regression gate still scores with checkpoints/judge, whose units its thresholds were derived in.",
   "pins": null,
   "components": {
     "base_model": {
@@ -122,7 +122,7 @@
       "intent": 0.011688,
       "urgency": 0.1224,
       "pii": 0.0069,
-      "drafting": 0.0897
+      "drafting": 0.0903
     },
     "multiplier": 3.0,
     "why": "D37 \u2014 floors take the larger of inference and training spread; thresholds resting on inference alone are provisional and not enforced",
@@ -170,9 +170,33 @@
       "sha256": "f2bef12d132515ac0d7859fa9380b3982e3210c2cc4649b1a3855e2789b91d84"
     }
   },
-  "promoted_over": 10,
+  "promoted_over": 9,
   "diff_from_previous": {
-    "changed": {},
+    "changed": {
+      "components.judge.checkpoints/judge-mixed-v2/config.json": {
+        "from": null,
+        "to": "79b6da065af6948cac7947b2cf0a9ed91bc9420874fe47eff7aa9d9b160f59f9"
+      },
+      "components.judge.checkpoints/judge-mixed-v2/model.safetensors": {
+        "from": null,
+        "to": "59b08a3e98f1b1108956381e65e5afa923d9f1da9a1ac9ae496d6ffbd4e7ce2d"
+      },
+      "components.judge.checkpoints/judge/config.json": {
+        "from": "79b6da065af6948cac7947b2cf0a9ed91bc9420874fe47eff7aa9d9b160f59f9",
+        "to": null
+      },
+      "components.judge.checkpoints/judge/model.safetensors": {
+        "from": "0dbcc779c409abbbc6709c26158846f2e0e8fe9dd6c611561142d8d7fb7c7475",
+        "to": null
+      }
+    },
     "eval_splits_moved": []
+  },
+  "component_evidence": {
+    "judge": {
+      "file": "runs/judge__mixed_v2.json",
+      "bytes": 2156,
+      "sha256": "f2bef12d132515ac0d7859fa9380b3982e3210c2cc4649b1a3855e2789b91d84"
+    }
   }
 }

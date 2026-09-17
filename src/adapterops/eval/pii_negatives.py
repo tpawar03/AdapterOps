@@ -182,6 +182,27 @@ def adapter_generator(batch: int = 16, adapter_dir: str | None = None) -> tuple[
                       "max_new_tokens": MAX_TOKENS["pii"]}
 
 
+def vllm_generator(base_url: str, workers: int = 16) -> tuple[Generate, dict]:
+    """The served PII adapter through vLLM, with the serving prompt and token cap — the numbers the
+    laptop runs only approximate."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from adapterops.router.generate import MAX_TOKENS
+    from adapterops.serve.pipeline import VLLMBackend, load_manifest
+
+    backend = VLLMBackend(base_url, timeout=300.0)
+
+    def generate(texts: Sequence[str]) -> list[str]:
+        with ThreadPoolExecutor(workers) as pool:
+            return [g.text for g in pool.map(lambda t: backend.generate("pii", t), texts)]
+
+    manifest = load_manifest()
+    pii = manifest["components"]["adapters"]["pii"]
+    return generate, {"adapter": pii["repo"], "revision": pii["revision"],
+                      "manifest_version": manifest["version"], "device": f"vllm {base_url}",
+                      "max_new_tokens": MAX_TOKENS["pii"]}
+
+
 def baseline_predictor() -> tuple[Callable[[str], list], str]:
     from adapterops.eval import pii_baseline
 
@@ -200,7 +221,7 @@ SETS = ("golden_screened", "ai4privacy_val")
 def main(limit: int | None = None, batch: int = 16, force_set: bool = False,
          generate: Generate | None = None, baseline: Callable[[str], list] | None = None,
          set_name: str = "golden_screened", adapter_dir: str | None = None,
-         name: str | None = None) -> int:
+         name: str | None = None, base_url: str | None = None) -> int:
     if set_name == "golden_screened":
         frame, set_file = freeze(force=force_set), SET_FILE
     elif set_name == "ai4privacy_val":
@@ -215,7 +236,9 @@ def main(limit: int | None = None, batch: int = 16, force_set: bool = False,
     if limit:
         frame = frame.groupby("source", group_keys=False).head(limit).reset_index(drop=True)
     info: dict = {}
-    if generate is None:
+    if generate is None and base_url:
+        generate, info = vllm_generator(base_url)
+    elif generate is None:
         generate, info = adapter_generator(batch, adapter_dir)
     run_file, outputs_file = RUN_FILE, OUTPUTS_FILE
     if name:

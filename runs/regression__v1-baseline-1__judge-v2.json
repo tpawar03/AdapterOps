@@ -1,0 +1,58 @@
+{
+  "name": "v1-baseline-1",
+  "gated_metric": {
+    "intent": "micro_accuracy",
+    "urgency": "macro_f1",
+    "pii": "span_f1_strict",
+    "drafting": "judge_score_mean"
+  },
+  "per_split": {
+    "intent": {
+      "random": {
+        "n": 770,
+        "micro_accuracy": 0.9286,
+        "macro_f1": 0.9275
+      },
+      "hard": {
+        "n": 57,
+        "micro_accuracy": 0.0,
+        "macro_f1": 0.0
+      }
+    },
+    "urgency": {
+      "random": {
+        "n": 300,
+        "micro_accuracy": 0.4633,
+        "macro_f1": 0.4096
+      },
+      "hard": {
+        "n": 150,
+        "micro_accuracy": 0.0067,
+        "macro_f1": 0.0068
+      }
+    },
+    "pii": {
+      "random": {
+        "n": 300,
+        "span_f1_strict": 0.9462
+      },
+      "hard": {
+        "n": 150,
+        "span_f1_strict": 0.852
+      }
+    },
+    "drafting": {
+      "random": {
+        "n": 300,
+        "judge_score_mean": 4.4388,
+        "judge": "distilled judge, checkpoints/judge-mixed-v2 (F14)"
+      },
+      "hard": {
+        "n": 113,
+        "judge_score_mean": 3.6686,
+        "judge": "distilled judge, checkpoints/judge-mixed-v2 (F14)"
+      }
+    }
+  },
+  "predictions_file": "runs/regression__v1-baseline-1__predictions.parquet"
+}

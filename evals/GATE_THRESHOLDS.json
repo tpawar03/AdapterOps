@@ -2,12 +2,12 @@
   "purpose": "Promotion-gate thresholds (F33), derived per D37. Newly built manifests carry this gate; the inputs are pinned so the derivation can be re-checked.",
   "inputs": [
     {
-      "file": "runs/regression__v1-baseline-1.json",
-      "sha256": "e703d4a2c8be5b005d7a046c3f0ca0ba2bcb7359ee8c4f0628f81a817228c281"
+      "file": "runs/regression__v1-baseline-1__judge-v2.json",
+      "sha256": "1fce15482989fceedf52b71f2183982249c81f157c4229e57e7565465a3973e4"
     },
     {
-      "file": "runs/regression__v1-baseline-2.json",
-      "sha256": "ddebecb14cb76833a95ef55322db865586960c3b6e0dcded960d4c31afbd51e4"
+      "file": "runs/regression__v1-baseline-2__judge-v2.json",
+      "sha256": "212f952594a55267dc114c86ea413c5b167868a9fa3d242551cbec4456f900c5"
     }
   ],
   "derivation": {
@@ -92,28 +92,28 @@
       },
       "drafting": {
         "random": {
-          "inference_spread": 0.0135,
-          "training_spread": 0.0301,
-          "floor": 0.0301,
+          "inference_spread": 0.0059,
+          "training_spread": 0.0299,
+          "floor": 0.0299,
           "bound_by": "training",
-          "threshold": 0.0903,
+          "threshold": 0.0897,
           "provisional": false,
           "note": "enforceable",
           "training_source": "runs/training_variance.json \u2014 3 training runs of one configuration, regression-scored in one session",
           "training_runs": 3,
-          "training_stdev": 0.01506
+          "training_stdev": 0.016209
         },
         "hard": {
-          "inference_spread": 0.0372,
-          "training_spread": 0.2615,
-          "floor": 0.2615,
+          "inference_spread": 0.06,
+          "training_spread": 0.3729,
+          "floor": 0.3729,
           "bound_by": "training",
-          "threshold": 0.7845,
+          "threshold": 1.1187,
           "provisional": false,
           "note": "enforceable",
           "training_source": "runs/training_variance.json \u2014 3 training runs of one configuration, regression-scored in one session",
           "training_runs": 3,
-          "training_stdev": 0.138018
+          "training_stdev": 0.204017
         }
       }
     }
@@ -124,7 +124,7 @@
       "intent": 0.011688,
       "urgency": 0.1224,
       "pii": 0.0069,
-      "drafting": 0.0903
+      "drafting": 0.0897
     },
     "multiplier": 3.0,
     "why": "D37 \u2014 floors take the larger of inference and training spread; thresholds resting on inference alone are provisional and not enforced"

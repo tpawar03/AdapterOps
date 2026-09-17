@@ -114,9 +114,12 @@ def split_for_training(labelled: pd.DataFrame, val_fraction: float = 0.1,
     return fit, validation, calibration
 
 
-def train(cfg: JudgeConfig | None = None) -> dict:
+def train(cfg: JudgeConfig | None = None,
+          frames: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame] | None = None) -> dict:
+    """`frames` (fit, validation, calibration) replaces the adapter-only split — the mixed-generator judge
+    (`judge/mixed.py`) passes its own; the served judge's path is unchanged without it."""
     cfg = cfg or JudgeConfig()
-    fit, validation, calibration = split_for_training(
+    fit, validation, calibration = frames or split_for_training(
         load_labelled(LABELS_FILE), cfg.val_fraction, cfg.seed)
     if len(fit) < cfg.min_fit:
         msg = (f"only {len(fit)} labelled training items (need {cfg.min_fit}). Finish the "

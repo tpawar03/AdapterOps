@@ -26,7 +26,7 @@ def test_the_backfill_refuses_a_run_the_gate_thresholds_pin():
     import pytest
 
     with pytest.raises(ValueError, match="pinned input"):
-        reg.add_redaction(ROOT / "runs" / "regression__v1-baseline-1.json")
+        reg.add_redaction(ROOT / "runs" / "regression__v1-baseline-1__judge-v2.json")
 
 
 def _manifest():

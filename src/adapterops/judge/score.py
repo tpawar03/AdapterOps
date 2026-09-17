@@ -61,6 +61,14 @@ def load_judge(path: Path | None = None, batch_size: int = 16) -> JUDGE:
     return judge
 
 
+def pinned_judge() -> Path:
+    """The judge the current manifest pins, so the gate scores drafting with the judge that is served."""
+    from adapterops.manifest.system import load_current
+    from adapterops.serve.pipeline import pinned_checkpoint
+
+    return pinned_checkpoint(load_current(), "judge") or OUT_DIR
+
+
 def score_predictions(predictions: pd.DataFrame, judge: JUDGE) -> dict:
     """Mean judge score per split, over drafting rows only."""
     drafting = predictions[predictions.task == "drafting"]
@@ -71,26 +79,27 @@ def score_predictions(predictions: pd.DataFrame, judge: JUDGE) -> dict:
     return out
 
 
-def fill_regression_run(run: dict, drafting: dict) -> dict:
+def fill_regression_run(run: dict, drafting: dict, judge: str = "checkpoints/judge") -> dict:
     out = copy.deepcopy(run)
     for split, result in drafting.items():
         cell = out["per_split"]["drafting"][split]
         cell["judge_score_mean"] = result["judge_score_mean"]
-        cell["judge"] = "distilled judge, checkpoints/judge (F14)"
+        cell["judge"] = f"distilled judge, {judge} (F14)"
         cell.pop("note", None)
     return out
 
 
-def fill_prompted_run(run: dict, drafting: dict) -> dict:
+def fill_prompted_run(run: dict, drafting: dict, judge: str = "checkpoints/judge") -> dict:
     """A prompted baseline (M2) holds one golden split under `metrics`, not `per_split`."""
     out = copy.deepcopy(run)
     out["metrics"]["judge_score_mean"] = drafting["random"]["judge_score_mean"]
-    out["metrics"]["judge"] = "distilled judge, checkpoints/judge (F14)"
+    out["metrics"]["judge"] = f"distilled judge, {judge} (F14)"
     out["metrics"].pop("note", None)
     return out
 
 
-def main(run_path: str, baseline: str | None = None, force: bool = False) -> int:
+def main(run_path: str, baseline: str | None = None, force: bool = False, out: str | None = None) -> int:
+    """`out` writes the scored run to a new file, leaving a sha-pinned run as it was."""
     from adapterops.eval.regression import compare
 
     path = Path(run_path)
@@ -98,20 +107,23 @@ def main(run_path: str, baseline: str | None = None, force: bool = False) -> int
     if "predictions_file" not in run:
         print(f"  {run_path} kept no predictions — re-run regress with --save-predictions")
         return 2
+    judge_dir = pinned_judge()
+    judge_name = str(judge_dir.relative_to(REPO_ROOT)) if judge_dir.is_relative_to(REPO_ROOT) else str(judge_dir)
+    dest = Path(out) if out else path
     if "per_split" not in run:
-        return _main_prompted(path, run, force)
+        return _main_prompted(path, run, force or bool(out), dest, judge_dir, judge_name)
     already = [s for s, cell in run["per_split"]["drafting"].items()
                if cell.get("judge_score_mean") is not None]
-    if already and not force:
+    if already and not (force or out):
         print(f"  drafting is already judge-scored on {already} — --force to rescore")
         return 1
 
     drafting = score_predictions(pd.read_parquet(REPO_ROOT / run["predictions_file"]),
-                                 load_judge())
-    filled = fill_regression_run(run, drafting)
+                                 load_judge(judge_dir))
+    filled = fill_regression_run(run, drafting, judge_name)
     if baseline:
         filled["comparison"] = compare(filled, json.loads(Path(baseline).read_text()))
-    path.write_text(json.dumps(filled, indent=2) + "\n", encoding="utf-8")
+    dest.write_text(json.dumps(filled, indent=2) + "\n", encoding="utf-8")
     for split, result in drafting.items():
         print(f"  drafting {split:6s} n {result['n']:>3} · judge score {result['judge_score_mean']}")
     if baseline:
@@ -119,13 +131,13 @@ def main(run_path: str, baseline: str | None = None, force: bool = False) -> int
     return 0
 
 
-def _main_prompted(path: Path, run: dict, force: bool) -> int:
+def _main_prompted(path: Path, run: dict, force: bool, dest: Path, judge_dir: Path, judge_name: str) -> int:
     if run["metrics"].get("judge_score_mean") is not None and not force:
         print(f"  {path} is already judge-scored — --force to rescore")
         return 1
     drafting = score_predictions(pd.read_parquet(REPO_ROOT / run["predictions_file"]),
-                                 load_judge())
-    path.write_text(json.dumps(fill_prompted_run(run, drafting), indent=2) + "\n",
+                                 load_judge(judge_dir))
+    dest.write_text(json.dumps(fill_prompted_run(run, drafting, judge_name), indent=2) + "\n",
                     encoding="utf-8")
     print(f"  {run['system']} drafting n {drafting['random']['n']} · "
           f"judge score {drafting['random']['judge_score_mean']}")

@@ -55,8 +55,8 @@ ROUTER_FILES = ("checkpoints/router__judged/model.safetensors",
 """The judge-labelled router (D38), the one every published routing number describes. Manifests
 v1–v3 pinned `checkpoints/router`, the proxy-labelled router no result used (D46)."""
 
-JUDGE_FILES = ("checkpoints/judge/model.safetensors",
-               "checkpoints/judge/config.json")
+JUDGE_FILES = ("checkpoints/judge-mixed-v2/model.safetensors",
+               "checkpoints/judge-mixed-v2/config.json")
 
 EVIDENCE_COMPONENTS = ("router", "judge")
 """Components an adapter regression run cannot measure. The router is judged by its operating
@@ -135,7 +135,7 @@ def build(note: str = "", pins: Path | None = None) -> dict:
             for name in ("intent__adapter.json", "pii__adapter.json",
                          "urgency__adapter.json", "m1_serving.json",
                          "router__train__judged.json", "router__operating_curve__judged.json",
-                         "judge__report.json")
+                         "judge__report.json", "judge__mixed_v2.json")
         },
     }
 

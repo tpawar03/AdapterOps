@@ -131,10 +131,11 @@ account, keys or decision).
   refused if a threshold moves. On the 300 out-of-domain tickets it lifts intent from 0.63 / 0.26 to 0.80 / 0.66,
   urgency from 0.29 / 0.19 to 0.53 / 0.43 and drafting from about 3 to about 4.5 (GPT-4o grades); in-distribution
   cost 2–8% of pairs. Not yet exercised against the live frontier under load.
-- [ ] **A judge that tracks GPT-4o on any generator.** *Now more urgent:* on out-of-domain tickets the judge's
-  Spearman with GPT-4o is −0.30 and −0.19 (`runs/ood.json`). The distilled judge tracks GPT-4o on adapter-like
-  replies (Spearman 0.74) but not on another generator's (0.33). Grade a mixed-generator set with GPT-4o,
-  retrain or recalibrate, and re-measure both correlations. *API* (~$2–4) + *free* training.
+- [x] **A judge that tracks GPT-4o on any generator.** Judge v2 (`runs/judge__mixed_v2.json`, $0.92 of grading)
+  passes the frozen rule: Spearman with GPT-4o H1 0.73 → 0.76, H2 0.28 → 0.81, H3 out of domain 0.20 → 0.84
+  (CI +0.47 to +0.82). Served on the request path from manifest v10.
+- [x] **Drafting gate on the v2 judge.** `judge-score` uses the manifest-pinned judge; gate runs rescored into
+  `__judge-v2` copies; drafting threshold 0.0903 → 0.0897 (manifest v11).
 - [ ] **Langfuse tracing against a live project.** Tracing has only been tested against a mock transport.
   *You* (Langfuse keys in `.env`), then free.
 - [ ] **Unattended regression runs.** Regression checks are on-demand because GitHub's free runners have no

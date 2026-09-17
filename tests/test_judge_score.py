@@ -73,7 +73,7 @@ def test_a_prompted_baselines_replies_are_scored_into_its_metrics(tmp_path, monk
                                 "metrics": {"n": 2, "judge_score_mean": None,
                                             "note": "no judge available"}}))
     monkeypatch.setattr(js, "load_judge",
-                        lambda: lambda texts, replies: [float(len(r)) for r in replies])
+                        lambda path=None: lambda texts, replies: [float(len(r)) for r in replies])
 
     assert js.main(str(path)) == 0
     metrics = json.loads(path.read_text())["metrics"]

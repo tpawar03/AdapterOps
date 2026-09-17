@@ -1,0 +1,51 @@
+{
+  "purpose": "Mixed judge, version 2: version 1's data plus graded out-of-domain training replies.",
+  "file": "data/judge/mixed_v2.parquet",
+  "sha256": "67e33b04152687b0a862dbe0ead8c7841c5ecf9b5827d0b81e553bc3cef754a4",
+  "built_on": {
+    "file": "data/judge/mixed.parquet",
+    "sha256": "6d1c032dd476a6dbee3fe1a42b3694dc7a2699e549941b7d596e8566d5239ee5"
+  },
+  "holdouts": "identical to version 1, item for item",
+  "seed": 20260909,
+  "counts": {
+    "dropped_shares_a_held_out_request": {
+      "adapter": 0,
+      "gpt4o_mini": 98,
+      "prompted_base": 0
+    },
+    "h1_adapter_calibration": {
+      "adapter": 150,
+      "gpt4o_mini": 0,
+      "prompted_base": 0
+    },
+    "h2_across_generators": {
+      "adapter": 90,
+      "gpt4o_mini": 90,
+      "prompted_base": 90
+    },
+    "h3_out_of_domain": {
+      "adapter": 60,
+      "gpt4o_mini": 60,
+      "prompted_base": 0
+    },
+    "train": {
+      "adapter": 1629,
+      "gpt4o_mini": 1040,
+      "prompted_base": 186
+    },
+    "validation": {
+      "adapter": 181,
+      "gpt4o_mini": 122,
+      "prompted_base": 24
+    }
+  },
+  "preregistered": {
+    "rule": "Serve the mixed judge only if its H1 Spearman is no more than 0.05 below the served judge's on the same items, and it beats the served judge on both H2 and H3 with the paired bootstrap's 95% interval for the Spearman difference above zero.",
+    "h1_tolerance": 0.05,
+    "bootstrap_resamples": 10000,
+    "known_limits": [
+      "the out-of-domain training tickets share their two sources with H3, so a pass shows those sources' failure was learned, not any new domain"
+    ]
+  }
+}

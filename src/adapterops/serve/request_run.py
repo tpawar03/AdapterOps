@@ -352,12 +352,15 @@ def resummarise(name: str) -> Path:
 
 def main(url: str, name: str, concurrency: Sequence[int] = (1,), limit: int | None = None,
          send: Send | None = None, population: str = POPULATION, duration: float | None = None,
-         window: float = 60.0, direct_vllm: str | None = None) -> int:
+         window: float = 60.0, direct_vllm: str | None = None,
+         tasks: Sequence[str] | None = None) -> int:
     import requests
 
     from adapterops.serve.pipeline import operating_threshold
 
     pairs = request_set(population)
+    if tasks:
+        pairs = pairs[pairs.task.isin(tasks)].reset_index(drop=True)
     if limit:
         pairs = pairs.groupby("task", group_keys=False).head(limit).reset_index(drop=True)
 
@@ -398,6 +401,7 @@ def main(url: str, name: str, concurrency: Sequence[int] = (1,), limit: int | No
         "name": name,
         "population": population,
         "pairs": len(pairs),
+        "tasks": list(tasks) if tasks else None,
         "mode": DIRECT if direct_vllm else "request_path",
         "duration_s": duration,
         "service": service,

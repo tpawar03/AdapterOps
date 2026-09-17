@@ -102,7 +102,8 @@ def _cmd_pii_false_positives(args: argparse.Namespace) -> int:
     from adapterops.eval.pii_negatives import main as negatives_main
 
     return negatives_main(limit=args.limit, batch=args.batch, force_set=args.force_set,
-                          set_name=args.set, adapter_dir=args.adapter_dir, name=args.name)
+                          set_name=args.set, adapter_dir=args.adapter_dir, name=args.name,
+                          base_url=args.base_url)
 
 
 def _cmd_pii_realistic(args: argparse.Namespace) -> int:
@@ -121,6 +122,27 @@ def _cmd_pii_realistic_split(args: argparse.Namespace) -> int:
     from adapterops.data.pii_realistic_split import main as split_main
 
     return split_main(force=args.force)
+
+
+def _cmd_judge_ood_train(args: argparse.Namespace) -> int:
+    from adapterops.judge import ood_train
+
+    if args.sample:
+        ood_train.sample()
+        return 0
+    if args.generate:
+        return ood_train.generate()
+    return ood_train.grade()
+
+
+def _cmd_judge_mixed(args: argparse.Namespace) -> int:
+    from adapterops.judge import mixed
+
+    if args.build:
+        return mixed.build() if args.version == 1 else mixed.build_v2()
+    if args.train:
+        return mixed.train(args.version)
+    return mixed.compare(args.version)
 
 
 def _cmd_domain_gate(_: argparse.Namespace) -> int:
@@ -208,6 +230,12 @@ def _cmd_training_variance(args: argparse.Namespace) -> int:
     return variance_main(runs=runs, tasks=args.tasks, force=args.force)
 
 
+def _cmd_latency_profile(args: argparse.Namespace) -> int:
+    from adapterops.serve.latency_profile import main as profile_main
+
+    return profile_main(base_url=args.base_url, name=args.name, concurrency=args.concurrency, limit=args.limit)
+
+
 def _cmd_request_path_run(args: argparse.Namespace) -> int:
     from adapterops.serve.request_run import main as run_main
     from adapterops.serve.request_run import resummarise
@@ -218,7 +246,7 @@ def _cmd_request_path_run(args: argparse.Namespace) -> int:
 
     return run_main(url=args.url, name=args.name, concurrency=args.concurrency, limit=args.limit,
                     population=args.population, duration=args.duration, window=args.window,
-                    direct_vllm=args.direct_vllm)
+                    direct_vllm=args.direct_vllm, tasks=args.tasks)
 
 
 def _cmd_quantize_compare(args: argparse.Namespace) -> int:
@@ -288,7 +316,7 @@ def _cmd_hard_cases(args: argparse.Namespace) -> int:
 def _cmd_judge_score(args: argparse.Namespace) -> int:
     from adapterops.judge.score import main as judge_score_main
 
-    return judge_score_main(run_path=args.run, baseline=args.baseline, force=args.force)
+    return judge_score_main(run_path=args.run, baseline=args.baseline, force=args.force, out=args.out)
 
 
 def _cmd_judge_m2(args: argparse.Namespace) -> int:
@@ -516,7 +544,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_rpr.add_argument("--resummarise", action="store_true",
                        help="recompute runs/request_path__<name>.json from its per-request file; "
                             "sends nothing")
+    p_rpr.add_argument("--tasks", nargs="+", default=None,
+                       choices=["intent", "urgency", "pii", "drafting"], help="send only these tasks' pairs")
     p_rpr.set_defaults(func=_cmd_request_path_run)
+
+    p_lp = sub.add_parser("latency-profile",
+                          help="time to first token vs decode time per adapter, streamed straight to vLLM")
+    p_lp.add_argument("--base-url", default="http://localhost:8000")
+    p_lp.add_argument("--name", required=True, help="names runs/latency__<name>.json")
+    p_lp.add_argument("--concurrency", type=int, nargs="+", default=[1, 16])
+    p_lp.add_argument("--limit", type=int, default=None, help="pairs per task, for a smoke run")
+    p_lp.set_defaults(func=_cmd_latency_profile)
 
     p_q = sub.add_parser("quantize-compare",
                          help="fp32 vs dynamic int8 on the intent adapter, CPU (F27, N2)")
@@ -574,6 +612,8 @@ def build_parser() -> argparse.ArgumentParser:
                       help="score a local PII checkpoint instead of the manifest's adapter")
     p_pn.add_argument("--name", default=None,
                       help="names runs/pii__false_positives__<name>.json (default: the served run)")
+    p_pn.add_argument("--base-url", default=None,
+                      help="generate with the served adapter through this vLLM server instead of locally")
     p_pn.set_defaults(func=_cmd_pii_false_positives)
 
     p_ps = sub.add_parser("pii-negatives-split",
@@ -628,6 +668,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_dg = sub.add_parser("domain-gate", help="fit the out-of-domain gate and write its pin")
     p_dg.set_defaults(func=_cmd_domain_gate)
 
+    p_jm = sub.add_parser("judge-mixed", help="drafting judge trained on every generator: build, train, compare")
+    p_jm.add_argument("--build", action="store_true", help="assemble and freeze the data and holdouts")
+    p_jm.add_argument("--train", action="store_true", help="train on the frozen split (CPU)")
+    p_jm.add_argument("--version", type=int, default=1, choices=[1, 2],
+                      help="2 adds out-of-domain training replies, holdouts unchanged")
+    p_jm.set_defaults(func=_cmd_judge_mixed)
+
+    p_jo = sub.add_parser("judge-ood-train", help="out-of-domain training replies for the judge: sample, generate, grade")
+    p_jo.add_argument("--sample", action="store_true")
+    p_jo.add_argument("--generate", action="store_true")
+    p_jo.set_defaults(func=_cmd_judge_ood_train)
+
     p_pr = sub.add_parser("pii-realistic",
                           help="served PII adapter on Nemotron-PII formats and real TAB court text (local)")
     p_pr.add_argument("--batch", type=int, default=8)
@@ -667,6 +719,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_js.add_argument("--run", required=True, help="a regress or prompted run made with --save-predictions")
     p_js.add_argument("--baseline", default=None, help="recompute the run's comparison against this")
     p_js.add_argument("--force", action="store_true")
+    p_js.add_argument("--out", default=None, help="write the scored run here instead of in place")
     p_js.set_defaults(func=_cmd_judge_score)
 
     p_m2 = sub.add_parser("judge-m2",

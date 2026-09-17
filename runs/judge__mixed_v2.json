@@ -1,0 +1,107 @@
+{
+  "rule": "Serve the mixed judge only if its H1 Spearman is no more than 0.05 below the served judge's on the same items, and it beats the served judge on both H2 and H3 with the paired bootstrap's 95% interval for the Spearman difference above zero.",
+  "holdouts": {
+    "h1_adapter_calibration": {
+      "n": 150,
+      "served": 0.7285,
+      "mixed": 0.7591,
+      "difference": 0.0305,
+      "ci95": [
+        -0.0171,
+        0.0814
+      ]
+    },
+    "h2_across_generators": {
+      "n": 270,
+      "served": 0.2788,
+      "mixed": 0.8132,
+      "difference": 0.5344,
+      "ci95": [
+        0.4129,
+        0.6533
+      ]
+    },
+    "h3_out_of_domain": {
+      "n": 120,
+      "served": 0.1986,
+      "mixed": 0.8406,
+      "difference": 0.642,
+      "ci95": [
+        0.4651,
+        0.8213
+      ]
+    }
+  },
+  "means_by_generator": {
+    "h1_adapter_calibration": {
+      "adapter": {
+        "gpt4o": 4.2,
+        "served": 4.257,
+        "mixed": 4.413,
+        "n": 150
+      }
+    },
+    "h2_across_generators": {
+      "adapter": {
+        "gpt4o": 4.244,
+        "served": 4.25,
+        "mixed": 4.402,
+        "n": 90
+      },
+      "gpt4o_mini": {
+        "gpt4o": 4.522,
+        "served": 4.492,
+        "mixed": 4.758,
+        "n": 90
+      },
+      "prompted_base": {
+        "gpt4o": 2.878,
+        "served": 4.706,
+        "mixed": 2.962,
+        "n": 90
+      }
+    },
+    "h3_out_of_domain": {
+      "adapter": {
+        "gpt4o": 3.067,
+        "served": 4.33,
+        "mixed": 3.238,
+        "n": 60
+      },
+      "gpt4o_mini": {
+        "gpt4o": 4.467,
+        "served": 4.502,
+        "mixed": 4.671,
+        "n": 60
+      }
+    }
+  },
+  "decision": {
+    "h1_within_tolerance": true,
+    "h2_better": true,
+    "h3_better": true,
+    "serve_mixed_judge": true
+  },
+  "h3_by_source": {
+    "abcd": {
+      "n": 60,
+      "served": 0.1864,
+      "mixed": 0.8521,
+      "difference": 0.6657,
+      "ci95": [
+        0.4104,
+        0.9233
+      ]
+    },
+    "cfpb": {
+      "n": 60,
+      "served": 0.2844,
+      "mixed": 0.8039,
+      "difference": 0.5195,
+      "ci95": [
+        0.2956,
+        0.7672
+      ]
+    }
+  }
+}

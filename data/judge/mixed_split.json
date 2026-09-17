@@ -1,0 +1,47 @@
+{
+  "purpose": "Mixed-generator drafting judge: data, splits and decision rule, frozen before training.",
+  "file": "data/judge/mixed.parquet",
+  "sha256": "6d1c032dd476a6dbee3fe1a42b3694dc7a2699e549941b7d596e8566d5239ee5",
+  "seed": 20260909,
+  "counts": {
+    "dropped_shares_a_held_out_request": {
+      "adapter": 0,
+      "gpt4o_mini": 98,
+      "prompted_base": 0
+    },
+    "h1_adapter_calibration": {
+      "adapter": 150,
+      "gpt4o_mini": 0,
+      "prompted_base": 0
+    },
+    "h2_across_generators": {
+      "adapter": 90,
+      "gpt4o_mini": 90,
+      "prompted_base": 90
+    },
+    "h3_out_of_domain": {
+      "adapter": 60,
+      "gpt4o_mini": 60,
+      "prompted_base": 0
+    },
+    "train": {
+      "adapter": 1359,
+      "gpt4o_mini": 770,
+      "prompted_base": 186
+    },
+    "validation": {
+      "adapter": 151,
+      "gpt4o_mini": 92,
+      "prompted_base": 24
+    }
+  },
+  "preregistered": {
+    "rule": "Serve the mixed judge only if its H1 Spearman is no more than 0.05 below the served judge's on the same items, and it beats the served judge on both H2 and H3 with the paired bootstrap's 95% interval for the Spearman difference above zero.",
+    "h1_tolerance": 0.05,
+    "bootstrap_resamples": 10000,
+    "known_limits": [
+      "GPT-4o is the teacher and grades GPT-4o-mini, so family preference is in the labels, as it is for the served judge",
+      "H3 has 120 replies, so its interval will be wide"
+    ]
+  }
+}

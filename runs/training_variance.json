@@ -3,16 +3,16 @@
   "method": "Regression runs of the served adapters and of further training runs of each task at the configuration that produced it, served identically in one session; the spread is the range of the gated metric, and three or more runs also give a standard deviation. Runs that differ only in seed measure an equivalent retrain; a same-seed rerun measures nondeterminism and library drift alone. Either way it includes inference noise, so it is an upper estimate.",
   "inputs": [
     {
-      "file": "runs/regression__a10-v8-variance-served.json",
-      "sha256": "0f832d0198dcbcfd1119f3dfb8d0744f425c58c04f3e94338d7c4dfee43ae139"
+      "file": "runs/regression__a10-v8-variance-served__judge-v2.json",
+      "sha256": "089200911da8657dbe0a69b280668dd203cbafc0f5e7bc84a9d558d0125c12d8"
     },
     {
-      "file": "runs/regression__a10-v8-variance-seed11.json",
-      "sha256": "39135ed875b23992047e39478ce576058bfb1d5c327ac19683f3b98f60abd172"
+      "file": "runs/regression__a10-v8-variance-seed11__judge-v2.json",
+      "sha256": "5078fffa091c7a084e714629e4aecf21336a0cb549c5a10fbaeaf484c374f241"
     },
     {
-      "file": "runs/regression__a10-v8-variance-seed22.json",
-      "sha256": "0794d77a4cdb3ce28a178e26c48017b85b28d9ef4f5ee30ed9c73ca201953c2b"
+      "file": "runs/regression__a10-v8-variance-seed22__judge-v2.json",
+      "sha256": "e4aa5c736b535360902e0599ec1504f5ab8d6655fcdbc35d425d9338daacb762"
     }
   ],
   "rerun_training_records": {
@@ -153,25 +153,25 @@
         "metric": "judge_score_mean",
         "runs": 3,
         "values": [
-          4.276,
-          4.3061,
-          4.292
+          4.4295,
+          4.4594,
+          4.4553
         ],
-        "mean": 4.291367,
-        "spread": 0.0301,
-        "stdev": 0.01506
+        "mean": 4.448067,
+        "spread": 0.0299,
+        "stdev": 0.016209
       },
       "hard": {
         "metric": "judge_score_mean",
         "runs": 3,
         "values": [
-          3.7279,
-          3.9352,
-          3.9894
+          3.7052,
+          4.0351,
+          4.0781
         ],
-        "mean": 3.884167,
-        "spread": 0.2615,
-        "stdev": 0.138018
+        "mean": 3.939467,
+        "spread": 0.3729,
+        "stdev": 0.204017
       }
     }
   }
