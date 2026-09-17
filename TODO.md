@@ -91,7 +91,7 @@ account, keys or decision).
   the adapter's 0.4212 in one session, 0.4442 against 0.3332 on the shared-failure items, 4.1 sd above the
   adapter's three-seed mean; the frozen rule was judged at the 0.0381 threshold it was written against.
   `serve/classical.py` answers it in the request path and in `regress`; vLLM never loads it; it never
-  escalates on confidence. The urgency Hub card is re-rendered as retired but not yet pushed.
+  escalates on confidence. The urgency Hub card says the adapter is retired (commit d712c1ed); the Space shows v8 (4b69156f).
 - [x] **Train PII on realistic formats.** Done and served since manifest v7 (Hub revision 5315b1dc). The
   candidate passed both halves of the rule frozen before training: golden strict F1 drop 0.0000 (gate 0.0081),
   and TAB's real court text, never trained on, leaks 14.31% → 8.32% of in-scope spans (95% CI −0.0897 to
