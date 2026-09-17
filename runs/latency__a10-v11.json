@@ -1,0 +1,146 @@
+{
+  "question": "For each adapter, how much of P95 is time to first token and how much is decoding?",
+  "target_ms": 500.0,
+  "base_url": "http://localhost:8000",
+  "pairs": 292,
+  "population": "router_in_distribution",
+  "levels": [
+    {
+      "concurrency": 1,
+      "per_task": {
+        "drafting": {
+          "requests": 102,
+          "ttft_ms": {
+            "p50": 24.0,
+            "p95": 25.0
+          },
+          "total_ms": {
+            "p50": 955.0,
+            "p95": 2740.6
+          },
+          "tpot_ms": {
+            "p50": 9.6,
+            "p95": 9.7
+          },
+          "tokens": {
+            "p50": 98.0,
+            "p95": 281.9
+          },
+          "ttft_within_target": 1.0,
+          "total_within_target": 0.0294
+        },
+        "intent": {
+          "requests": 90,
+          "ttft_ms": {
+            "p50": 24.1,
+            "p95": 25.1
+          },
+          "total_ms": {
+            "p50": 61.0,
+            "p95": 100.2
+          },
+          "tpot_ms": {
+            "p50": 9.5,
+            "p95": 9.7
+          },
+          "tokens": {
+            "p50": 5.0,
+            "p95": 9.0
+          },
+          "ttft_within_target": 1.0,
+          "total_within_target": 1.0
+        },
+        "pii": {
+          "requests": 100,
+          "ttft_ms": {
+            "p50": 25.5,
+            "p95": 27.9
+          },
+          "total_ms": {
+            "p50": 557.9,
+            "p95": 1443.3
+          },
+          "tpot_ms": {
+            "p50": 9.6,
+            "p95": 9.7
+          },
+          "tokens": {
+            "p50": 56.5,
+            "p95": 147.2
+          },
+          "ttft_within_target": 1.0,
+          "total_within_target": 0.39
+        }
+      }
+    },
+    {
+      "concurrency": 16,
+      "per_task": {
+        "drafting": {
+          "requests": 102,
+          "ttft_ms": {
+            "p50": 35.1,
+            "p95": 39.9
+          },
+          "total_ms": {
+            "p50": 1157.7,
+            "p95": 3263.9
+          },
+          "tpot_ms": {
+            "p50": 11.2,
+            "p95": 11.5
+          },
+          "tokens": {
+            "p50": 102.0,
+            "p95": 305.0
+          },
+          "ttft_within_target": 1.0,
+          "total_within_target": 0.0
+        },
+        "intent": {
+          "requests": 90,
+          "ttft_ms": {
+            "p50": 36.0,
+            "p95": 40.6
+          },
+          "total_ms": {
+            "p50": 78.5,
+            "p95": 129.0
+          },
+          "tpot_ms": {
+            "p50": 11.1,
+            "p95": 12.8
+          },
+          "tokens": {
+            "p50": 5.0,
+            "p95": 9.0
+          },
+          "ttft_within_target": 1.0,
+          "total_within_target": 1.0
+        },
+        "pii": {
+          "requests": 100,
+          "ttft_ms": {
+            "p50": 35.5,
+            "p95": 41.2
+          },
+          "total_ms": {
+            "p50": 659.4,
+            "p95": 1658.8
+          },
+          "tpot_ms": {
+            "p50": 11.2,
+            "p95": 11.8
+          },
+          "tokens": {
+            "p50": 56.5,
+            "p95": 147.2
+          },
+          "ttft_within_target": 1.0,
+          "total_within_target": 0.23
+        }
+      }
+    }
+  ],
+  "notes": "Streamed straight to vLLM with the serving prompts and token caps; no routing. Client-side timing, so it includes HTTP."
+}

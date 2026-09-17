@@ -39,14 +39,14 @@ Golden sets are frozen random held-out splits; every system below was run on the
 | this adapter | golden (300) | GPT-4o grade, 1–5 | 4.2367 |
 | base model, prompted | golden (300) | GPT-4o grade, 1–5 | 2.8567 |
 | GPT-4o-mini (frontier reference) | golden | GPT-4o grade, 1–5 | 4.5167 |
-| this adapter, run 1 / run 2 | golden (300) | distilled judge | 4.2709 / 4.2844 |
-| this adapter | hard cases (113), report-only | distilled judge | 3.6918 |
+| this adapter, run 1 / run 2 | golden (300) | distilled judge | 4.4388 / 4.4447 |
+| this adapter | hard cases (113), report-only | distilled judge | 3.6686 |
 
 Latency with all four adapters served at once on one A10 (vLLM, concurrency 16): P50 1,249 ms · P95 3,000 ms.
 
 ## Caveats
 
-- The distilled judge (the gate metric) tracks GPT-4o on this adapter's replies (Spearman 0.74) but not on another generator's (0.33). Compare models on GPT-4o grades.
+- The distilled judge (the gate metric) is trained on replies from this adapter, the prompted base model and GPT-4o-mini, in and out of domain. Its Spearman with GPT-4o is 0.76 on this adapter's replies, 0.81 across generators and 0.84 on out-of-domain tickets. A judge score is still not a GPT-4o grade: compare models on GPT-4o grades.
 - Replies can contain template slots such as `{{Order Number}}`, from the Bitext data.
 - Share-alike: trained on CDLA-Sharing-1.0 data.
 

@@ -74,8 +74,9 @@ account, keys or decision).
 
 ## 2 · Next GPU session — bundle these
 
-- [ ] **Re-measure on vLLM what was only measured on the laptop:** the PII false-positive rates (928 and 491
-  texts), the router PII re-check, and the int8 accuracy comparison. *GPU*, ~30 min.
+- [x] **Re-measure on vLLM what was only measured on the laptop.** PII false positives identical on vLLM (4/928,
+  4/491, same grounded/invented split); PII routing on vLLM escalates 0 pairs in both populations, same decision
+  as the curve on all 353. int8 accuracy moves to "int8 in serving".
 - [x] **PII training spread for the served configuration.** Done by the seed session: PII retrained at seeds
   11 and 22 at the served 17,910-row configuration and scored beside the served adapter in one session —
   range 0.0023 (0.9421 / 0.9444 / 0.9435), so its gate is now 0.0069 from its own configuration.
@@ -100,11 +101,12 @@ account, keys or decision).
   decided by `adapterops pii-realistic-compare`. *GPU*, done.
 - [ ] **PII's 5 remaining false positives.** Add negatives with misspellings and odd tokens ("Atm", "Chevk")
   and re-measure, inside the same decision rule as D50. *GPU*, ~2 h; low priority.
-- [ ] **P95 latency for PII and drafting.** Both miss §7's 500 ms (2,259 ms and 3,000 ms). Measure the
-  options — tighter token caps, streaming the first token, speculative decoding — or decide per-task targets
-  and record the change in the PRD rather than moving the bar silently. *GPU.*
-- [ ] **Sustained load with GPT-4o-mini answering.** Only 5 minutes were run. Run a longer test once frontier
-  budgeting exists, within the daily request cap. *GPU* + *API*.
+- [x] **P95 latency for PII and drafting.** Measured (`runs/latency__a10-v11.json`): first token p95 25–41 ms,
+  ~10 ms/token, so the miss is reply length. PRD v2.16 (changelog 67) sets per-task targets: drafting 500 ms to
+  first token (40 ms), PII 2 s full reply (1,659 ms).
+- [x] **Sustained load with GPT-4o-mini answering.** 30 min, 68,691 pairs, 0 HTTP errors, $1.02
+  (`runs/request_path__a10-v11-frontier-sustained.json`). Found the frontier's 5,000-request lifetime cap
+  overriding the 7,000 daily budget; the cap now follows the budget.
 - [ ] **int8 in serving.** int8 was compared for accuracy on CPU only. Serve a weight-only int8 base in vLLM
   and measure latency, memory and accuracy. *GPU*; low priority — the project makes no int8 claim.
 

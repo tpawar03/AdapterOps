@@ -1,0 +1,77 @@
+{
+  "name": "a10-v11-pii-direct",
+  "population": "router_in_distribution",
+  "pairs": 100,
+  "tasks": [
+    "pii"
+  ],
+  "mode": "direct_vllm",
+  "duration_s": null,
+  "service": {
+    "policy": "direct_vllm",
+    "local_backend": "vllm",
+    "base_url": "http://localhost:8000",
+    "threshold": 0.393881,
+    "frontier": null,
+    "note": "no API, routing or frontier; decisions recorded, not acted on"
+  },
+  "levels": [
+    {
+      "concurrency": 16,
+      "requests": 100,
+      "pairs": 100,
+      "http_errors": 0,
+      "wall_seconds": 5.4,
+      "throughput_pairs_per_s": 18.54,
+      "escalation_rate": 0.0,
+      "fallback_rate": 0.0,
+      "unanswered": 0,
+      "frontier_errors": 0,
+      "frontier_served_rate": 0.0,
+      "frontier_p95_ms": null,
+      "frontier_errors_by_kind": {},
+      "client_p50_ms": 638.9,
+      "client_p95_ms": 1620.4,
+      "cost_usd": 0.0,
+      "cost_per_1k_pairs_usd": 0.0,
+      "per_task": {
+        "pii": {
+          "pairs": 100,
+          "escalation_rate": 0.0,
+          "curve_escalation_rate": 0.0,
+          "threshold_escalation_rate": 0.0,
+          "fallback_rate": 0.0,
+          "client_p95_ms": 1620.4,
+          "server_p95_ms": 1620.2,
+          "served_success": 0.75,
+          "curve_local_only_success": 0.73
+        }
+      },
+      "graded_tasks": {
+        "tasks": [
+          "intent",
+          "urgency",
+          "pii"
+        ],
+        "pairs": 100,
+        "served_success": 0.75,
+        "recorded_success_as_served": 0.73,
+        "curve_success_at_operating_point": 0.73,
+        "recorded_success_at_threshold": 0.73,
+        "curve_local_only_success": 0.73
+      },
+      "agreement_with_curve": {
+        "pairs_compared": 100,
+        "same_decision": 1.0,
+        "escalated_live_not_on_curve": 0,
+        "escalated_on_curve_not_live": 0,
+        "score_spearman_vs_recorded": 0.7349,
+        "score_median_abs_diff": 0.001,
+        "note": "the recorded decision is the live threshold applied to vLLM's recorded -mean_logprob; fallbacks carry no score and are left out"
+      }
+    }
+  ],
+  "server_metrics": null,
+  "server_metrics_before": null,
+  "notes": "Drafting is routed and costed but not graded (the curve's drafting grade is GPT-4o's). Client latency includes HTTP; server latency is the pair's own. Throughput is one-task tickets per second at that client concurrency."
+}

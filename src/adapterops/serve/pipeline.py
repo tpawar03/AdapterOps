@@ -286,11 +286,11 @@ class OpenAIFrontier:
     name = "gpt-4o-mini"
 
     def __init__(self, intent_vocab: Sequence[str], client=None, timeout: float = 30.0,
-                 spend_cap: float = SERVICE_SPEND_CAP_USD) -> None:
+                 spend_cap: float = SERVICE_SPEND_CAP_USD, request_cap: int = 5_000) -> None:
         from adapterops.router.frontier import Ledger
 
         self.intent_vocab = ", ".join(sorted(intent_vocab))
-        self.ledger = Ledger(cap=spend_cap, request_cap=5_000)
+        self.ledger = Ledger(cap=spend_cap, request_cap=request_cap)
         self._client = client
         self.timeout = timeout
 
@@ -723,7 +723,10 @@ def build_service(backend: str = "vllm", base_url: str = "http://localhost:8000"
         except ImportError:
             pass
         if os.environ.get("OPENAI_API_KEY"):
-            front = OpenAIFrontier(vocab["intent"])
+            # The ledger is a lifetime hard stop; below the daily budget it silently overrides it (a10-v11
+            # stopped at 5,000 of a 7,000 budget). ponytail: never resets, so a server up past a day stops
+            # at one day's budget — restart it, or reset the ledger with the budget if that matters.
+            front = OpenAIFrontier(vocab["intent"], request_cap=max(5_000, frontier_per_day or 0))
     scorer = None
     if judge:
         checkpoint = pinned_checkpoint(manifest, "judge")

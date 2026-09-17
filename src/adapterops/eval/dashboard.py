@@ -29,8 +29,9 @@ OUT_FILE = REPO_ROOT / "runs" / "DASHBOARD.md"
 FAILURE_HEADING = "## Failure demo"
 
 INPUTS = {
-    "baseline_a": "runs/regression__v1-baseline-1.json",
-    "baseline_b": "runs/regression__v1-baseline-2.json",
+    # The gate's baselines, drafting scored with the judge manifest v10 serves (the thresholds pin these).
+    "baseline_a": "runs/regression__v1-baseline-1__judge-v2.json",
+    "baseline_b": "runs/regression__v1-baseline-2__judge-v2.json",
     "thresholds": "evals/GATE_THRESHOLDS.json",
     "serving": "runs/m1_serving.json",
     "latency": "runs/router__latency.json",
@@ -63,6 +64,7 @@ INPUTS = {
     "pii_fp_v7": "runs/pii__false_positives__realistic.json",
     "pii_fp_val_v7": "runs/pii__false_positives__realistic-val.json",
     "pii_realistic_compare": "runs/pii__realistic__compare__realistic.json",
+    "latency_profile": "runs/latency__a10-v11.json",
 }
 HISTORY_GLOB = "manifests/history/system-*.json"
 OPERATING_BUDGET = 0.2
@@ -405,9 +407,16 @@ def targets_rows(data: dict) -> list[str]:
     ]
     for task, r in serving["per_adapter"].items():
         verdict = "met" if r["p95_ms"] < ADAPTER_P95_MS else "**missed**"
-        lines.append(f"| adapter P95 < {ADAPTER_P95_MS:,.0f} ms | {task} on the A10, M1, "
+        lines.append(f"| adapter P95 < {ADAPTER_P95_MS:,.0f} ms (single target, PRD ≤ v2.15) | {task} on the A10, M1, "
                      f"{r['mean_generated_tokens']} tokens generated on average | "
                      f"{r['p95_ms']:,.0f} ms | {verdict} |")
+    # PRD v2.16 (changelog 67): each adapter held to the latency its consumer waits on, streamed at concurrency 16.
+    profile = next(level for level in data["latency_profile"]["levels"] if level["concurrency"] == 16)["per_task"]
+    for task, (label, key, target) in {"intent": ("full reply", "total_ms", 500), "pii": ("full reply", "total_ms", 2000),
+                                      "drafting": ("first token", "ttft_ms", 500)}.items():
+        p95 = profile[task][key]["p95"]
+        lines.append(f"| {task} {label} P95 < {target:,} ms | A10, streamed, concurrency 16, "
+                     f"`latency__a10-v11` | {p95:,.0f} ms | {'met' if p95 < target else '**missed**'} |")
     for run in lat["runs"].values():
         one, four = run["batch_1_per_pair"], run["batch_4_per_ticket"]
         threads = f"{run['torch_threads']} CPU thread{'s' if run['torch_threads'] > 1 else ''}"

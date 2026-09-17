@@ -60,8 +60,10 @@ def _json(path: str) -> dict | None:
 def load() -> dict:
     return {
         "pins": _json("manifests/adapters.json")["components"],
-        "baseline": [_json("runs/regression__v1-baseline-1.json"),
-                     _json("runs/regression__v1-baseline-2.json")],
+        # The gate's baseline runs, drafting scored by the judge manifest v10 serves (manifest v11).
+        "baseline": [_json("runs/regression__v1-baseline-1__judge-v2.json"),
+                     _json("runs/regression__v1-baseline-2__judge-v2.json")],
+        "judge": _json("runs/judge__mixed_v2.json"),
         "prompted": {t: _json(p) for t, p in PROMPTED.items()},
         "urgency_adapter": _json("runs/urgency__adapter.json"),
         "m2": _json("runs/drafting__m2_gpt4o.json"),
@@ -107,11 +109,13 @@ def caveats(task: str, ctx: dict) -> list[str]:
                            "The previous revision, trained only on documents containing PII, reported one "
                            "in every text."))
         return out
-    sides = ctx["m2"]["sides"]
-    return [(f"The distilled judge (the gate metric) tracks GPT-4o on this adapter's replies "
-             f"(Spearman {sides['adapter']['distilled_vs_gpt4o_spearman']:.2f}) but not on another "
-             f"generator's ({sides['prompted']['distilled_vs_gpt4o_spearman']:.2f}). Compare "
-             "models on GPT-4o grades."),
+    h = ctx["judge"]["holdouts"]
+    return [(f"The distilled judge (the gate metric) is trained on replies from this adapter, the prompted base "
+             f"model and GPT-4o-mini, in and out of domain. Its Spearman with GPT-4o is "
+             f"{h['h1_adapter_calibration']['mixed']:.2f} on this adapter's replies, "
+             f"{h['h2_across_generators']['mixed']:.2f} across generators and "
+             f"{h['h3_out_of_domain']['mixed']:.2f} on out-of-domain tickets. A judge score is still not a "
+             "GPT-4o grade: compare models on GPT-4o grades."),
             "Replies can contain template slots such as `{{Order Number}}`, from the Bitext data.",
             "Share-alike: trained on CDLA-Sharing-1.0 data."]
 
