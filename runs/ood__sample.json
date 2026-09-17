@@ -1,0 +1,37 @@
+{
+  "sources": {
+    "abcd": {
+      "url": "https://github.com/asappresearch/abcd",
+      "licence": "MIT",
+      "revision": "6b8700ce67c6b37b062dd7a60abc76d7ef832a97",
+      "file": "data/abcd_v1.1.json.gz",
+      "sha256": "2bdf53ac359543dcdc38d55bc6513e78df120363f8f44870716e909f4606de15"
+    },
+    "cfpb": {
+      "url": "https://huggingface.co/datasets/liri-uzh/cfpb-complaints-mini",
+      "licence": "CC0-1.0 (CFPB narratives are US public domain)",
+      "revision": "9add3032b668ffe3bbdf546788c9c19e489d84a6",
+      "file": "cfpb_mini_test.parquet",
+      "sha256": "d1ca76d3bc9226913f912be5357f48e93f361752fd5bbda9b3916ff8d4e5b950"
+    }
+  },
+  "sample": {
+    "file": "evals/ood/sample.parquet",
+    "sha256": "72fef7d809f8414afdb3e2acaa543c980fb15df6a18c9eb8c33ec08f568af388",
+    "tickets": {
+      "abcd": 150,
+      "cfpb": 150
+    },
+    "max_words": 200,
+    "seed": 20260916,
+    "strata": {
+      "abcd": 10,
+      "cfpb": 7
+    }
+  },
+  "pii_gold_spans": {
+    "in_scope": 346,
+    "out_of_scope": 150,
+    "abcd_tickets_with_in_scope_span": 121
+  }
+}

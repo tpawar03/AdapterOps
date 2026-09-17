@@ -52,3 +52,7 @@ data/pii_realistic/
 # Hugging Face Space bundles, rebuilt from the repo by demo/build_space.py and demo/build_static.py.
 demo/_space/
 demo/_static/
+
+# Out-of-domain evaluation sources (ABCD, CFPB mini): re-downloadable at the revisions and sha256s
+# recorded in runs/ood__*.json.
+data/ood/

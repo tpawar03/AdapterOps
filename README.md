@@ -83,9 +83,12 @@ realistic-format PII and rebuilt hard-split rows come from `runs/pii__realistic.
 
 Each limitation below, and the others recorded in `STATUS.md`, is queued as work in [`TODO.md`](TODO.md).
 
-- **The system is not shown to generalise beyond its four training datasets, and PII measurably does not.**
-  PII is the one task tested on outside text, and it still leaks 4–8% of spans there after a retrain aimed at it
-  (Results). Each adapter learned one
+- **Most of the system does not generalise beyond its training datasets, measured.** On 300 tickets from two
+  sources no model trained on (`runs/ood.json`): intent is right on 63% and 26% of tickets where a Banking77 label
+  even fits (93% in-domain) and invents labels outside the 77 on 12–23%; confidence routing escalates none of
+  its wrong answers; urgency's macro F1 falls to 0.19–0.29; and the distilled judge scores replies 4.3–4.5 where
+  GPT-4o gives 2.9–3.2, with negative rank correlation, so drafting's gate cannot see a bad reply out of domain.
+  PII holds up best: 0.6% of spans wholly unmasked on shop conversations, though it over-flags redacted text. Each adapter learned one
   public dataset's task and domain — banking queries with 77 fixed intent labels, IT support tickets,
   synthetic personal-data documents, templated retail replies — and every score is on held-out data from the
   same dataset. The router's threshold was calibrated on those tasks, and its shift test varies wording and

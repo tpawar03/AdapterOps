@@ -76,9 +76,9 @@ account, keys or decision).
 
 - [ ] **Re-measure on vLLM what was only measured on the laptop:** the PII false-positive rates (928 and 491
   texts), the router PII re-check, and the int8 accuracy comparison. *GPU*, ~30 min.
-- [ ] **PII training spread for the served configuration.** Its 0.0081 gate threshold still comes from the
-  previous configuration's retrain. Retrain the 13,910-row configuration once more and regression-score it
-  beside the served adapter in one session. *GPU*, ~2 h.
+- [x] **PII training spread for the served configuration.** Done by the seed session: PII retrained at seeds
+  11 and 22 at the served 17,910-row configuration and scored beside the served adapter in one session —
+  range 0.0023 (0.9421 / 0.9444 / 0.9435), so its gate is now 0.0069 from its own configuration.
 - [x] **More than one retrain per task.** Done: every task retrained at seeds 11 and 22 at its served
   configuration and scored beside the served adapters in one session (`runs/training_variance.json`, three
   values each). Same-seed reruns had understated retraining variance where it mattered: urgency 0.0408 range
@@ -110,10 +110,15 @@ account, keys or decision).
 
 ## 3 · Waiting on data, keys or a decision
 
-- [ ] **Out-of-domain evaluation.** Assemble and label a few hundred tickets from a source none of the four
-  datasets came from; run them through the request path; measure per-task accuracy, how often answers fall
-  outside the label set, and whether the confidence rule escalates the wrong answers. *Data* + *API* for
-  labels + human spot-checks. The routing threshold's out-of-domain check depends on this.
+- [x] **Out-of-domain evaluation.** Done: `adapterops ood` — 150 ABCD online-shop tickets (MIT) and 150 real
+  CFPB complaints (public domain) through the served v8 system on this Mac, labelled by GPT-4o ($0.60,
+  `runs/ood.json`). **Intent does not transfer:** no Banking77 label fits 80% / 75% of tickets; where one
+  fits, accuracy is 0.63 / 0.26 (in-domain 0.93); 23% / 12% of answers invent labels outside the 77.
+  **Confidence routing escalates none of the wrong intent answers**; only the validity fallback routes any
+  away. **PII transfers on ABCD** (0.6% of in-scope spans wholly unmasked) but flags 98 of 150 pre-redacted
+  complaints (134 spans on real non-personal text). **Urgency (TF-IDF) collapses:** macro F1 0.29 / 0.19.
+  **The distilled judge does not track GPT-4o here:** judge mean 4.3–4.5 against GPT-4o's 2.9–3.2, Spearman
+  −0.30 / −0.19, so drafting's gated metric is blind outside its domain. Labels are GPT-4o's, not human.
 - [x] **PII on realistic formats.** Done: `adapterops pii-realistic`, served v6 locally on 200 Nemotron-PII texts
   (CC BY 4.0) and 200 real ECHR paragraphs from TAB (MIT). In-scope spans wholly unmasked: 28.3% and 14.3%
   (17.8% and 12.4% with the request-path guard), against 0.79% on golden; texts fully masked 42.5% and 48%. Masked
@@ -121,7 +126,8 @@ account, keys or decision).
   text escalates** (highest score 0.12 and 0.32, threshold 0.39). Fix queued in §2. PII was trained and tested on synthetic spans. Find a permissively
   licensed PII set with real-world formats (names, IDs, addresses from several regions) and measure recall and
   precision. *Data.*
-- [ ] **A judge that tracks GPT-4o on any generator.** The distilled judge tracks GPT-4o on adapter-like
+- [ ] **A judge that tracks GPT-4o on any generator.** *Now more urgent:* on out-of-domain tickets the judge's
+  Spearman with GPT-4o is −0.30 and −0.19 (`runs/ood.json`). The distilled judge tracks GPT-4o on adapter-like
   replies (Spearman 0.74) but not on another generator's (0.33). Grade a mixed-generator set with GPT-4o,
   retrain or recalibrate, and re-measure both correlations. *API* (~$2–4) + *free* training.
 - [ ] **Langfuse tracing against a live project.** Tracing has only been tested against a mock transport.

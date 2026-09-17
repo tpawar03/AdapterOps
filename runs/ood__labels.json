@@ -1,0 +1,28 @@
+{
+  "projection": {
+    "model": "gpt-4o",
+    "requests": 660,
+    "by_task": {
+      "intent": 300,
+      "urgency": 300,
+      "drafting_grade": 60
+    },
+    "estimated_input_tokens": 289896,
+    "max_output_tokens": 11400,
+    "estimated_usd_upper": 0.84,
+    "spend_cap_usd": 3.0,
+    "price_per_1M": {
+      "input": 2.5,
+      "output": 10.0
+    }
+  },
+  "spend": {
+    "calls": 660,
+    "input_tokens": 228972,
+    "output_tokens": 2426,
+    "usd": 0.5967
+  },
+  "rubric_sha256": "538132280e13c5126461abcf56628d8e237ef113d613802199a386506818b0da",
+  "labels_file": "runs/ood__labels.parquet",
+  "unparsed": 0
+}

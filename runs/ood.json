@@ -1,0 +1,211 @@
+{
+  "in_domain_reference": {
+    "run": "runs/regression__a10-v8-variance-served.json",
+    "intent_accuracy": 0.9273,
+    "urgency_macro_f1_tfidf": 0.54,
+    "drafting_judge_mean": 4.276
+  },
+  "sources": {
+    "abcd": {
+      "intent": {
+        "tickets": 150,
+        "no_banking77_label_fits": 0.8,
+        "invented_label_outside_the_77": 0.2267,
+        "accuracy_where_a_label_fits": 0.6333,
+        "escalated_on_confidence": {
+          "when_right": 0.0526,
+          "when_wrong": 0.0,
+          "when_no_label_fits": 0.075
+        },
+        "routed_away_confidence_or_fallback": {
+          "when_right": 0.0526,
+          "when_wrong": 0.0,
+          "when_no_label_fits": 0.3583
+        },
+        "top_predictions_when_no_label_fits": {
+          "request_refund": 18,
+          "card_payment_not_recognised": 9,
+          "passcode_forgotten": 7,
+          "card_arrival": 7,
+          "card_not_working": 7
+        }
+      },
+      "urgency": {
+        "tickets": 150,
+        "macro_f1": 0.2851,
+        "micro_accuracy": 0.5067,
+        "gold_distribution": {
+          "low": 112,
+          "medium": 36,
+          "high": 2
+        },
+        "predicted_distribution": {
+          "low": 96,
+          "medium": 37,
+          "high": 17
+        }
+      },
+      "pii": {
+        "texts": 150,
+        "docs_fully_masked_in_scope": 0.88,
+        "in_scope_spans": 346,
+        "in_scope_partly_unmasked": 0.0549,
+        "in_scope_wholly_unmasked": 0.0058,
+        "out_of_scope_wholly_unmasked": 0.22,
+        "masked_chars_on_personal_data": 0.8567,
+        "masked_chars_on_no_mask_mentions": 0.0,
+        "in_scope_boundary_exact": 0.7717,
+        "label_right_when_boundary_exact": null,
+        "escalated_at_confidence_threshold": 0.0067,
+        "texts_with_a_leak": 18,
+        "texts_with_a_leak_escalated": 0,
+        "per_label": {
+          "in:GIVENNAME": {
+            "spans": 122,
+            "partly_unmasked": 0,
+            "wholly_unmasked": 0
+          },
+          "in:SURNAME": {
+            "spans": 120,
+            "partly_unmasked": 1,
+            "wholly_unmasked": 1
+          },
+          "out:ORDER_ID": {
+            "spans": 66,
+            "partly_unmasked": 2,
+            "wholly_unmasked": 1
+          },
+          "out:ACCOUNT_ID": {
+            "spans": 40,
+            "partly_unmasked": 0,
+            "wholly_unmasked": 0
+          },
+          "out:USERNAME": {
+            "spans": 39,
+            "partly_unmasked": 31,
+            "wholly_unmasked": 31
+          },
+          "in:EMAIL": {
+            "spans": 37,
+            "partly_unmasked": 1,
+            "wholly_unmasked": 0
+          },
+          "in:ZIPCODE": {
+            "spans": 27,
+            "partly_unmasked": 1,
+            "wholly_unmasked": 1
+          },
+          "in:CITY": {
+            "spans": 18,
+            "partly_unmasked": 0,
+            "wholly_unmasked": 0
+          },
+          "in:STREET": {
+            "spans": 16,
+            "partly_unmasked": 16,
+            "wholly_unmasked": 0
+          },
+          "in:TELEPHONENUM": {
+            "spans": 6,
+            "partly_unmasked": 0,
+            "wholly_unmasked": 0
+          }
+        }
+      },
+      "drafting": {
+        "replies": 150,
+        "judge_mean": 4.3363,
+        "graded_by_gpt4o": 30,
+        "gpt4o_mean": 2.9333,
+        "judge_mean_on_graded": 4.2392,
+        "spearman_judge_vs_gpt4o": -0.3007,
+        "gpt4o_grade_3_or_lower": 0.7333
+      }
+    },
+    "cfpb": {
+      "intent": {
+        "tickets": 150,
+        "no_banking77_label_fits": 0.7467,
+        "invented_label_outside_the_77": 0.12,
+        "accuracy_where_a_label_fits": 0.2632,
+        "escalated_on_confidence": {
+          "when_right": 0.0,
+          "when_wrong": 0.0,
+          "when_no_label_fits": 0.1429
+        },
+        "routed_away_confidence_or_fallback": {
+          "when_right": 0.0,
+          "when_wrong": 0.0,
+          "when_no_label_fits": 0.3036
+        },
+        "top_predictions_when_no_label_fits": {
+          "direct_debit_payment_not_recognised": 30,
+          "compromised_card": 20,
+          "transfer_not_received_by_recipient": 11,
+          "card_payment_not_recognised": 10,
+          "extra_charge_on_statement": 10
+        }
+      },
+      "urgency": {
+        "tickets": 150,
+        "macro_f1": 0.1854,
+        "micro_accuracy": 0.2067,
+        "gold_distribution": {
+          "high": 99,
+          "medium": 48,
+          "low": 3
+        },
+        "predicted_distribution": {
+          "low": 72,
+          "medium": 67,
+          "high": 11
+        }
+      },
+      "pii": {
+        "texts": 150,
+        "texts_with_any_span": 98,
+        "spans": 365,
+        "spans_on_redaction_marks": 231,
+        "spans_on_other_text": 134,
+        "labels": {
+          "DATE": 168,
+          "AGE": 40,
+          "CREDITCARDNUMBER": 33,
+          "IDCARDNUM": 26,
+          "TELEPHONENUM": 14,
+          "DRIVERLICENSENUM": 14,
+          "GIVENNAME": 11,
+          "EMAIL": 11
+        }
+      },
+      "drafting": {
+        "replies": 150,
+        "judge_mean": 4.457,
+        "graded_by_gpt4o": 30,
+        "gpt4o_mean": 3.2,
+        "judge_mean_on_graded": 4.4201,
+        "spearman_judge_vs_gpt4o": -0.1946,
+        "gpt4o_grade_3_or_lower": 0.7
+      }
+    }
+  },
+  "latency_local_mps": {
+    "drafting": {
+      "p50_ms": 10288.5,
+      "p95_ms": 16039.2
+    },
+    "intent": {
+      "p50_ms": 492.4,
+      "p95_ms": 847.9
+    },
+    "pii": {
+      "p50_ms": 1697.2,
+      "p95_ms": 5913.4
+    },
+    "urgency": {
+      "p50_ms": 0.6,
+      "p95_ms": 0.9
+    }
+  },
+  "note": "Latency is this Mac through transformers, not the A10 through vLLM; compare shape, not size."
+}

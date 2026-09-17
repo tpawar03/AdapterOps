@@ -123,6 +123,20 @@ def _cmd_pii_realistic_split(args: argparse.Namespace) -> int:
     return split_main(force=args.force)
 
 
+def _cmd_ood(args: argparse.Namespace) -> int:
+    from adapterops.eval.ood import main as ood_main
+
+    if args.report:
+        from adapterops.eval.ood_report import main as report_main
+
+        return report_main()
+    if args.project_cost or args.label:
+        from adapterops.eval.ood_label import main as label_main
+
+        return label_main(project_only=args.project_cost)
+    return ood_main(sample=args.sample, run=args.generate)
+
+
 def _cmd_urgency_tfidf(args: argparse.Namespace) -> int:
     from adapterops.eval.urgency_tfidf import main as tfidf_main
 
@@ -582,6 +596,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_ut.add_argument("--save", action="store_true",
                       help="write models/urgency-tfidf/model.joblib and score the reloaded file")
     p_ut.set_defaults(func=_cmd_urgency_tfidf)
+
+    p_od = sub.add_parser("ood", help="out-of-domain evaluation: ABCD and CFPB tickets through the served system")
+    p_od.add_argument("--sample", action="store_true", help="build and freeze the 300-ticket sample")
+    p_od.add_argument("--generate", action="store_true", help="run the sample through the served system (local)")
+    p_od.add_argument("--project-cost", action="store_true", help="price the GPT-4o labelling, no calls")
+    p_od.add_argument("--label", action="store_true", help="label with GPT-4o (spends, capped)")
+    p_od.add_argument("--report", action="store_true", help="score outputs against the labels")
+    p_od.set_defaults(func=_cmd_ood)
 
     p_pr = sub.add_parser("pii-realistic",
                           help="served PII adapter on Nemotron-PII formats and real TAB court text (local)")
