@@ -125,6 +125,8 @@ def build(note: str = "", pins: Path | None = None) -> dict:
                          ("intent", "urgency", "pii", "drafting")},
             "router": router if any(router.values()) else None,
             "judge": judge if any(judge.values()) else None,
+            # Rebuilt at start-up from pinned splits and refused if a threshold moves (serve/domain_gate.py).
+            "domain_gate": _pin_file("manifests/domain_gate.json"),
         },
         "eval_splits": {name: _pin_file(rel) for name, rel in SPLIT_FILES.items()},
         "gate": current_gate(),

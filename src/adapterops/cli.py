@@ -123,9 +123,19 @@ def _cmd_pii_realistic_split(args: argparse.Namespace) -> int:
     return split_main(force=args.force)
 
 
+def _cmd_domain_gate(_: argparse.Namespace) -> int:
+    from adapterops.serve.domain_gate import main as gate_main
+
+    return gate_main()
+
+
 def _cmd_ood(args: argparse.Namespace) -> int:
     from adapterops.eval.ood import main as ood_main
 
+    if args.frontier or args.frontier_project:
+        from adapterops.eval.ood_frontier import main as frontier_main
+
+        return frontier_main(project_only=args.frontier_project)
     if args.detect:
         from adapterops.eval.ood_detect import main as detect_main
 
@@ -227,7 +237,8 @@ def _cmd_serve_api(args: argparse.Namespace) -> int:
                     frontier=not args.no_frontier, judge=not args.no_judge, trace=args.trace,
                     host=args.host, port=args.port, benchmark_caps=args.benchmark_caps,
                     max_threads=args.max_threads, frontier_per_minute=args.frontier_per_minute,
-                    frontier_per_day=args.frontier_per_day, pii_guard=not args.no_pii_guard)
+                    frontier_per_day=args.frontier_per_day, pii_guard=not args.no_pii_guard,
+                    domain_gate=not args.no_domain_gate)
 
 
 def _cmd_regression_redaction(args: argparse.Namespace) -> int:
@@ -474,6 +485,8 @@ def build_parser() -> argparse.ArgumentParser:
                        help="GPT-4o-mini requests allowed per day, under the account's 10,000 cap")
     p_api.add_argument("--no-pii-guard", action="store_true",
                        help="do not add pattern-matched identifiers and dates the PII answer left untagged")
+    p_api.add_argument("--no-domain-gate", action="store_true",
+                       help="do not send tickets unlike a task's training data straight to the frontier")
 
     p_red = sub.add_parser("regression-redaction",
                            help="backfill PII redaction leakage into committed regression runs")
@@ -608,7 +621,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_od.add_argument("--label", action="store_true", help="label with GPT-4o (spends, capped)")
     p_od.add_argument("--report", action="store_true", help="score outputs against the labels")
     p_od.add_argument("--detect", action="store_true", help="evaluate an input-side out-of-domain check")
+    p_od.add_argument("--frontier-project", action="store_true", help="price GPT-4o-mini on the sample, no calls")
+    p_od.add_argument("--frontier", action="store_true", help="GPT-4o-mini on the sample (spends, capped)")
     p_od.set_defaults(func=_cmd_ood)
+
+    p_dg = sub.add_parser("domain-gate", help="fit the out-of-domain gate and write its pin")
+    p_dg.set_defaults(func=_cmd_domain_gate)
 
     p_pr = sub.add_parser("pii-realistic",
                           help="served PII adapter on Nemotron-PII formats and real TAB court text (local)")

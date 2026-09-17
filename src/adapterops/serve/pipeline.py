@@ -421,9 +421,14 @@ class Metrics:
             for p in pairs:
                 t = self.per_task.setdefault(p["task"], {"pairs": 0, "escalated": 0,
                                                          "fallbacks": 0, "unanswered": 0,
-                                                         "budget_refused": 0, "latency_ms": []})
+                                                         "budget_refused": 0, "out_of_domain": 0,
+                                                         "frontier_served": 0, "latency_ms": []})
                 t["pairs"] += 1
                 t["escalated"] += p["route"] == "escalated"
+                # Counted apart from confidence escalations, so the frontier-call rate the operating point was
+                # tuned on stays comparable with every earlier measurement.
+                t["out_of_domain"] += p["route"] == "out_of_domain"
+                t["frontier_served"] += p["served_by"] == "frontier"
                 t["fallbacks"] += p["route"] == "fallback"
                 t["unanswered"] += p["served_by"] == "none"
                 t["budget_refused"] += str(p.get("frontier_error") or "").startswith("budget:")
@@ -450,6 +455,8 @@ class Metrics:
                 "pairs": pairs,
                 "frontier_call_rate": rate("escalated", list(self.per_task.values())),
                 "fallback_rate": rate("fallbacks", list(self.per_task.values())),
+                "out_of_domain_rate": rate("out_of_domain", list(self.per_task.values())),
+                "frontier_served_rate": rate("frontier_served", list(self.per_task.values())),
                 "cost_usd": round(self.cost_usd, 6),
                 "cost_per_1k_pairs_usd": round(self.cost_usd / pairs * 1000, 4) if pairs else None,
                 "cost_per_1k_tickets_usd": (round(self.cost_usd / self.tickets * 1000, 4)
@@ -458,6 +465,8 @@ class Metrics:
                     task: {"pairs": t["pairs"],
                            "frontier_call_rate": rate("escalated", [t]),
                            "fallback_rate": rate("fallbacks", [t]),
+                           "out_of_domain_rate": rate("out_of_domain", [t]),
+                           "frontier_served_rate": rate("frontier_served", [t]),
                            "unanswered": t["unanswered"],
                            "frontier_budget_refused": t["budget_refused"],
                            "p95_ms": p95(t["latency_ms"])}
@@ -509,7 +518,7 @@ class Service:
                  judge: Judge | None = None, tracer=None, prices: Prices | None = None,
                  vocab: dict[str, frozenset[str]] | None = None,
                  manifest: dict | None = None, frontier_budget: FrontierBudget | None = None,
-                 pii_guard_labels: Sequence[str] = ()) -> None:
+                 pii_guard_labels: Sequence[str] = (), domain_gate=None) -> None:
         from adapterops.serve.tracing import NullTracer
 
         self.local = local
@@ -522,6 +531,7 @@ class Service:
         self.manifest = manifest or {}
         self.frontier_budget = frontier_budget
         self.pii_guard_labels = tuple(pii_guard_labels)
+        self.domain_gate = domain_gate
         self.metrics = Metrics()
 
     def describe(self) -> dict:
@@ -533,6 +543,7 @@ class Service:
             "operating_point": f"{OPERATING_BUDGET:.0%} escalation budget, {CURVE.name}",
             "frontier": getattr(self.frontier, "name", None),
             "judge": self.judge is not None,
+            "domain_gate": sorted(self.domain_gate.checks) if self.domain_gate is not None else None,
             "prices": self.prices.source,
         }
 
@@ -569,15 +580,23 @@ class Service:
         started = time.perf_counter()
         cost, decision, local, local_error, notes = 0.0, None, None, None, []
 
-        if self.policy.before_local:
-            decision = self.policy.decide_before(task, text)
-        if not (decision and decision.escalate):
-            local, local_error = self._run_local(task, text)
-            cost += self.prices.local_usd_per_request
-            if local_error is None and not self.policy.before_local:
-                decision = self.policy.decide_after(task, text, local)
+        # The domain gate runs before anything local: a ticket unlike this task's training data goes to the frontier,
+        # where the out-of-domain evaluation found it answered better, without spending local inference on it.
+        out_of_domain = self.domain_gate is not None and self.domain_gate.flags(task, text)
+        if out_of_domain:
+            notes.append("unlike this task's training data — sent to the frontier (domain gate)")
+        else:
+            if self.policy.before_local:
+                decision = self.policy.decide_before(task, text)
+            if not (decision and decision.escalate):
+                local, local_error = self._run_local(task, text)
+                cost += self.prices.local_usd_per_request
+                if local_error is None and not self.policy.before_local:
+                    decision = self.policy.decide_after(task, text, local)
 
-        if decision and decision.escalate:
+        if out_of_domain:
+            route = "out_of_domain"
+        elif decision and decision.escalate:
             route = "escalated"
         elif local_error:
             route = "fallback"
@@ -589,7 +608,7 @@ class Service:
             if self.frontier is None:
                 frontier_error = "no frontier configured"
                 if local is None and local_error is None:
-                    # The router escalated before the adapter ran; answer locally instead.
+                    # The router or the domain gate routed before the adapter ran; answer locally instead.
                     local, local_error = self._run_local(task, text)
                     cost += self.prices.local_usd_per_request
                     final = local
@@ -611,6 +630,10 @@ class Service:
                     served_by = "frontier"
                 except Exception as exc:                  # noqa: BLE001 - reported per pair
                     frontier_error = f"{type(exc).__name__}: {exc}"
+                    if local is None and local_error is None:
+                        # Routed before the adapter ran and the frontier failed: answer locally rather than not at all.
+                        local, local_error = self._run_local(task, text)
+                        cost += self.prices.local_usd_per_request
                     final = local
             if served_by == "local" and (final is None or local_error):
                 served_by = "none"
@@ -679,7 +702,8 @@ def build_service(backend: str = "vllm", base_url: str = "http://localhost:8000"
                   policy: str = "confidence", frontier: bool = True, judge: bool = True,
                   tracer=None, local: Backend | None = None,
                   benchmark_caps: bool = False, frontier_per_minute: int | None = None,
-                  frontier_per_day: int | None = None, pii_guard: bool = True) -> Service:
+                  frontier_per_day: int | None = None, pii_guard: bool = True,
+                  domain_gate: bool = True) -> Service:
     """A service wired from the manifest. The frontier is used only if an OpenAI key is present."""
     manifest = load_manifest()
     vocab = load_vocab()
@@ -709,9 +733,15 @@ def build_service(backend: str = "vllm", base_url: str = "http://localhost:8000"
             scorer = load_judge(checkpoint)
     budget = (FrontierBudget(frontier_per_minute, frontier_per_day)
               if front is not None and (frontier_per_minute or frontier_per_day) else None)
+    gate = None
+    if domain_gate:
+        from adapterops.serve.domain_gate import load as load_gate
+
+        gate = load_gate(manifest)
     return Service(local=local, policy=make_policy(policy, manifest), frontier=front,
                    judge=scorer, tracer=tracer, vocab=vocab, manifest=manifest,
-                   frontier_budget=budget, pii_guard_labels=PII_GUARD_LABELS if pii_guard else ())
+                   frontier_budget=budget, pii_guard_labels=PII_GUARD_LABELS if pii_guard else (),
+                   domain_gate=gate)
 
 
 PII_GUARD_LABELS = ("EMAIL", "CREDITCARDNUMBER", "SOCIALNUM", "PASSPORTNUM", "TELEPHONENUM",

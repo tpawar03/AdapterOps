@@ -1,0 +1,56 @@
+{
+  "model": "gpt-4o-mini",
+  "grader": "gpt-4o",
+  "spend_usd_this_run": 0.1749,
+  "label_cache": "runs/ood__labels_cache.jsonl",
+  "caveat": "intent, urgency and drafting are judged by GPT-4o; PII on ABCD needs no labels",
+  "per_source": {
+    "abcd": {
+      "intent": {
+        "tickets_where_a_label_fits": 30,
+        "adapter_accuracy": 0.6333,
+        "gpt4o_mini_accuracy": 0.8,
+        "gpt4o_mini_label_outside_the_77": 0.0333
+      },
+      "urgency": {
+        "tickets": 150,
+        "served_tfidf_macro_f1": 0.2851,
+        "gpt4o_mini_macro_f1": 0.5275
+      },
+      "pii": {
+        "in_scope_spans": 346,
+        "adapter_wholly_unmasked": 0.0058,
+        "gpt4o_mini_wholly_unmasked": 0.289,
+        "adapter_partly_unmasked": 0.0549,
+        "gpt4o_mini_partly_unmasked": 0.2948
+      },
+      "drafting": {
+        "graded": 30,
+        "adapter_gpt4o_grade_mean": 2.9333,
+        "gpt4o_mini_gpt4o_grade_mean": 4.5333,
+        "gpt4o_mini_better": 26,
+        "adapter_better": 0
+      }
+    },
+    "cfpb": {
+      "intent": {
+        "tickets_where_a_label_fits": 38,
+        "adapter_accuracy": 0.2632,
+        "gpt4o_mini_accuracy": 0.6579,
+        "gpt4o_mini_label_outside_the_77": 0.0067
+      },
+      "urgency": {
+        "tickets": 150,
+        "served_tfidf_macro_f1": 0.1854,
+        "gpt4o_mini_macro_f1": 0.4316
+      },
+      "drafting": {
+        "graded": 30,
+        "adapter_gpt4o_grade_mean": 3.2,
+        "gpt4o_mini_gpt4o_grade_mean": 4.4,
+        "gpt4o_mini_better": 25,
+        "adapter_better": 1
+      }
+    }
+  }
+}

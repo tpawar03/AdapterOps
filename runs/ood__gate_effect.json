@@ -1,0 +1,43 @@
+{
+  "note": "Served system on the 300 out-of-domain tickets, from cached outputs: gated tasks answered by GPT-4o-mini when the gate flags them. Judged by GPT-4o labels and grades.",
+  "per_source": {
+    "abcd": {
+      "flagged": {
+        "intent": 1.0,
+        "urgency": 0.993,
+        "drafting": 1.0
+      },
+      "intent_accuracy_where_a_label_fits": {
+        "gate_off": 0.633,
+        "gate_on": 0.8
+      },
+      "urgency_macro_f1": {
+        "gate_off": 0.285,
+        "gate_on": 0.527
+      },
+      "drafting_gpt4o_grade": {
+        "gate_off": 2.93,
+        "gate_on": 4.53
+      }
+    },
+    "cfpb": {
+      "flagged": {
+        "intent": 0.993,
+        "urgency": 1.0,
+        "drafting": 1.0
+      },
+      "intent_accuracy_where_a_label_fits": {
+        "gate_off": 0.263,
+        "gate_on": 0.658
+      },
+      "urgency_macro_f1": {
+        "gate_off": 0.185,
+        "gate_on": 0.432
+      },
+      "drafting_gpt4o_grade": {
+        "gate_off": 3.2,
+        "gate_on": 4.4
+      }
+    }
+  }
+}

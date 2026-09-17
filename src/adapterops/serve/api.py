@@ -73,7 +73,7 @@ def create_app(service: Service, max_threads: int = MAX_THREADS) -> FastAPI:
 def main(backend: str, base_url: str, policy: str, frontier: bool, judge: bool, trace: str,
          host: str, port: int, benchmark_caps: bool = False,
          max_threads: int = MAX_THREADS, frontier_per_minute: int | None = None,
-         frontier_per_day: int | None = None, pii_guard: bool = True) -> int:
+         frontier_per_day: int | None = None, pii_guard: bool = True, domain_gate: bool = True) -> int:
     import uvicorn
 
     from adapterops.serve.pipeline import build_service
@@ -82,7 +82,8 @@ def main(backend: str, base_url: str, policy: str, frontier: bool, judge: bool, 
     service = build_service(backend=backend, base_url=base_url, policy=policy, frontier=frontier,
                             judge=judge, tracer=make_tracer(trace), benchmark_caps=benchmark_caps,
                             frontier_per_minute=frontier_per_minute,
-                            frontier_per_day=frontier_per_day, pii_guard=pii_guard)
+                            frontier_per_day=frontier_per_day, pii_guard=pii_guard,
+                            domain_gate=domain_gate)
     print("  " + "  ·  ".join(f"{k}: {v}" for k, v in service.describe().items()))
     uvicorn.run(create_app(service, max_threads=max_threads), host=host, port=port)
     return 0

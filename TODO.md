@@ -126,12 +126,11 @@ account, keys or decision).
   text escalates** (highest score 0.12 and 0.32, threshold 0.39). Fix queued in §2. PII was trained and tested on synthetic spans. Find a permissively
   licensed PII set with real-world formats (names, IDs, addresses from several regions) and measure recall and
   precision. *Data.*
-- [ ] **Serve the out-of-domain gate.** *Measured, not wired in* (`runs/ood__detector.json`): the input check flags
-  98–100% of far out-of-domain tickets for intent, urgency and drafting at 2–9% in-domain cost, but finds no
-  errors under subtle shift, where confidence routing is the better signal. Decide each flagged task's action —
-  intent has no right Banking77 answer for most such tickets (reply out of scope), PII transferred and should
-  stay local, urgency and drafting could go to GPT-4o-mini — and first measure GPT-4o-mini on the 300 tickets
-  against the same labels (~$0.20) so a frontier route is shown to help. *API* + *you*.
+- [x] **Serve the out-of-domain gate.** Done: manifest v9. Intent, urgency and drafting tickets unlike their
+  training data go straight to GPT-4o-mini; PII always stays local. Rebuilt at start-up from pinned splits and
+  refused if a threshold moves. On the 300 out-of-domain tickets it lifts intent from 0.63 / 0.26 to 0.80 / 0.66,
+  urgency from 0.29 / 0.19 to 0.53 / 0.43 and drafting from about 3 to about 4.5 (GPT-4o grades); in-distribution
+  cost 2–8% of pairs. Not yet exercised against the live frontier under load.
 - [ ] **A judge that tracks GPT-4o on any generator.** *Now more urgent:* on out-of-domain tickets the judge's
   Spearman with GPT-4o is −0.30 and −0.19 (`runs/ood.json`). The distilled judge tracks GPT-4o on adapter-like
   replies (Spearman 0.74) but not on another generator's (0.33). Grade a mixed-generator set with GPT-4o,

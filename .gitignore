@@ -56,3 +56,7 @@ demo/_static/
 # Out-of-domain evaluation sources (ABCD, CFPB mini): re-downloadable at the revisions and sha256s
 # recorded in runs/ood__*.json.
 data/ood/
+
+# Raw console output from GPU and local sessions: every result in it is already in a structured run file, and
+# the logs are large. Logs committed before this rule stay tracked as the record of those sessions.
+runs/logs/**/*.log

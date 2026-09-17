@@ -1,7 +1,7 @@
 {
-  "version": 9,
-  "note": "Out-of-domain gate: tickets unlike a task's training data go to GPT-4o-mini for intent, urgency and drafting; PII always local (runs/ood__detector.json, runs/ood__frontier.json)",
-  "pins": null,
+  "version": 8,
+  "note": "Urgency served by TF-IDF + logistic regression: golden macro F1 0.5400 against the adapter's 0.4212, 4.1 sd above its three-seed mean; never escalated on confidence",
+  "pins": "manifests/candidates/urgency-tfidf.json",
   "components": {
     "base_model": {
       "repo": "Qwen/Qwen2.5-1.5B-Instruct",
@@ -72,11 +72,6 @@
         "bytes": 1019,
         "sha256": "79b6da065af6948cac7947b2cf0a9ed91bc9420874fe47eff7aa9d9b160f59f9"
       }
-    },
-    "domain_gate": {
-      "file": "manifests/domain_gate.json",
-      "bytes": 1761,
-      "sha256": "615be6f10ab8a1084fddfcdd358a466282b2bad846ae1182553c7e29b6fc1ce9"
     }
   },
   "eval_splits": {
@@ -165,12 +160,12 @@
       "sha256": "8153037b3d6daf2120571d1ff1191e2f82a9dd8b241555157a3444fb9f7b4682"
     }
   },
-  "promoted_over": 8,
+  "promoted_over": 7,
   "diff_from_previous": {
     "changed": {
-      "components.domain_gate": {
-        "from": null,
-        "to": "615be6f10ab8a1084fddfcdd358a466282b2bad846ae1182553c7e29b6fc1ce9"
+      "components.adapters.urgency": {
+        "from": "53d1006e1c4cc863ab1d5db56cb5049938c14888",
+        "to": "0aa15ca8b4f63b21f6b092dbb71523e89a60537e691e16664b43538a22449e9e"
       }
     },
     "eval_splits_moved": []
