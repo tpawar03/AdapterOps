@@ -1,0 +1,137 @@
+{
+  "name": "a10-v8-variance-served",
+  "gated_metric": {
+    "intent": "micro_accuracy",
+    "urgency": "macro_f1",
+    "pii": "span_f1_strict",
+    "drafting": "judge_score_mean"
+  },
+  "per_split": {
+    "intent": {
+      "random": {
+        "n": 770,
+        "micro_accuracy": 0.9273,
+        "macro_f1": 0.9263
+      },
+      "hard": {
+        "n": 57,
+        "micro_accuracy": 0.0,
+        "macro_f1": 0.0
+      }
+    },
+    "urgency": {
+      "random": {
+        "n": 300,
+        "micro_accuracy": 0.47,
+        "macro_f1": 0.4174
+      },
+      "hard": {
+        "n": 150,
+        "micro_accuracy": 0.0133,
+        "macro_f1": 0.0113
+      }
+    },
+    "pii": {
+      "random": {
+        "n": 300,
+        "span_f1_strict": 0.9421,
+        "span_f1_grouped": 0.9823,
+        "docs_fully_masked": 0.87,
+        "gold_spans_partly_unmasked": 0.0238,
+        "gold_spans_wholly_unmasked": 0.0113
+      },
+      "hard": {
+        "n": 150,
+        "span_f1_strict": 0.871,
+        "span_f1_grouped": 0.9752,
+        "docs_fully_masked": 0.6133,
+        "gold_spans_partly_unmasked": 0.0441,
+        "gold_spans_wholly_unmasked": 0.0109
+      }
+    },
+    "drafting": {
+      "random": {
+        "n": 300,
+        "judge_score_mean": 4.276,
+        "judge": "distilled judge, checkpoints/judge (F14)"
+      },
+      "hard": {
+        "n": 113,
+        "judge_score_mean": 3.7279,
+        "judge": "distilled judge, checkpoints/judge (F14)"
+      }
+    }
+  },
+  "wall_seconds": 75.7,
+  "fallback": {
+    "requests": 2140,
+    "errors": 0,
+    "fallback_rate": 0.0,
+    "definition": "share of requests local serving failed to answer (PRD \u00a711)"
+  },
+  "comparison": {
+    "per_task": {
+      "intent": {
+        "gated_metric": "micro_accuracy",
+        "drop": 0.0013,
+        "random": {
+          "candidate": 0.9273,
+          "baseline": 0.9286,
+          "drop": 0.0013
+        },
+        "hard": {
+          "candidate": 0.0,
+          "baseline": 0.0,
+          "drop": 0.0
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      },
+      "urgency": {
+        "gated_metric": "macro_f1",
+        "drop": -0.0078,
+        "random": {
+          "candidate": 0.4174,
+          "baseline": 0.4096,
+          "drop": -0.0078
+        },
+        "hard": {
+          "candidate": 0.0113,
+          "baseline": 0.0068,
+          "drop": -0.0045
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      },
+      "pii": {
+        "gated_metric": "span_f1_strict",
+        "drop": 0.0041,
+        "random": {
+          "candidate": 0.9421,
+          "baseline": 0.9462,
+          "drop": 0.0041
+        },
+        "hard": {
+          "candidate": 0.871,
+          "baseline": 0.852,
+          "drop": -0.019
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      },
+      "drafting": {
+        "gated_metric": "judge_score_mean",
+        "drop": null,
+        "random": {
+          "candidate": null,
+          "baseline": 4.2709,
+          "drop": null
+        },
+        "hard": {
+          "candidate": null,
+          "baseline": 3.6918,
+          "drop": null
+        },
+        "hard_gate": "report-only until F33 derives a threshold from two baseline runs"
+      }
+    }
+  },
+  "predictions_file": "runs/regression__a10-v8-variance-served__predictions.parquet"
+}

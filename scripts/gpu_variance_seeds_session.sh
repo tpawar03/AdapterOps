@@ -13,8 +13,10 @@
 # Keep UV_NO_SYNC=1 set: a bare `uv run` re-syncs the lockfile and breaks the pinned torch.
 #     source .venv/bin/activate && bash scripts/gpu_variance_seeds_session.sh
 #
-# SEEDS="11" trains one extra run per task (~3.5 h); the default two give a three-value estimate with a
-# standard deviation (~7 h). TASKS can be narrowed. SKIP_TRAIN=1 resumes after a failed serving step.
+# SEEDS="11" trains one extra run per task; the default two give a three-value estimate with a standard
+# deviation. TASKS narrows which adapters the pin sets swap; TRAIN_TASKS narrows what is retrained, so a
+# task trained at the wrong configuration can be redone without repeating the others. SKIP_TRAIN=1
+# resumes after a failed serving step.
 #
 # Afterwards, on the laptop (drafting's metric needs the judge, which lives here):
 #     uv run adapterops judge-score --run runs/regression__$NAME-served.json
@@ -35,7 +37,19 @@ VLLM_VERSION="${VLLM_VERSION:-0.29.0}"
 NAME="${NAME:-a10-v8-variance}"
 VLLM_PORT="${PORT:-8000}"
 SEEDS="${SEEDS:-11 22}"
-TASKS="${TASKS:-intent urgency pii drafting}"
+TASKS="${TASKS:-intent urgency pii drafting}"        # which adapters the pin sets swap
+TRAIN_TASKS="${TRAIN_TASKS:-$TASKS}"                 # which ones this session retrains
+
+# A variance run must repeat the configuration that produced the served adapter, not the task
+# defaults. Only PII's differ: it is served from the realistic-format split (17,910 rows, 3
+# epochs, runs/pii-realistic__train.json), while TASK_CONFIGS still holds the pre-D50 3,000-row
+# default. Intent, urgency and drafting are served at their defaults.
+train_args() {
+  case "$1" in
+    pii) echo "--train-split train_realistic --subsample 100000 --epochs 3" ;;
+    *) echo "" ;;
+  esac
+}
 mkdir -p runs/logs _adapters
 
 installed=$(python -c "import vllm; print(vllm.__version__)" 2>/dev/null || echo none)
@@ -102,14 +116,15 @@ if [[ -n "${SKIP_TRAIN:-}" ]]; then
   echo "  skipped: using the checkpoints already in checkpoints/"
 else
   for seed in $SEEDS; do
-    for task in $TASKS; do
+    for task in $TRAIN_TASKS; do
       if [[ -f "checkpoints/$task-seed$seed/adapter_model.safetensors" ]]; then
         echo "  $task seed $seed already trained"
         continue
       fi
       start=$SECONDS
+      # shellcheck disable=SC2046  # train_args is a deliberate word split
       python -m adapterops.train.cli_train --task "$task" --seed "$seed" --variant "seed$seed" \
-        2>&1 | tee "runs/logs/train-$task-seed$seed.log"
+        $(train_args "$task") 2>&1 | tee "runs/logs/train-$task-seed$seed.log"
       test -f "checkpoints/$task-seed$seed/adapter_model.safetensors" || { echo "no adapter for $task seed $seed" >&2; exit 1; }
       echo "---- $task seed $seed trained in $(( (SECONDS - start) / 60 )) min"
     done

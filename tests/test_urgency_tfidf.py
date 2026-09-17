@@ -23,5 +23,13 @@ def test_the_rule_needs_both_conditions():
     assert worse_on_hard["serve_tfidf_for_urgency"] is False
 
 
-def test_the_gate_threshold_comes_from_the_committed_gate():
-    assert ut.threshold() == 0.0381
+def test_the_rule_keeps_the_threshold_it_was_written_against():
+    # The gate widened to 0.1224 on three-seed evidence after the rule was scored; the rule must not follow it.
+    assert ut.RULE_THRESHOLD == 0.0381
+    assert ut.threshold() == 0.1224
+
+
+def test_seed_evidence_places_tfidf_against_the_adapters_retrain_distribution():
+    ev = ut.seed_evidence(0.54)
+    assert ev["best_seed"] == 0.4582 and ev["tfidf_minus_best_seed"] == 0.0818
+    assert ev["tfidf_stdevs_above_mean"] > 3

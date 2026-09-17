@@ -94,3 +94,12 @@ def test_an_unmeasured_ceiling_says_so():
     ctx = {**cards.load(), "ceiling": None, "ceiling_drafting": None}
     assert "not measured" in cards.render("pii", ctx)
     assert "not measured" in cards.render("drafting", ctx)
+
+
+def test_a_retired_adapter_card_says_what_replaced_it_and_names_its_last_revision():
+    ctx = cards.load()
+    pin = ctx["pins"]["urgency"]
+    assert pin["kind"] == "sklearn"
+    card = cards.render("urgency", ctx)
+    assert "No longer served" in card and pin["sha256"][:16] in card
+    assert pin["replaces"]["revision"] in card and "last revision the project served" in card

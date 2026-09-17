@@ -73,13 +73,13 @@
     "base_bytes": 3087467144,
     "adapter_bytes": {
       "intent": 73911112,
-      "urgency": 73911112,
+      "urgency": 1303503,
       "pii": 73911112,
       "drafting": 73911112
     },
-    "one_base_plus_adapters_bytes": 3383111592,
+    "one_base_plus_adapters_bytes": 3310503983,
     "full_copy_per_task_bytes": 12349868576,
-    "ratio": 3.65,
+    "ratio": 3.73,
     "note": "safetensors file sizes at the pinned revisions; not GPU memory"
   },
   "not_measured": {

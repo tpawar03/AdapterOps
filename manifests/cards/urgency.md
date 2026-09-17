@@ -18,7 +18,9 @@ Classifies a support ticket's urgency as low, medium or high.
 
 Part of [AdapterOps](https://github.com/tpawar03/AdapterOps): four LoRA adapters over one Qwen2.5-1.5B base, served together with vLLM multi-LoRA. Portfolio project — no real users or customer data.
 
-**The scores below describe revision `53d1006e1c4cc863ab1d5db56cb5049938c14888`** (adapter weights sha256 `c821ef1dd3ccedaa…`), the revision the project serves. Load that revision rather than `main`.
+**No longer served.** Since a manifest promotion this task is answered by a TF-IDF + logistic regression model (`models/urgency-tfidf/model.joblib`, sha256 `0aa15ca8b4f63b21…`), which beats this adapter on the golden set, on items mined from GPT-4o-mini's failures, and across three training seeds — see `runs/urgency__tfidf.json` in [the repository](https://github.com/tpawar03/AdapterOps).
+
+**The scores below describe revision `53d1006e1c4cc863ab1d5db56cb5049938c14888`** (adapter weights sha256 `c821ef1dd3ccedaa…`), the last revision the project served. Load that revision rather than `main`.
 
 ## Prompt
 

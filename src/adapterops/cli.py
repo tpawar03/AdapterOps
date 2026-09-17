@@ -123,10 +123,10 @@ def _cmd_pii_realistic_split(args: argparse.Namespace) -> int:
     return split_main(force=args.force)
 
 
-def _cmd_urgency_tfidf(_: argparse.Namespace) -> int:
+def _cmd_urgency_tfidf(args: argparse.Namespace) -> int:
     from adapterops.eval.urgency_tfidf import main as tfidf_main
 
-    return tfidf_main()
+    return tfidf_main(save=args.save)
 
 
 def _cmd_hard_shared(_: argparse.Namespace) -> int:
@@ -247,7 +247,7 @@ def _cmd_regress(args: argparse.Namespace) -> int:
     from adapterops.eval.regression import main as regress_main
 
     return regress_main(base_url=args.base_url, name=args.name, baseline=args.baseline,
-                        save_predictions=args.save_predictions)
+                        save_predictions=args.save_predictions, pins=args.pins)
 
 
 def _cmd_hard_cases(args: argparse.Namespace) -> int:
@@ -579,6 +579,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_ut = sub.add_parser("urgency-tfidf",
                           help="TF-IDF urgency against the served adapter, under a frozen rule")
+    p_ut.add_argument("--save", action="store_true",
+                      help="write models/urgency-tfidf/model.joblib and score the reloaded file")
     p_ut.set_defaults(func=_cmd_urgency_tfidf)
 
     p_pr = sub.add_parser("pii-realistic",
@@ -605,6 +607,8 @@ def build_parser() -> argparse.ArgumentParser:
                       help="a previous regression run to compare against")
     p_rg.add_argument("--save-predictions", action="store_true",
                       help="keep every prediction, so drafting can be judged after the GPU is gone")
+    p_rg.add_argument("--pins", default=None,
+                      help="the pin set vLLM serves; tasks it pins to a classical model are answered locally")
     p_rg.set_defaults(func=_cmd_regress)
 
     p_hc = sub.add_parser("hard-cases",

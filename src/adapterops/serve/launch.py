@@ -58,6 +58,8 @@ def materialise(pins: Path | None = None,
     for task, entry in load_components(pins).items():
         if task == "base_model" or entry is None or (tasks and task not in tasks):
             continue
+        if entry.get("kind") == "sklearn":
+            continue  # not a LoRA adapter: the request path and regress answer it locally
         if entry.get("path"):
             # A locally trained adapter — a training-variance rerun — is served from disk. It was
             # never published, and naming it by path in a pin set is how it gets regression-

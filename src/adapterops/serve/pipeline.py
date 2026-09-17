@@ -230,14 +230,20 @@ class TransformersBackend:
             tok = AutoTokenizer.from_pretrained(base["repo"], revision=base["revision"])
             model = AutoModelForCausalLM.from_pretrained(base["repo"], revision=base["revision"],
                                                          dtype=dtype)
-            for i, task in enumerate(TASKS):
+            from adapterops.serve.classical import is_classical
+
+            loaded = False
+            for task in TASKS:
                 entry = self.components[task]
+                if is_classical(entry):
+                    continue  # answered by ClassicalBackend, not an adapter
                 # A local checkpoint (a retrained candidate, never published) loads from disk.
                 path = entry.get("path") or snapshot_download(
                     entry["repo"], revision=entry["revision"],
                     allow_patterns=["adapter_model.safetensors", "adapter_config.json"])
-                if i == 0:
+                if not loaded:
                     model = PeftModel.from_pretrained(model, path, adapter_name=task)
+                    loaded = True
                 else:
                     model.load_adapter(path, adapter_name=task)
             self._model = (tok, model.to(device).eval(), device)
@@ -681,6 +687,9 @@ def build_service(backend: str = "vllm", base_url: str = "http://localhost:8000"
         local = (VLLMBackend(base_url) if backend == "vllm"
                  else TransformersBackend(adapter_components(manifest),
                                           benchmark_caps=benchmark_caps))
+        from adapterops.serve.classical import with_classical_backend
+
+        local = with_classical_backend(local, adapter_components(manifest))
     front = None
     if frontier:
         try:

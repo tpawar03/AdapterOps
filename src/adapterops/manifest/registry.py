@@ -22,6 +22,7 @@ before believing any score attributed to a pinned adapter.
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from pathlib import Path
 
@@ -88,6 +89,21 @@ def verify(pins: Path | None = None) -> tuple[int, dict]:
     pinned = json.loads((pins or MANIFEST).read_text())["components"]
     findings, worst = {}, "ok"
     for name, entry in pinned.items():
+        if entry.get("kind") == "sklearn":
+            # Pinned by file, not by Hub revision: the check is that the file still hashes to the pin.
+            path = Path(entry["path"])
+            path = path if path.is_absolute() else MANIFEST.parent.parent / path
+            if not path.exists():
+                findings[name] = {"state": "revision_gone", "detail": f"{entry['path']} missing"}
+                worst = "revision_gone"
+                continue
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            state = "ok" if digest == entry["sha256"] else "weights_rewritten"
+            if state != "ok":
+                worst = state
+            findings[name] = {"state": state, "pinned_revision": "file", "head_revision": "file",
+                              "weight_sha256": entry["sha256"][:12]}
+            continue
         try:
             at_pin = _resolve(entry["repo"], entry["revision"])
         except Exception as exc:                      # noqa: BLE001 - reported, not raised

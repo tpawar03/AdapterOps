@@ -249,11 +249,16 @@ def fallback_summary(stats: dict) -> dict:
 
 
 def main(base_url: str, name: str, baseline: str | None = None,
-         save_predictions: bool = False) -> int:
+         save_predictions: bool = False, pins: str | None = None) -> int:
     import time
 
+    from adapterops.serve.classical import with_classical_predictor
+    from adapterops.serve.launch import load_components
+
     rows: list[dict] | None = [] if save_predictions else None
-    predictor = http_predictor(base_url)
+    # Tasks pinned to a classical model are answered here, not by vLLM, which never loads them.
+    predictor = with_classical_predictor(http_predictor(base_url),
+                                         load_components(Path(pins) if pins else None))
     started = time.perf_counter()
     result = {"name": name, **run(predictor, collect=rows)}
     # PRD §7 budgets a regression run at < 25 min; the Phase 4 runs recorded no timing, so the

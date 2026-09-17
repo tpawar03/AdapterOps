@@ -6,7 +6,7 @@
     "classifier": "logistic regression, balanced class weights",
     "seed": 20260909,
     "training_rows": 9879,
-    "fit_seconds": 2.4
+    "fit_seconds": 1.0
   },
   "cross_validation_on_training_split": {
     "folds": 5,
@@ -19,13 +19,13 @@
       "n": 300,
       "micro_accuracy": 0.54,
       "macro_f1": 0.54,
-      "ms_per_text": 0.057
+      "ms_per_text": 0.026
     },
     "hard": {
       "n": 150,
       "micro_accuracy": 0.48,
       "macro_f1": 0.4496,
-      "ms_per_text": 0.074
+      "ms_per_text": 0.028
     }
   },
   "adapter_same_session": {
@@ -39,6 +39,12 @@
     "adapter": 0.3332,
     "source": "evals/hard/shared_failures.parquet, urgency rows"
   },
+  "saved_model": {
+    "file": "models/urgency-tfidf/model.joblib",
+    "sha256": "0aa15ca8b4f63b21f6b092dbb71523e89a60537e691e16664b43538a22449e9e",
+    "bytes": 1303503,
+    "scored_after_reload": true
+  },
   "decision": {
     "gate_threshold": 0.0381,
     "golden_gain": 0.1188,
@@ -46,5 +52,19 @@
     "beats_adapter_on_golden_by_more_than_the_gate": true,
     "not_worse_on_hard_than_the_gate_allows": true,
     "serve_tfidf_for_urgency": true
+  },
+  "live_gate_threshold": 0.1224,
+  "adapter_seed_evidence": {
+    "adapter_golden_macro_f1_by_seed": [
+      0.4174,
+      0.4582,
+      0.4568
+    ],
+    "mean": 0.4441,
+    "stdev": 0.0232,
+    "best_seed": 0.4582,
+    "tfidf": 0.54,
+    "tfidf_minus_best_seed": 0.0818,
+    "tfidf_stdevs_above_mean": 4.1
   }
 }

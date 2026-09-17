@@ -200,6 +200,10 @@ def eval_rows(task: str, ctx: dict) -> list[str]:
 
 def render(task: str, ctx: dict) -> str:
     pin = ctx["pins"][task]
+    # A task served by a classical model since a promotion keeps its adapter repo and card; the card then
+    # describes the last adapter revision served and says what replaced it.
+    retired = pin.get("kind") == "sklearn"
+    adapter_pin = pin["replaces"] if retired else pin
     dataset, licence = DATASETS[task]
     lat = ctx["serving"]["per_adapter"][task]
     cfg = TrainConfig()
@@ -216,9 +220,14 @@ def render(task: str, ctx: dict) -> str:
         WHAT[task], "",
         (f"Part of [AdapterOps]({REPO_URL}): four LoRA adapters over one Qwen2.5-1.5B base, served "
          "together with vLLM multi-LoRA. Portfolio project — no real users or customer data."), "",
-        (f"**The scores below describe revision `{pin['revision']}`** (adapter weights sha256 "
-         f"`{pin['weight_sha256'][:16]}…`), the revision the project serves. Load that revision "
-         "rather than `main`."), "",
+        *([(f"**No longer served.** Since a manifest promotion this task is answered by a TF-IDF + logistic "
+            f"regression model (`{pin['path']}`, sha256 `{pin['sha256'][:16]}…`), which beats this adapter "
+            "on the golden set, on items mined from GPT-4o-mini's failures, and across three training seeds "
+            f"— see `runs/urgency__tfidf.json` in [the repository]({REPO_URL})."), ""] if retired else []),
+        (f"**The scores below describe revision `{adapter_pin['revision']}`** (adapter weights sha256 "
+         f"`{adapter_pin['weight_sha256'][:16]}…`), the "
+         + ("last revision the project served." if retired else "revision the project serves.")
+         + " Load that revision rather than `main`."), "",
         "## Prompt", "",
         "```", PROMPTS[task].rstrip("\n"), "```", "",
         (f"Raw text, no chat template. Greedy decoding, at most {MAX_TOKENS[task]} new tokens. "
@@ -231,7 +240,7 @@ def render(task: str, ctx: dict) -> str:
         (f"Latency with all four adapters served at once on one A10 (vLLM, concurrency "
          f"{ctx['serving']['concurrency']}): P50 {lat['p50_ms']:,.0f} ms · P95 "
          f"{lat['p95_ms']:,.0f} ms"
-         + (", measured with the previous revision." if pin.get("replaces") else ".")), "",
+         + (", measured with the previous revision." if pin.get("replaces") and not retired else ".")), "",
         "## Caveats", "",
         *(f"- {c}" for c in caveats(task, ctx)), "",
         "## Training", "",
@@ -261,6 +270,7 @@ def main(argv: list[str] | None = None) -> int:
         api = HfApi()
         for task in TASKS:
             pin = ctx["pins"][task]
+            pin = pin["replaces"] if pin.get("kind") == "sklearn" else pin  # the adapter repo keeps its card
             info = api.upload_file(
                 path_or_fileobj=str(OUT_DIR / f"{task}.md"), path_in_repo="README.md",
                 repo_id=pin["repo"], repo_type="model",

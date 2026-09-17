@@ -22,82 +22,98 @@
           "threshold": 0.011688,
           "provisional": false,
           "note": "enforceable",
-          "training_source": "runs/intent__adapter.json \u2014 2 independent training runs"
+          "training_source": "runs/intent__adapter.json \u2014 2 independent training runs",
+          "training_runs": null
         },
         "hard": {
           "inference_spread": 0.0,
-          "training_spread": null,
-          "floor": 0.0,
-          "bound_by": null,
-          "threshold": null,
-          "provisional": null,
-          "note": "no non-zero floor measured \u2014 stays report-only rather than gating on a zero threshold"
+          "training_spread": 0.2807,
+          "floor": 0.2807,
+          "bound_by": "training",
+          "threshold": 0.8421,
+          "provisional": false,
+          "note": "enforceable",
+          "training_source": "runs/training_variance.json \u2014 3 training runs of one configuration, regression-scored in one session",
+          "training_runs": 3,
+          "training_stdev": 0.157254
         }
       },
       "urgency": {
         "random": {
           "inference_spread": 0.0127,
-          "training_spread": 0.0061,
-          "floor": 0.0127,
-          "bound_by": "inference",
-          "threshold": 0.0381,
+          "training_spread": 0.0408,
+          "floor": 0.0408,
+          "bound_by": "training",
+          "threshold": 0.1224,
           "provisional": false,
           "note": "enforceable",
-          "training_source": "runs/training_variance.json \u2014 the served adapter and a second training run, regression-scored in one session"
+          "training_source": "runs/training_variance.json \u2014 3 training runs of one configuration, regression-scored in one session",
+          "training_runs": 3,
+          "training_stdev": 0.023162
         },
         "hard": {
           "inference_spread": 0.0,
-          "training_spread": 0.0747,
-          "floor": 0.0747,
+          "training_spread": 0.1916,
+          "floor": 0.1916,
           "bound_by": "training",
-          "threshold": 0.2241,
+          "threshold": 0.5748,
           "provisional": false,
           "note": "enforceable",
-          "training_source": "runs/training_variance.json \u2014 the served adapter and a second training run, regression-scored in one session"
+          "training_source": "runs/training_variance.json \u2014 3 training runs of one configuration, regression-scored in one session",
+          "training_runs": 3,
+          "training_stdev": 0.102951
         }
       },
       "pii": {
         "random": {
           "inference_spread": 0.0009,
-          "training_spread": 0.0027,
-          "floor": 0.0027,
+          "training_spread": 0.0023,
+          "floor": 0.0023,
           "bound_by": "training",
-          "threshold": 0.0081,
+          "threshold": 0.0069,
           "provisional": false,
           "note": "enforceable",
-          "training_source": "runs/training_variance.json \u2014 the served adapter and a second training run, regression-scored in one session"
+          "training_source": "runs/training_variance.json \u2014 3 training runs of one configuration, regression-scored in one session",
+          "training_runs": 3,
+          "training_stdev": 0.001159
         },
         "hard": {
           "inference_spread": 0.0004,
-          "training_spread": 0.0148,
-          "floor": 0.0148,
+          "training_spread": 0.018,
+          "floor": 0.018,
           "bound_by": "training",
-          "threshold": 0.0444,
+          "threshold": 0.054,
           "provisional": false,
           "note": "enforceable",
-          "training_source": "runs/training_variance.json \u2014 the served adapter and a second training run, regression-scored in one session"
+          "training_source": "runs/training_variance.json \u2014 3 training runs of one configuration, regression-scored in one session",
+          "training_runs": 3,
+          "training_stdev": 0.009469
         }
       },
       "drafting": {
         "random": {
           "inference_spread": 0.0135,
-          "training_spread": 0.0225,
-          "floor": 0.0225,
+          "training_spread": 0.0301,
+          "floor": 0.0301,
           "bound_by": "training",
-          "threshold": 0.0675,
+          "threshold": 0.0903,
           "provisional": false,
           "note": "enforceable",
-          "training_source": "runs/training_variance.json \u2014 the served adapter and a second training run, regression-scored in one session"
+          "training_source": "runs/training_variance.json \u2014 3 training runs of one configuration, regression-scored in one session",
+          "training_runs": 3,
+          "training_stdev": 0.01506
         },
         "hard": {
           "inference_spread": 0.0372,
-          "training_spread": 0.126,
-          "floor": 0.126,
+          "training_spread": 0.2615,
+          "floor": 0.2615,
           "bound_by": "training",
-          "threshold": 0.378,
+          "threshold": 0.7845,
           "provisional": false,
           "note": "enforceable",
-          "training_source": "runs/training_variance.json \u2014 the served adapter and a second training run, regression-scored in one session"
+          "training_source": "runs/training_variance.json \u2014 3 training runs of one configuration, regression-scored in one session",
+          "training_runs": 3,
+          "training_stdev": 0.138018
         }
       }
     }
@@ -106,9 +122,9 @@
     "state": "enforcing",
     "thresholds": {
       "intent": 0.011688,
-      "urgency": 0.0381,
-      "pii": 0.0081,
-      "drafting": 0.0675
+      "urgency": 0.1224,
+      "pii": 0.0069,
+      "drafting": 0.0903
     },
     "multiplier": 3.0,
     "why": "D37 \u2014 floors take the larger of inference and training spread; thresholds resting on inference alone are provisional and not enforced"

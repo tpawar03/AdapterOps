@@ -11,9 +11,9 @@ Two runs of the unchanged v1 manifest. A threshold is 3× the larger of inferenc
 | task | gated metric | baseline run 1 | baseline run 2 | inference spread | training spread | threshold | gate |
 |---|---|---|---|---|---|---|---|
 | intent | micro_accuracy (n=770) | 0.9286 | 0.9299 | 0.0013 | 0.0039 | 0.0117 | **enforced** (training variance) |
-| urgency | macro_f1 (n=300) | 0.4096 | 0.4223 | 0.0127 | 0.0061 | 0.0381 | **enforced** (inference variance) |
-| pii | span_f1_strict (n=300) | 0.9462 | 0.9453 | 0.0009 | 0.0027 | 0.0081 | **enforced** (training variance) |
-| drafting | judge_score_mean (n=300) | 4.2709 | 4.2844 | 0.0135 | 0.0225 | 0.0675 | **enforced** (training variance) |
+| urgency | macro_f1 (n=300) | 0.4096 | 0.4223 | 0.0127 | 0.0408 | 0.1224 | **enforced** (training variance) |
+| pii | span_f1_strict (n=300) | 0.9462 | 0.9453 | 0.0009 | 0.0023 | 0.0069 | **enforced** (training variance) |
+| drafting | judge_score_mean (n=300) | 4.2709 | 4.2844 | 0.0135 | 0.0301 | 0.0903 | **enforced** (training variance) |
 
 **Frontier reference, not a gate.** GPT-4o-mini with the escalation arm's prompts, on the same golden items. Drafting is compared on GPT-4o grades, which also grade GPT-4o-mini.
 
@@ -34,10 +34,10 @@ Mined from v1's failures and adjudicated for label noise. **Scores near 0 are ex
 
 | task | gated metric | baseline run 1 | baseline run 2 | inference spread | training spread | threshold | gate |
 |---|---|---|---|---|---|---|---|
-| intent | micro_accuracy (n=57) | 0.0000 | 0.0000 | 0.0000 | — | — | report-only — floor 0, no threshold |
-| urgency | macro_f1 (n=150) | 0.0068 | 0.0068 | 0.0000 | 0.0747 | 0.2241 | report-only — the hard split never gates (M11) |
-| pii | span_f1_strict (n=150) | 0.8520 | 0.8524 | 0.0004 | 0.0148 | 0.0444 | report-only — the hard split never gates (M11) |
-| drafting | judge_score_mean (n=113) | 3.6918 | 3.7290 | 0.0372 | 0.1260 | 0.3780 | report-only — the hard split never gates (M11) |
+| intent | micro_accuracy (n=57) | 0.0000 | 0.0000 | 0.0000 | 0.2807 | 0.8421 | report-only — the hard split never gates (M11) |
+| urgency | macro_f1 (n=150) | 0.0068 | 0.0068 | 0.0000 | 0.1916 | 0.5748 | report-only — the hard split never gates (M11) |
+| pii | span_f1_strict (n=150) | 0.8520 | 0.8524 | 0.0004 | 0.0180 | 0.0540 | report-only — the hard split never gates (M11) |
+| drafting | judge_score_mean (n=113) | 3.6918 | 3.7290 | 0.0372 | 0.2615 | 0.7845 | report-only — the hard split never gates (M11) |
 
 ## 3 · Frontier-call rate
 
@@ -103,7 +103,7 @@ The adapter's own confidence is the only policy that pays. The learned router is
 | local A10 at M1 throughput (23.6 rps), $0.75/h assumed | $0.0088 |
 | **break-even sustained load** | **3.64 req/s** (13,112 req/h) |
 | ratio, only if the GPU is never idle | 6.5× |
-| weights on disk: one base + 4 adapters vs a full copy per task | 3.38 GB vs 12.35 GB |
+| weights on disk: one base + 4 adapters vs a full copy per task | 3.31 GB vs 12.35 GB |
 | judging 1K drafting replies: GPT-4o, token-derived over 2,800 grades | $1.30 |
 | judging 1K drafting replies: distilled judge, Darwin arm64 CPU, no API | 59 s |
 
@@ -172,7 +172,7 @@ A shuffled-label intent adapter (F21) was served *as* `intent` and scored agains
 |---|---|
 | detect | intent micro-accuracy 0.0052 vs baseline 0.9286 — drop **0.9234** against an enforced threshold of 0.0117 |
 | block → force | promotion refused for: `intent: regression 0.9234 exceeds threshold 0.0117` — forced as v3 with the override recorded in the manifest |
-| rollback | current manifest is v7, rolled back from v— |
+| rollback | current manifest is v8, rolled back from v— |
 
 Manifest history:
 
@@ -184,6 +184,7 @@ Manifest history:
 | v4 | D46: pin the judge-labelled router every routing result describes, and the distilled judge; serving now reads this manifest (M6) | enforcing | — |
 | v5 | Gate enforces all four tasks from measured training variance (D49): intent 0.0117, urgency 0.0381, PII 0.0081, drafting 0.0675. No model, router, judge or split moves, so the component diff is empty; the gate is the change. | enforcing | — |
 | v6 | PII adapter retrained with PII-free sentences and empty answers (D50): Hub revision e0bde68f, weights sha256 fec1371a, byte-identical to the checkpoint regression-scored beside v5's adapter in one session (runs/regression__a10-v5-pii-negatives.json). PII-free texts with a reported span 928 -> 5 of 928, 491 -> 0 held out; strict span F1 0.9470 -> 0.9442, inside the 0.0081 gate. | enforcing | — |
+| v7 | PII retrained on realistic formats (Nemotron-PII added): TAB leaks 14.31% -> 8.32% (CI -0.0897 to -0.0323), golden strict F1 unchanged at 0.9421 | enforcing | — |
 
 ### M11 — does the hard split catch what the random set misses?
 
@@ -191,9 +192,9 @@ All four under-trained checkpoints (15% of training steps) scored on both splits
 
 | task | random drop | random threshold | hard drop | hard threshold |
 |---|---|---|---|---|
-| intent | **0.2026** | 0.0117 (**enforced** (training variance)) | **-0.1579** | — (report-only — floor 0, no threshold) |
-| urgency | **0.0874** | 0.0381 (**enforced** (inference variance)) | **-0.0812** | 0.2241 (**enforced** (training variance)) |
-| pii | **0.2245** | 0.0081 (**enforced** (training variance)) | **0.2154** | 0.0444 (**enforced** (training variance)) |
-| drafting | **0.1508** | 0.0675 (**enforced** (training variance)) | **-0.2700** | 0.3780 (**enforced** (training variance)) |
+| intent | **0.2026** | 0.0117 (**enforced** (training variance)) | **-0.1579** | 0.8421 (**enforced** (training variance)) |
+| urgency | **0.0874** | 0.1224 (**enforced** (training variance)) | **-0.0812** | 0.5748 (**enforced** (training variance)) |
+| pii | **0.2245** | 0.0069 (**enforced** (training variance)) | **0.2154** | 0.0540 (**enforced** (training variance)) |
+| drafting | **0.1508** | 0.0903 (**enforced** (training variance)) | **-0.2700** | 0.7845 (**enforced** (training variance)) |
 
 **Answer: no.** The random set flags every checkpoint; the hard split flags only PII and *improves* on the others. The hard split was mined from the v1 adapter's own failures, so v1 scores 0.0000 on intent's hard cases and 0.0068 on urgency's by construction. Any model whose errors differ from v1's scores higher there. A split mined from one model's failures measures difference from that model, not difficulty — it stays report-only.

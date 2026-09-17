@@ -1,7 +1,7 @@
 {
-  "version": 8,
-  "note": "Urgency served by TF-IDF + logistic regression: golden macro F1 0.5400 against the adapter's 0.4212, 4.1 sd above its three-seed mean; never escalated on confidence",
-  "pins": "manifests/candidates/urgency-tfidf.json",
+  "version": 7,
+  "note": "PII retrained on realistic formats (Nemotron-PII added): TAB leaks 14.31% -> 8.32% (CI -0.0897 to -0.0323), golden strict F1 unchanged at 0.9421",
+  "pins": "manifests/candidates/pii-realistic.json",
   "components": {
     "base_model": {
       "repo": "Qwen/Qwen2.5-1.5B-Instruct",
@@ -19,15 +19,11 @@
         "last_modified": "2026-09-11 05:06:43+00:00"
       },
       "urgency": {
-        "kind": "sklearn",
-        "path": "models/urgency-tfidf/model.joblib",
-        "sha256": "0aa15ca8b4f63b21f6b092dbb71523e89a60537e691e16664b43538a22449e9e",
-        "replaces": {
-          "repo": "Tanny03/adapterops-urgency",
-          "revision": "53d1006e1c4cc863ab1d5db56cb5049938c14888",
-          "weight_sha256": "c821ef1dd3ccedaad2a47c9fbfd15468151331fde1da27a246a2f4557a84640d"
-        },
-        "note": "TF-IDF + logistic regression (runs/urgency__tfidf.json): golden macro F1 0.5400 against the adapter's 0.4212 in one session, and 4.1 sd above its three-seed mean. Served by serve/classical.py, never escalated on confidence."
+        "repo": "Tanny03/adapterops-urgency",
+        "revision": "53d1006e1c4cc863ab1d5db56cb5049938c14888",
+        "weight_file": "adapter_model.safetensors",
+        "weight_sha256": "c821ef1dd3ccedaad2a47c9fbfd15468151331fde1da27a246a2f4557a84640d",
+        "last_modified": "2026-09-11 17:22:46+00:00"
       },
       "pii": {
         "repo": "Tanny03/adapterops-pii",
@@ -35,11 +31,7 @@
         "weight_file": "adapter_model.safetensors",
         "weight_sha256": "66631c40fcc17994add175efbcba4fa3bf087e88371d91dc8f9e3efefe783432",
         "last_modified": "2026-09-16 06:56:02+00:00",
-        "replaces": {
-          "revision": "e0bde68fb34693d10611e6888eb50c78825c86c7",
-          "weight_sha256": "fec1371a12133f244042718c71c45d9866da35a11cca1e14f8bb5fd32d286551"
-        },
-        "note": "Retrained with Nemotron-PII's realistic formats added to D50's mix (TODO.md \u00a72), promoted in manifest v7. These weights are byte-identical to checkpoints/pii-realistic, the checkpoint regression-scored in runs/regression__a10-v7-pii-realistic.json, verified against the Hub LFS digest after upload."
+        "candidate_of": "Tanny03/adapterops-pii"
       },
       "drafting": {
         "repo": "Tanny03/adapterops-drafting",
@@ -115,9 +107,9 @@
     "state": "enforcing",
     "thresholds": {
       "intent": 0.011688,
-      "urgency": 0.1224,
-      "pii": 0.0069,
-      "drafting": 0.0903
+      "urgency": 0.0381,
+      "pii": 0.0081,
+      "drafting": 0.0675
     },
     "multiplier": 3.0,
     "why": "D37 \u2014 floors take the larger of inference and training spread; thresholds resting on inference alone are provisional and not enforced",
@@ -160,12 +152,12 @@
       "sha256": "8153037b3d6daf2120571d1ff1191e2f82a9dd8b241555157a3444fb9f7b4682"
     }
   },
-  "promoted_over": 7,
+  "promoted_over": 6,
   "diff_from_previous": {
     "changed": {
-      "components.adapters.urgency": {
-        "from": "53d1006e1c4cc863ab1d5db56cb5049938c14888",
-        "to": "0aa15ca8b4f63b21f6b092dbb71523e89a60537e691e16664b43538a22449e9e"
+      "components.adapters.pii": {
+        "from": "e0bde68fb34693d10611e6888eb50c78825c86c7",
+        "to": "5315b1dcd98663c2ce7292299cff2e511639480a"
       }
     },
     "eval_splits_moved": []

@@ -254,8 +254,9 @@ def blocking_reasons(new: dict, regression: dict | None,
             if drop is not None and limit is not None and drop > limit:
                 reasons.append(f"{task}: regression {drop:.4f} exceeds threshold {limit:.4f}")
         # The variance gate asks "did it drop more than noise"; this asks "does it still beat prompting".
-        # Urgency's threshold (0.0381) is wider than its margin over the prompted base (0.0134), so the
-        # first question alone would pass a release that lost the reason the adapter exists.
+        # Urgency's threshold (0.1224 on three-seed variance) is far wider than its margin over the prompted
+        # base (0.0134), so the first question alone passes an under-trained urgency checkpoint (drop 0.087);
+        # only this check blocks it.
         floors = prompted_floors()
         for task, result in (regression.get("per_task") or {}).items():
             candidate = (result.get("random") or {}).get("candidate")

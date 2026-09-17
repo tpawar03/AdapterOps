@@ -1,71 +1,177 @@
 {
   "purpose": "Training spread per (task, split) for the gate floors (F33, D37).",
-  "method": "The served adapters and a second training run of each task at the configuration that produced it, regression-scored in one session; spread is the absolute difference of the gated metric. Includes library-version drift and inference noise, so it is an upper estimate.",
+  "method": "Regression runs of the served adapters and of further training runs of each task at the configuration that produced it, served identically in one session; the spread is the range of the gated metric, and three or more runs also give a standard deviation. Runs that differ only in seed measure an equivalent retrain; a same-seed rerun measures nondeterminism and library drift alone. Either way it includes inference noise, so it is an upper estimate.",
   "inputs": [
     {
-      "file": "runs/regression__a10-v4-original.json",
-      "sha256": "6c52967ea69b3c8414967b8c49d0ce5230f5447e81327719c398fd64a129a904"
+      "file": "runs/regression__a10-v8-variance-served.json",
+      "sha256": "0f832d0198dcbcfd1119f3dfb8d0744f425c58c04f3e94338d7c4dfee43ae139"
     },
     {
-      "file": "runs/regression__a10-v4-rerun.json",
-      "sha256": "6dc918573fe6b073ab949486950bf49e927c2c831d5f62254bb74d3693000295"
+      "file": "runs/regression__a10-v8-variance-seed11.json",
+      "sha256": "39135ed875b23992047e39478ce576058bfb1d5c327ac19683f3b98f60abd172"
+    },
+    {
+      "file": "runs/regression__a10-v8-variance-seed22.json",
+      "sha256": "0794d77a4cdb3ce28a178e26c48017b85b28d9ef4f5ee30ed9c73ca201953c2b"
     }
   ],
   "rerun_training_records": {
-    "urgency": {
-      "file": "runs/urgency-rerun__train.json",
-      "sha256": "f3310654a1b285e061cb11ab3f2f527a02a35aea48d3aeea35318289a2483a0a"
-    },
-    "pii": {
-      "file": "runs/pii-rerun__train.json",
-      "sha256": "0ddff061d504c05ba418deae1ba8e28d0889f350c1533f036e35a890ab794a6f"
-    },
-    "drafting": {
-      "file": "runs/drafting-rerun__train.json",
-      "sha256": "9c22fa8fc54cd364c53c1b1d0284949cf1bb206412d43d019f814e7cb6711635"
-    }
+    "intent": [
+      {
+        "file": "runs/intent-seed11__train.json",
+        "sha256": "057f223d48f288d9d47a5b16070092630900b94ec9d74f7a68b6c28504949a47"
+      },
+      {
+        "file": "runs/intent-seed22__train.json",
+        "sha256": "84b2cdd1580342140ec0e90b8205ed4b458d8b696c420a62cfae60088bd0cce0"
+      }
+    ],
+    "urgency": [
+      {
+        "file": "runs/urgency-rerun__train.json",
+        "sha256": "f3310654a1b285e061cb11ab3f2f527a02a35aea48d3aeea35318289a2483a0a"
+      },
+      {
+        "file": "runs/urgency-seed11__train.json",
+        "sha256": "33f0699700e435ab0cd5c42524b6cce54eb14d86e4ceeafaef5ad04641f46e7f"
+      },
+      {
+        "file": "runs/urgency-seed22__train.json",
+        "sha256": "3f3632062b0fea85a98df982cfd11fde38ae001795d7e8b4dbfa87c493559d78"
+      }
+    ],
+    "pii": [
+      {
+        "file": "runs/pii-rerun__train.json",
+        "sha256": "0ddff061d504c05ba418deae1ba8e28d0889f350c1533f036e35a890ab794a6f"
+      },
+      {
+        "file": "runs/pii-seed11__train.json",
+        "sha256": "31402fc020a0743e204a9b24474ffaee6f3c96f1492eece0ea034d0ed7e2eaa3"
+      },
+      {
+        "file": "runs/pii-seed22__train.json",
+        "sha256": "7888b07d3f91551609b6f8cfcfffeda41233c1320ffa6057dc3da1b8279b57bc"
+      }
+    ],
+    "drafting": [
+      {
+        "file": "runs/drafting-rerun__train.json",
+        "sha256": "9c22fa8fc54cd364c53c1b1d0284949cf1bb206412d43d019f814e7cb6711635"
+      },
+      {
+        "file": "runs/drafting-seed11__train.json",
+        "sha256": "5e6a45d965b4c6b60bf746692d0db1da6b6fa524326a95766160fada2ab7a748"
+      },
+      {
+        "file": "runs/drafting-seed22__train.json",
+        "sha256": "c608963b0f82285ad792b5208f09b8acc709020235375de3e7411bd1c869f840"
+      }
+    ]
   },
   "per_task": {
+    "intent": {
+      "random": {
+        "metric": "micro_accuracy",
+        "runs": 3,
+        "values": [
+          0.9273,
+          0.9273,
+          0.9286
+        ],
+        "mean": 0.927733,
+        "spread": 0.0013,
+        "stdev": 0.000751
+      },
+      "hard": {
+        "metric": "micro_accuracy",
+        "runs": 3,
+        "values": [
+          0.0,
+          0.2632,
+          0.2807
+        ],
+        "mean": 0.1813,
+        "spread": 0.2807,
+        "stdev": 0.157254
+      }
+    },
     "urgency": {
       "random": {
         "metric": "macro_f1",
-        "original": 0.4275,
-        "rerun": 0.4214,
-        "spread": 0.0061
+        "runs": 3,
+        "values": [
+          0.4174,
+          0.4582,
+          0.4568
+        ],
+        "mean": 0.444133,
+        "spread": 0.0408,
+        "stdev": 0.023162
       },
       "hard": {
         "metric": "macro_f1",
-        "original": 0.0068,
-        "rerun": 0.0815,
-        "spread": 0.0747
+        "runs": 3,
+        "values": [
+          0.0113,
+          0.1724,
+          0.2029
+        ],
+        "mean": 0.128867,
+        "spread": 0.1916,
+        "stdev": 0.102951
       }
     },
     "pii": {
       "random": {
         "metric": "span_f1_strict",
-        "original": 0.9453,
-        "rerun": 0.948,
-        "spread": 0.0027
+        "runs": 3,
+        "values": [
+          0.9421,
+          0.9444,
+          0.9435
+        ],
+        "mean": 0.943333,
+        "spread": 0.0023,
+        "stdev": 0.001159
       },
       "hard": {
         "metric": "span_f1_strict",
-        "original": 0.8506,
-        "rerun": 0.8654,
-        "spread": 0.0148
+        "runs": 3,
+        "values": [
+          0.871,
+          0.8851,
+          0.889
+        ],
+        "mean": 0.8817,
+        "spread": 0.018,
+        "stdev": 0.009469
       }
     },
     "drafting": {
       "random": {
         "metric": "judge_score_mean",
-        "original": 4.2656,
-        "rerun": 4.2431,
-        "spread": 0.0225
+        "runs": 3,
+        "values": [
+          4.276,
+          4.3061,
+          4.292
+        ],
+        "mean": 4.291367,
+        "spread": 0.0301,
+        "stdev": 0.01506
       },
       "hard": {
         "metric": "judge_score_mean",
-        "original": 3.7049,
-        "rerun": 3.8309,
-        "spread": 0.126
+        "runs": 3,
+        "values": [
+          3.7279,
+          3.9352,
+          3.9894
+        ],
+        "mean": 3.884167,
+        "spread": 0.2615,
+        "stdev": 0.138018
       }
     }
   }

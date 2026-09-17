@@ -1,7 +1,8 @@
 {
-  "purpose": "Pinned component revisions (F16). Serving and evaluation resolve adapters through this file, never through `main`.",
-  "why": "changelog 29 \u2014 a stale clone force-pushed over a published adapter's main, and the recorded score then described weights nobody was serving.",
-  "verify": "uv run adapterops verify-pins",
+  "purpose": "Candidate pin set \u2014 the pinned system with urgency served by a scikit-learn model.",
+  "candidate": "urgency-tfidf",
+  "replaces": "urgency",
+  "base_pins": "manifests/adapters.json",
   "components": {
     "base_model": {
       "repo": "Qwen/Qwen2.5-1.5B-Instruct",

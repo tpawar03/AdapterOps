@@ -153,7 +153,11 @@ def hub_weight_sizes(pins_file: Path = PINS_FILE) -> tuple[int, dict[str, int]]:
 
     base = components["base_model"]
     base_bytes = size(base["repo"], base["revision"], BASE_WEIGHT_FILE)
-    adapters = {task: size(e["repo"], e["revision"], e["weight_file"])
+    def local(entry: dict) -> int:
+        path = Path(entry["path"])
+        return (path if path.is_absolute() else pins_file.parent.parent / path).stat().st_size
+
+    adapters = {task: local(e) if e.get("kind") == "sklearn" else size(e["repo"], e["revision"], e["weight_file"])
                 for task, e in components.items() if task != "base_model" and e}
     return base_bytes, adapters
 
